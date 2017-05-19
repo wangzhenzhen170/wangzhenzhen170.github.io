@@ -5,14 +5,19 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   
-  <title>Archives: 2017 | zhenzhen&#39;s blog</title>
+  <title>github+hexo免费搭建博客 | zhenzhen&#39;s blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="zhenzhen&#39;s blog">
-<meta property="og:url" content="http://yoursite.com/archives/2017/index.html">
+  <meta name="description" content="##前言这是我第一篇博客，太开心了，第一篇就记录一下用gitHub+hexo搭建博客的详细步骤吧。">
+<meta name="keywords" content="github,hexo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="github+hexo免费搭建博客">
+<meta property="og:url" content="http://yoursite.com/2015/05/18/my-second-blog/index.html">
 <meta property="og:site_name" content="zhenzhen&#39;s blog">
+<meta property="og:description" content="##前言这是我第一篇博客，太开心了，第一篇就记录一下用gitHub+hexo搭建博客的详细步骤吧。">
+<meta property="og:updated_time" content="2017-05-19T05:01:44.887Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="zhenzhen&#39;s blog">
+<meta name="twitter:title" content="github+hexo免费搭建博客">
+<meta name="twitter:description" content="##前言这是我第一篇博客，太开心了，第一篇就记录一下用gitHub+hexo搭建博客的详细步骤吧。">
   
     <link rel="alternative" href="/atom.xml" title="zhenzhen&#39;s blog" type="application/atom+xml">
   
@@ -75,40 +80,80 @@
 </header>
 
     <div class="outer">
-      <section id="main">
-  
-  
-    
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2017" class="archive-year">2017</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <h3 href="/2017/05/15/hello-world/" class="archive-article-date">
-  <time datetime="2017-05-15T10:25:50.347Z" itemprop="datePublished">May 15</time>
+      <section id="main"><article id="post-my-second-blog" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <h3 href="/2015/05/18/my-second-blog/" class="article-date">
+  <time datetime="2015-05-18T14:16:52.000Z" itemprop="datePublished">2015-05-18</time>
 </h3>
-      
+    
+  </div>
+  <div class="article-inner">
+  <div class="curve-down">
+  <div class="fill-content">
+    
+    
+      <header class="article-header">
+        
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2017/05/15/hello-world/">Hello World</a>
+    <h1 class="article-title" itemprop="name">
+      github+hexo免费搭建博客
     </h1>
   
 
-    </header>
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        
+        <p>##前言<br>这是我第一篇博客，太开心了，第一篇就记录一下用gitHub+hexo搭建博客的详细步骤吧。<br><a id="more"></a><br>使用github pages服务搭建博客的好处有：<br>1.全是静态文件，访问速度快；<br>2.免费方便，不用花一分钱就可以搭建一个自由的个人博客，不需要服务器不需要后台；<br>3.可以随意绑定自己的域名，不仔细看的话根本看不出来你的网站是基于github的；<br>4.数据绝对安全，基于github的版本管理，想恢复到哪个历史版本都行；<br>5.博客内容可以轻松打包、转移、发布到其它平台等等；</p>
+<p>##准备工作<br>在开始一切之前，你必须已经：</p>
+<ul>
+<li>有一个github账号，没有的话去注册一个；</li>
+<li>安装了node.js、npm，并了解相关基础知识；</li>
+<li>安装了git for windows（或者其它git客户端）<br>本文所使用的环境：</li>
+<li>Windows8.1</li>
+<li>node.js@5.5.0</li>
+<li>git@1.9.2</li>
+<li>hexo@3.2.2<br>##搭建github博客<br>###创建仓库<br>新建一个名为你的用户名.github.io的仓库，比如说，如果你的github用户名是test，<br>那么你就新建test.github.io的仓库（必须是你的用户名，其它名称无效），将来你的网站访问地址就是 <a href="http://test.github.io" target="_blank" rel="external">http://test.github.io</a> 了，是不是很方便？<br>由此可见，每一个github账户最多只能创建一个这样可以直接使用域名访问的仓库。<br>几个注意的地方：</li>
+<li>注册的邮箱一定要验证，否则不会成功；</li>
+<li>仓库名字必须是：username.github.io，其中username是你的用户名；</li>
+<li>仓库创建成功不会立即生效，需要过一段时间，大概10-30分钟，或者更久，我的等了半个小时才生效；<br>创建成功后，默认会在你这个仓库里生成一些示例页面，以后你的网站所有代码都是放在这个仓库里啦。</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <div class="article-footer-content">
+        
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/github/">github</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/hexo/">hexo</a></li></ul>
+
+        <a data-url="http://yoursite.com/2015/05/18/my-second-blog/" data-id="cj2vdohka0000o8hlwun0wuj4" class="article-share-link">Share</a>
+        
+      </div>
+    </footer>
   </div>
+  </div>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2017/05/15/hello-world/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Hello World
+        
+      </div>
+    </a>
+  
+  
+</nav>
+
+  
 </article>
-  
-  
-    </div></section>
-  
-  
+
+
 </section>
       
       <aside id="sidebar">
