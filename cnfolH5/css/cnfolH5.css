@@ -1,0 +1,975 @@
+html,body{ height: 100%;overflow: hidden;}
+body{
+	font-family: "微软雅黑";
+     position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+
+}
+.Cf:before, .Cf:after{content:"";display:table;}
+.Cf:after{clear:both;}
+.Cf{zoom:1;}
+
+.o_slide {
+  overflow: hidden;
+  position: absolute;
+  width: 100%;
+  -height: 100%;
+  top: 0px;
+  transform: translateY(100%);
+  -webkit-transform: translateY(100%);
+  transition: transform 1s ease;
+  -webkit-transition: transform 1s ease;
+}
+
+#s {
+  transform: translateY(-100%);
+  -webkit-transform: translateY(-100%);
+}
+#z {
+  transform: translateY(0px);
+  -webkit-transform: translateY(0px);
+}
+#x {
+  transform: translateY(100%);
+  -webkit-transform: translateY(100%);
+}
+
+
+
+/*  home  */
+.home{ 
+	background: url(http://hs.3g.cnfol.com/uh/Imgs/cnfolH5/index_bg.jpg) no-repeat;
+	background-size: 100%;
+	height: 100%;position: absolute;
+}
+.logo{width: 1.75rem; position: absolute;left: 2.86rem; top: 2.4rem; height: 1.75rem;}
+
+.csappbox{width: 100%; position: absolute; left: 0; top: 4.46rem;}
+.showTime{position: absolute; left: 4.6rem;}
+.circleDot{width: 0.16rem;opacity: 0}
+
+.csappshow{ width: 100%; position:relative ; margin-top: 0.95rem;}
+.showTime p.ptitme{ opacity: 0;
+	font-size: 0.3rem; color: #fff; margin-top: 5px;
+}
+.lineLeft{background: #fff; width: 2.96rem; height: 1px; opacity: 0;
+position: absolute;left: 0;}
+.lineRight{background: #fff; width: 2.96rem; height: 1px;  opacity: 0;
+position: absolute;left: 4.54rem;}
+
+.cstext{ width: 0.92rem; height: 0.99rem; opacity: 0;
+	position: absolute; left: 3.3rem;margin-top: -20px;
+}
+
+.platform{ 
+	width: 4.75rem; height: 1.08rem;
+	position: absolute;top: 6.85rem; left: 1.3rem;
+}
+.nextpage{ 
+	width: 0.66rem; height: 0.56rem; 
+	position:absolute; left: 3.4rem; bottom: 0.6rem; z-index: 99;
+}
+
+/*  产品 页 （第二页） */
+.product{
+	background: url(http://hs.3g.cnfol.com/uh/Imgs/cnfolH5/product_bg.jpg) no-repeat;
+	background-size: 100%;
+	height: 100%;position: absolute;
+}
+.productTitle{position: absolute; top: 1.08rem;width: 100%;}
+.proLineLeft{ width: 2.97rem; height: 0.33rem; 
+	background: url(http://hs.3g.cnfol.com/uh/Imgs/cnfolH5/proLineLeft.png) no-repeat;
+	position: absolute;left: 0; top: 0.34rem;
+	background-size: 100%;opacity: 0;
+}
+.proLineRight{ width: 3.01rem; height: 0.35rem;
+	position: absolute;right: 0;top: 0; opacity: 0;
+	background: url(http://hs.3g.cnfol.com/uh/Imgs/cnfolH5/proLineRight.png) no-repeat;background-size: 100%;
+}
+.proTitleImg{ width: 1.42rem; height: 0.32rem;
+	position: absolute;left: 3.02rem; top: 0.18rem;
+}
+.proTitleText{ 
+	font-size: 0.2rem;font-family: arial; color:#fff;  opacity: 0;
+	position: absolute;left: 3.02rem;top: 0.56rem;
+}
+
+
+.videoLive{position: absolute;top: 2.83rem; left: 4.55rem;}
+.videoLive .videoText1{ font-size: 0.2rem;font-family: arial; color: #fff; opacity: 0}
+.videoLive .videoText2{ font-size: 0.32rem;color: #ffd800;opacity: 0}
+.videoLive .videoText3{ font-size: 0.32rem;color: #fff;opacity: 0}
+
+.audioLive{position: absolute;top: 4.7rem; left: 4.55rem;}
+.audioLive .audioText1{ font-size: 0.2rem;font-family: arial; color: #fff;opacity: 0}
+.audioLive .audioText2{ font-size: 0.32rem;color: #ffd800;opacity: 0}
+.audioLive .audioText3{ font-size: 0.32rem;color: #fff;opacity: 0}
+
+.mobiles{ 
+	position: absolute; left: 0.8rem; top: 2.4rem;
+	width: 3.08rem; height: 3.93rem;z-index: 101;
+}
+
+.pcircenter{ 
+  position: absolute; top: 2.94rem; left: 0.66rem;z-index: 100; border-radius: 50%;
+  width: 3.42rem; height: 3.42rem; background: rgba(255,255,255,0.3);
+}
+@keyframes pcirlar1{
+  100%{
+    width:3.62rem;height: 3.62rem;border: 1px solid rgba(255,255,255,0.5);
+    left: 0.56rem;top: 2.84rem;
+  } 
+}
+@-webkit-keyframes pcirlar1{
+  100%{
+    width:3.62rem;height: 3.62rem;border: 1px solid rgba(255,255,255,0.5);
+    left: 0.56rem;top: 2.84rem;
+  } 
+}
+
+@keyframes pcirlar2{
+  100%{
+   width:3.82rem;height: 3.82rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 0.46rem;top: 2.74rem;
+  } 
+}
+@-webkit-keyframes pcirlar2{
+  100%{
+    width:3.82rem;height: 3.82rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 0.46rem;top: 2.74rem;
+  } 
+}
+@keyframes pcirlar3{
+  100%{
+  width:4.02rem;height: 4.02rem;border: 1px solid rgba(255,255,255,0);
+    left: 0.36rem;top: 2.64rem;
+  } 
+}
+@-webkit-keyframes pcirlar3{
+  100%{
+    width:4.02rem;height: 4.02rem;border: 1px solid rgba(255,255,255,0);
+    left: 0.36rem;top: 2.64rem;
+  } 
+}
+
+.pcirlar1{ 
+  position: absolute; top: 2.94rem; left: 0.66rem;z-index: 100; border-radius: 50%;
+  width: 3.42rem; height: 3.42rem; border: 1px solid rgba(255,255,255,0.8);
+  animation: pcirlar1 1s infinite ease 0.5s;
+  -webkit-animation: pcirlar1 1s infinite ease 0.5s;
+}
+.pcirlar2{ 
+  position: absolute; top: 2.84rem; left: 0.56rem;z-index: 100; border-radius: 50%;
+  width: 3.62rem; height: 3.62rem; border: 1px solid rgba(255,255,255,0.5);
+  animation: pcirlar2 1s infinite ease 0.5s;
+  -webkit-animation: pcirlar2 1s infinite ease 0.5s;
+}
+.pcirlar3{ 
+  position: absolute; top: 2.74rem; left: 0.46rem;z-index: 100; border-radius: 50%;
+  width: 3.82rem; height: 3.82rem; border: 1px solid rgba(255,255,255,0.2);
+  animation: pcirlar3 1s infinite ease 0.5s;
+  -webkit-animation: pcirlar3 1s infinite ease 0.5s;
+}
+
+.p2circenter{ 
+  position: absolute; top: 8.42rem; left: 0.66rem;z-index: 100; border-radius: 50%;
+  width: 3.42rem; height: 3.42rem; background: rgba(255,255,255,0.3);
+}
+
+@keyframes p2cirlar1{
+  100%{
+    width:3.62rem;height: 3.62rem;border: 1px solid rgba(255,255,255,0.5);
+    left: 0.56rem;top: 8.32rem;
+  } 
+}
+@-webkit-keyframes p2cirlar1{
+  100%{
+    width:3.62rem;height: 3.62rem;border: 1px solid rgba(255,255,255,0.5);
+    left: 0.56rem;top: 8.32rem;
+  } 
+}
+
+@keyframes p2cirlar2{
+  100%{
+   width:3.82rem;height: 3.82rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 0.46rem;top: 8.22rem;
+  } 
+}
+@-webkit-keyframes p2cirlar2{
+  100%{
+    width:3.82rem;height: 3.82rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 0.46rem;top: 8.22rem;
+  } 
+}
+@keyframes p2cirlar3{
+  100%{
+  width:4.02rem;height: 4.02rem;border: 1px solid rgba(255,255,255,0);
+    left: 0.36rem;top: 8.12rem;
+  } 
+}
+@-webkit-keyframes p2cirlar3{
+  100%{
+    width:4.02rem;height: 4.02rem;border: 1px solid rgba(255,255,255,0);
+    left: 0.36rem;top: 8.12rem;
+  } 
+}
+
+.p2cirlar1{ 
+  position: absolute; top: 8.42rem; left: 0.66rem;z-index: 100; border-radius: 50%;
+  width: 3.42rem; height: 3.42rem; border: 1px solid rgba(255,255,255,0.8);
+  animation: p2cirlar1 1s infinite ease 0.5s;
+  -webkit-animation: p2cirlar1 1s infinite ease 0.5s;
+}
+.p2cirlar2{ 
+  position: absolute; top: 8.32rem; left: 0.56rem;z-index: 100; border-radius: 50%;
+  width: 3.62rem; height: 3.62rem; border: 1px solid rgba(255,255,255,0.5);
+  animation: p2cirlar2 1s infinite ease 0.5s;
+  -webkit-animation: p2cirlar2 1s infinite ease 0.5s;
+}
+.p2cirlar3{ 
+  position: absolute; top: 8.22rem; left: 0.46rem;z-index: 100; border-radius: 50%;
+  width: 3.82rem; height: 3.82rem; border: 1px solid rgba(255,255,255,0.2);
+  animation: p2cirlar3 1s infinite ease 0.5s;
+  -webkit-animation: p2cirlar3 1s infinite ease 0.5s;
+}
+
+ .videoAudioTexts{position: absolute; left: 0.54rem; top: 7.5rem;} 
+.imgtext{ 
+	width: 3.56rem;height: 0.55rem;
+	position: absolute; left: 0;opacity: 0;
+}
+.stockplan{ 
+	width: 3.30rem;height: 0.55rem;opacity: 0;
+	position: absolute; top: 0.7rem;  left: 3.5rem;
+}
+
+.mobiles2box{
+  position: absolute; left: 0.54rem; top: 8.3rem;
+  height: 2.88rem;z-index: 101;
+}
+.mobiles2{
+	width: 1.59rem;height: 3.28rem; opacity: 0;
+	position: absolute;  z-index: 99;
+}
+.mobileSlid{
+	width: 4.41rem;height: 2.88rem;  opacity: 0;
+	position: absolute; z-index: 98; top: 0.5rem; left: 1.13rem;
+}
+.arrow{
+	width: 1.31rem; height: 0.68rem;opacity: 0;
+	position: absolute; left: 3.8rem; top: 0.38rem; z-index: 101;
+}
+
+/* 入驻权益  */
+.rzqy{
+	background: url(http://hs.3g.cnfol.com/uh/Imgs/cnfolH5/rzqy_bg.jpg) no-repeat;
+	background-size: 100%;
+	height: 100%;position: absolute;
+}
+.ddzsbox{
+	position: absolute; left: 1.13rem; top: 2.44rem; z-index: 101;
+}
+.ddzsText{
+	width: 5.05rem; height: 0.54rem;
+	position: absolute; opacity: 0;
+}
+.rzqyMobiles{
+	width: 5.74rem; height: 4.05rem;
+	position: absolute; top: 0.9rem; z-index: 101;
+}
+
+.yjts{
+	position: absolute; left: 1.13rem; top: 8.2rem; z-index: 101; 
+}
+
+.yjtsText{
+	width: 3.63rem; height: 0.56rem;opacity: 0;
+	position: absolute;  left: 2.50rem;
+}
+.rzqyMobiles2{
+	width: 4.72rem; height: 2.98rem;opacity: 0;
+	position: absolute; top: 0.5rem; 
+}
+.arrow2{
+	width: 1.86rem; height: 0.7rem;opacity: 0;
+	position: absolute; top: 0.5rem; left: 2.5rem;
+}
+
+.rzcircenter{ 
+  position: absolute; top: 4.2rem; left: 0.85rem;z-index: 100; border-radius: 50%;
+  width: 3.42rem; height: 3.42rem; background: rgba(255,255,255,0.3);
+}
+@keyframes rzcirlar1{
+  100%{
+    width:3.62rem;height: 3.62rem;border: 1px solid rgba(255,255,255,0.5);
+    left: 0.75rem;top: 4.1rem;
+  } 
+}
+@-webkit-keyframes rzcirlar1{
+  100%{
+    width:3.62rem;height: 3.62rem;border: 1px solid rgba(255,255,255,0.5);
+    left: 0.75rem;top: 4.1rem;
+  } 
+}
+
+@keyframes rzcirlar2{
+  100%{
+   width:3.82rem;height: 3.82rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 0.65rem;top: 4.0rem;
+  } 
+}
+@-webkit-keyframes rzcirlar2{
+  100%{
+    width:3.82rem;height: 3.82rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 0.65rem;top: 4.0rem;
+  } 
+}
+@keyframes rzcirlar3{
+  100%{
+  width:4.02rem;height: 4.02rem;border: 1px solid rgba(255,255,255,0);
+    left: 0.55rem;top: 3.9rem;
+  } 
+}
+@-webkit-keyframes rzcirlar3{
+  100%{
+    width:4.02rem;height: 4.02rem;border: 1px solid rgba(255,255,255,0);
+    left: 0.55rem;top: 3.9rem;
+  } 
+}
+
+.rzcirlar1{ 
+  position: absolute; top: 4.2rem; left: 0.85rem;z-index: 100; border-radius: 50%;
+  width: 3.42rem; height: 3.42rem; border: 1px solid rgba(255,255,255,0.8);
+  animation: rzcirlar1 1s infinite ease 0.5s;
+  -webkit-animation: rzcirlar1 1s infinite ease 0.5s;
+}
+.rzcirlar2{ 
+  position: absolute; top: 4.1rem; left: 0.75rem;z-index: 100; border-radius: 50%;
+  width: 3.62rem; height: 3.62rem; border: 1px solid rgba(255,255,255,0.5);
+  animation: rzcirlar2 1s infinite ease 0.5s;
+  -webkit-animation: rzcirlar2 1s infinite ease 0.5s;
+}
+.rzcirlar3{ 
+  position: absolute; top: 4.0rem; left: 0.65rem;z-index: 100; border-radius: 50%;
+  width: 3.82rem; height: 3.82rem; border: 1px solid rgba(255,255,255,0.2);
+  animation: rzcirlar3 1s infinite ease 0.5s;
+  -webkit-animation: rzcirlar3 1s infinite ease 0.5s;
+}
+
+
+.rz2circenter{ 
+  position: absolute; top: 8.52rem; left: 2.74rem;z-index: 100; border-radius: 50%;
+  width: 3.42rem; height: 3.42rem; background: rgba(255,255,255,0.3);
+}
+@keyframes rz2cirlar1{
+  100%{
+    width:3.62rem;height: 3.62rem;border: 1px solid rgba(255,255,255,0.5);
+    left: 2.64rem;top: 8.42rem;
+  } 
+}
+@-webkit-keyframes rz2cirlar1{
+  100%{
+    width:3.62rem;height: 3.62rem;border: 1px solid rgba(255,255,255,0.5);
+    left: 2.64rem;top: 8.42rem;
+  } 
+}
+
+@keyframes rz2cirlar2{
+  100%{
+   width:3.82rem;height: 3.82rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 2.54rem;top: 8.32rem;
+  } 
+}
+@-webkit-keyframes rz2cirlar2{
+  100%{
+    width:3.82rem;height: 3.82rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 2.54rem;top: 8.32rem;
+  } 
+}
+@keyframes rz2cirlar3{
+  100%{
+  width:4.02rem;height: 4.02rem;border: 1px solid rgba(255,255,255,0);
+    left: 2.44rem;top: 8.22rem;
+  } 
+}
+@-webkit-keyframes rz2cirlar3{
+  100%{
+    width:4.02rem;height: 4.02rem;border: 1px solid rgba(255,255,255,0);
+    left: 2.44rem;top: 8.22rem;
+  } 
+}
+
+.rz2cirlar1{ 
+  position: absolute; top: 8.52rem; left: 2.74rem;z-index: 100; border-radius: 50%;
+  width: 3.42rem; height: 3.42rem; border: 1px solid rgba(255,255,255,0.8);
+  animation: rz2cirlar1 1s infinite ease 0.5s;
+  -webkit-animation: rz2cirlar1 1s infinite ease 0.5s;
+}
+.rz2cirlar2{ 
+  position: absolute; top: 8.42rem; left: 2.64rem;z-index: 100; border-radius: 50%;
+  width: 3.62rem; height: 3.62rem; border: 1px solid rgba(255,255,255,0.5);
+  animation: rz2cirlar2 1s infinite ease 0.5s;
+  -webkit-animation: rz2cirlar2 1s infinite ease 0.5s;
+}
+.rz2cirlar3{ 
+  position: absolute; top: 8.32rem; left: 2.54rem;z-index: 100; border-radius: 50%;
+  width: 3.82rem; height: 3.82rem; border: 1px solid rgba(255,255,255,0.2);
+  animation: rz2cirlar3 1s infinite ease 0.5s;
+  -webkit-animation: rz2cirlar3 1s infinite ease 0.5s;
+}
+
+/* 入驻条件  */
+.rzif{
+	background: url(http://hs.3g.cnfol.com/uh/Imgs/cnfolH5/rzif_bg.jpg) no-repeat;
+	background-size: 100%;
+	height: 100%;position: absolute;
+}
+
+.rzifcases{
+	position: absolute; left: 1.26rem; top: 3.23rem; z-index: 101;
+	color: #fff; font-size: 0.32rem;-opacity: 0;
+}
+.rzifcases dd{ margin-top: 0.5rem; margin-left: 0.4rem; }
+.rzifcases dd img{ width: 0.24rem;height: 0.36rem; margin-right: 0.1rem;}
+
+.rzifcons{
+	width: 5rem; height: 1.22rem;opacity: 0;
+}
+
+/* 现场报名  */
+.xcbm{
+	background: url(http://hs.3g.cnfol.com/uh/Imgs/cnfolH5/xcbm_bg.jpg) no-repeat;
+	background-size: 100%;
+	height: 100%;position: absolute; z-index: 101;
+}
+.xcbmForm{
+	position: absolute; left: 0.5rem; top: 2.5rem; z-index: 101;
+}
+.xcbmForm input{float: left; border: none; background: none; 
+	border-bottom: 1px solid #8a9cb8;color: #fff; opacity: 0;
+}
+.xcbmForm li{ margin-top: 0.85rem;}
+.xcbmForm li span{font-size:0.32rem; color: #fff; float: left;opacity: 0;}
+.xcbmForm li img{width: 0.38rem; height: 0.34rem;float: left;margin-right: 0.1rem; opacity: 0;}
+
+.xcbmForm .loginBtn{
+  height: 0.66rem; width: 5rem; line-height: 0.66rem;opacity: 0; z-index: 100;
+  position: absolute;left: 0.8rem; bottom: -1rem; text-align: center; 
+  background: rgba(208,183,20,0.8); border-radius: 20px; font-size: 0.34rem; 
+}
+.xcbmForm .loginBtn strong{
+  display: block;  width: 100%;color: #fff; font-weight: normal;
+}
+
+
+@keyframes cirlar1{
+  100%{
+    width:1.95rem;height: 1.95rem;border: 1px solid rgba(255,255,255,0.6);
+    left: 2.76rem;top: 2.3rem;
+  } 
+}
+@-webkit-keyframes cirlar1{
+  100%{
+    width:1.95rem;height: 1.95rem;border: 1px solid rgba(255,255,255,0.6);
+    left: 2.76rem;top: 2.3rem;
+  } 
+}
+
+@keyframes cirlar2{
+  100%{
+   width:2.15rem;height: 2.15rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 2.66rem;top: 2.2rem;
+  } 
+}
+@-webkit-keyframes cirlar2{
+  100%{
+    width:2.15rem;height: 2.15rem;border: 1px solid rgba(255,255,255,0.3);
+    left: 2.66rem;top: 2.2rem;
+  } 
+}
+@keyframes cirlar3{
+  100%{
+   width:2.35rem;height: 2.35rem; border: 1px solid rgba(255,255,255,0);
+    left: 2.56rem;top: 2.1rem;
+  } 
+}
+@-webkit-keyframes cirlar3{
+  100%{
+     width:2.35rem;height: 2.35rem; border: 1px solid rgba(255,255,255,0);
+    left: 2.56rem;top: 2.1rem;
+  } 
+}
+
+
+
+.circle1{ 
+  width:1.75rem; border-radius: 50%; border: 1px solid rgba(255,255,255,1);
+  position: absolute; height: 1.75rem; 
+  left: 2.86rem;
+  top: 2.4rem;
+  animation: cirlar1 1s infinite ease 0.5s;
+  -webkit-animation: cirlar1 1s infinite ease 0.5s;
+}
+.circle2{ 
+  width:1.95rem; border-radius: 50%; border: 1px solid rgba(255,255,255,0.6);
+  position: absolute; height: 1.95rem;
+  left: 2.76rem;
+  top: 2.3rem;
+  animation: cirlar2 1s infinite ease 0.5s;
+  -webkit-animation: cirlar2 1s infinite ease 0.5s;
+}
+.circle3{ 
+  width:2.15rem; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3);
+  position: absolute; height: 2.15rem;
+  left: 2.66rem;
+  top: 2.2rem;
+  animation: cirlar3 1s infinite ease 0.5s;
+  -webkit-animation: cirlar3 1s infinite ease 0.5s;
+}
+
+
+
+.index1 {
+    transform: translateY(0px);
+    -webkit-transform: translateY(0px);
+}
+@keyframes bgwd{
+ 0%{ background-size: 100%}
+  50%{background-size: 105%}
+  100%{background-size: 100%} 
+}
+@-webkit-keyframes bgwd{
+  0%{ background-size: 100%}
+  50%{background-size: 105%}
+  100%{background-size: 100%} 
+}
+@keyframes arrow{
+  0%{ transform:translate(0,0);}
+  50%{transform:translate(0,-0.133rem);}
+  100%{transform:translate(0,0);} 
+}
+@-webkit-keyframes arrow{
+  0%{-webkit-transform:translate(0,0);}
+  50%{-webkit-transform:translate(0,-0.133rem);}
+  100%{-webkit-transform:translate(0,0);} 
+}
+
+@keyframes fadeLarge{
+  0%{transform: scale(0, 0);opacity:0;}
+  50%{transform: scale(0, 0);opacity:0;}
+  100%{transform: scale(1, 1);opacity:1;}
+}
+@-webkit-keyframes fadeLarge{
+  0%{-webkit-transform: scale(0, 0);opacity:0;}
+  50%{-webkit-transform: scale(0, 0);opacity:0;}
+  100%{-webkit-transform: scale(1, 1);opacity:1;}
+}
+
+@keyframes fadein{
+  0%{ opacity:0;}
+  100%{opacity:1;}
+}
+ @-webkit-keyframes fadein{
+  0%{ opacity:0;}
+  100%{ opacity:1;}
+}
+@keyframes fadein2{
+  0%{ opacity:0;}
+  100%{opacity:1;}
+}
+ @-webkit-keyframes fadein2{
+  0%{ opacity:0;}
+  100%{ opacity:1;}
+}
+
+@keyframes arrow{
+  0%{ transform:translate(0,0);}
+  50%{transform:translate(0,-0.133rem);}
+  100%{transform:translate(0,0);} 
+}
+@-webkit-keyframes arrow{
+  0%{-webkit-transform:translate(0,0);}
+  50%{-webkit-transform:translate(0,-0.133rem);}
+  100%{-webkit-transform:translate(0,0);} 
+}
+@keyframes slideL{
+    0%{transform:translateX(-2.96rem);opacity:1;}
+    30%{transform:translateX(-2.96rem);opacity:1;}
+    100%{transform:translateX(0);opacity:1;}
+}
+@-webkit-keyframes slideL{
+    0%{-webkit-transform:translateX(-2.96rem);opacity:1;}
+    30%{-webkit-transform:translateX(-2.96rem);opacity:1;}
+    100%{-webkit-transform:translateX(0);opacity:1;}
+}
+@keyframes slideimgtextL{
+    0%{transform:translateX(-3.56rem);opacity:1;}
+    100%{transform:translateX(0);opacity:1;}
+}
+@-webkit-keyframes slideimgtextL{
+    0%{-webkit-transform:translateX(-3.56rem);opacity:0;}
+    100%{-webkit-transform:translateX(0);opacity:1;}
+}
+
+@keyframes slideStockPlanR{
+    0%{transform:translateX(7rem);opacity:0;}
+    100%{transform:translateX(0);opacity:1;}
+}
+@-webkit-keyframes slideStockPlanR{
+    0%{-webkit-transform:translateX(7rem);opacity:0;}
+    100%{-webkit-transform:translateX(0);opacity:1;}
+}
+
+@keyframes slideLB{
+    0%{transform:translateX(-2.96rem);opacity:1;}
+    90%{transform:translateX(0.2rem);opacity:1;}
+    100%{transform:translateX(0);opacity:1;}
+}
+@-webkit-keyframes slideLB{
+    0%{-webkit-transform:translateX(-2.96rem);opacity:1;}
+    90%{-webkit-transform:translateX(0.2rem);opacity:1;}
+    100%{-webkit-transform:translateX(0);opacity:1;}
+}
+@keyframes slideR{
+    0%{transform:translateX(4.54rem);opacity:0;}
+    100%{transform:translateX(0);opacity:1;}
+}
+@-webkit-keyframes slideR{
+    0%{-webkit-transform:translateX(4.54rem);opacity:0;}
+    100%{-webkit-transform:translateX(0);opacity:1;}
+}
+@keyframes slideRB{
+    0%{transform:translateX(4.54rem);opacity:1;}
+     90%{transform:translateX(-0.2rem);opacity:1;}
+    100%{transform:translateX(0);opacity:1;}
+}
+@-webkit-keyframes slideRB{
+    0%{-webkit-transform:translateX(4.54rem);opacity:1;}
+     90%{-webkit-transform:translateX(-0.2rem);opacity:1;}
+    100%{-webkit-transform:translateX(0);opacity:1;}
+}
+
+@keyframes slideRif{
+    0%{transform:translateX(6.24rem);opacity:0;}
+     90%{transform:translateX(-0.2rem);opacity:0.9;}
+    100%{transform:translateX(0);opacity:1;}
+}
+@-webkit-keyframes slideRif{
+    0%{-webkit-transform:translateX(6.24rem);opacity:0;}
+     90%{-webkit-transform:translateX(-0.2rem);opacity:0.9;}
+    100%{-webkit-transform:translateX(0);opacity:1;}
+}
+
+@keyframes ddzsTextSL{
+    0%{transform:translateX(-6.18rem);opacity:1;}
+    100%{transform:translateX(0);opacity:1;}
+}
+@-webkit-keyframes ddzsTextSL{
+    0%{-webkit-transform:translateX(-6.18rem);opacity:1;}
+    100%{-webkit-transform:translateX(0);opacity:1;}
+}
+
+@keyframes yjtsTextSR{
+    0%{transform:translateX(4.54rem);opacity:1;}
+    100%{transform:translateX(0);opacity:1;}
+}
+@-webkit-keyframes yjtsTextSR{
+    0%{-webkit-transform:translateX(4.54rem);opacity:1;}
+    100%{-webkit-transform:translateX(0);opacity:1;}
+}
+
+ .o_active {
+    animation: bgwd 5s infinite linear 1s;
+    -webkit-animation: bgwd 5s infinite linear 1s;
+} 
+
+.nextpage {
+    animation: arrow 1s infinite linear;
+    -webkit-animation: arrow 1s infinite linear;
+}
+.o_active  .logo{
+	animation:fadein 1.5s ease;-webkit-animation:fadein 1.5s ease;
+
+}
+.o_active  .platform{animation:fadein 2.5s ease;-webkit-animation:fadein 2.5s ease;}
+
+.o_active .lineLeft{
+	animation: slideL 1.5s ease 0.5s;
+    -webkit-animation: slideL 1.5s ease 0.5s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+} 
+.o_active .lineRight{
+	animation: slideR 1.5s ease 0.5s;
+    -webkit-animation: slideR 1.5s ease 0.5s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+.o_active .cstext{
+	animation: fadein 1.5s ease 0.5s;
+    -webkit-animation: fadein 1.5s ease 0.5s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+
+ .o_active .circleDot{
+	animation: fadein 1.5s ease 1s;
+    -webkit-animation: fadein 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+.o_active .ptitme{
+	animation: fadein 1.5s ease 1s;
+    -webkit-animation: fadein 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+} 
+
+
+.o_active .proTitleImg{
+	animation: fadein 1.5s ease;
+    -webkit-animation: fadein 1.5s ease;
+}
+.o_active .proTitleText{
+	animation: fadein 1.5s ease 0.5s;	
+    -webkit-animation: fadein 1.5s ease 0.5s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+ .o_active .proLineLeft{
+	animation: slideLB 1.5s ease 1s;
+    -webkit-animation: slideLB 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+} 
+.o_active .proLineRight{
+	animation: slideRB 1.5s ease 1s;
+    -webkit-animation: slideRB 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}  
+
+.o_active .mobiles{
+	animation: fadeLarge 1.5s ease;
+    -webkit-animation: fadeLarge 1.5s ease;
+}
+
+.o_active .rzqyMobiles{
+	animation: fadeLarge 1.5s ease;
+    -webkit-animation: fadeLarge 1.5s ease;
+}
+
+
+.o_active .mobiles2{
+	animation: fadein 1.5s ease 1s;
+    -webkit-animation: fadein 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+
+
+.o_active .videoText1,.o_active .audioText1{
+	animation: slideR 1.5s ease 0.5s;
+    -webkit-animation: slideR 1.5s ease 0.5s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+
+}
+.o_active .videoText2,.o_active .audioText2{
+	animation: slideR 1.5s ease 1s;
+    -webkit-animation: slideR 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+.o_active .videoText3,.o_active .audioText3{
+	animation: slideR 1.5s ease 1.5s;
+    -webkit-animation: slideR 1.5s ease 1.5s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+
+.o_active .mobileSlid{
+	animation: slideR 1.5s ease 1s;
+    -webkit-animation: slideR 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+
+.o_active .imgtext{
+	animation: slideimgtextL 1.5s ease 1s;
+    -webkit-animation: slideimgtextL 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+
+.o_active .stockplan{
+	animation: slideStockPlanR 1.5s ease 1s;
+    -webkit-animation: slideStockPlanR 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+
+.o_active .arrow{
+	animation: fadein 1.5s ease 1.5s;
+    -webkit-animation: fadein 1.5s ease 1.5s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+.o_active .arrow2{
+  animation: fadein2 1.5s ease 1.5s;
+    -webkit-animation: fadein2 1.5s ease 1.5s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+
+.o_active .rzqyMobiles2{
+	animation: slideR 1.5s ease 1s;
+    -webkit-animation: slideR 1.5s ease 1s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+
+.o_active .ddzsText{
+	animation: ddzsTextSL 1.5s ease 0.5s;
+    -webkit-animation: ddzsTextSL 1.5s ease 0.5s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+
+.o_active .yjtsText{
+	animation: yjtsTextSR 1.5s ease 0.5s;
+    -webkit-animation: yjtsTextSR 1.5s ease 0.5s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+
+.o_active .rzifcons{
+	animation: fadein 1s ease 0.5s;
+    -webkit-animation: fadein 1.5s ease 0.5s;
+    animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+
+
+.rzifcases img {
+    animation: arrow 1s infinite linear;
+    -webkit-animation: arrow 1s infinite linear;
+}
+ .rzifcases dd {
+  opacity: 0;
+ }   
+
+.o_active .rzifcases dd:nth-child(2){
+	animation: slideRif 1s ease;
+    -webkit-animation: slideRif 1s ease;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+.o_active .rzifcases dd:nth-child(3){
+	animation: slideRif 1s ease 0.25s;
+    -webkit-animation: slideRif 1s ease 0.25s;
+      animation-fill-mode :  forwards ; 
+      -webkit-animation-fill-mode :  forwards ;
+}
+.o_active .rzifcases dd:nth-child(4){
+	animation: slideRif 1s ease 0.5s;
+    -webkit-animation: slideRif 1s ease 0.5s;
+     animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+.o_active .rzifcases dd:nth-child(5){
+	animation: slideRif 1s ease 0.75s;
+    -webkit-animation: slideRif 1s ease 0.75s;
+     animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+.o_active .rzifcases dd:nth-child(6){
+	animation: slideRif 1s ease 1s;
+    -webkit-animation: slideRif 1s ease 1s;
+     animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+.o_active .rzifcases dd:nth-child(7){
+	animation: slideRif 1s ease 1.25s;
+    -webkit-animation: slideRif 1s ease 1.25s;
+     animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+
+
+
+.o_active .xcbmForm li img{
+  animation: fadein 1s ease 0.5s;
+    -webkit-animation: fadein 1s ease 0.5s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+
+.o_active .xcbmForm li span{
+  animation: fadein 1s ease 0.75s;
+    -webkit-animation: fadein 1s ease 0.75s;
+    animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+
+
+.o_active .xcbmForm li input{
+  animation: fadein 1s ease 1s;
+    -webkit-animation: fadein 1s ease 1s;
+     animation-fill-mode :  forwards ; 
+    -webkit-animation-fill-mode :  forwards ;
+}
+
+
+@keyframes jump{
+  0%{ transform:translate(0,0);opacity: 1}
+  50%{transform:translate(0,-0.2rem);opacity: 1}
+  100%{transform:translate(0,0);opacity: 1} 
+}
+@-webkit-keyframes jump{
+  0%{ -webkit-transform:translate(0,0); opacity: 1}
+  50%{-webkit-transform:translate(0,-0.2rem);opacity: 1}
+  100%{-webkit-transform:translate(0,0);opacity: 1}
+}
+
+.o_active .loginBtn{
+  animation:  jump 0.5s infinite linear;
+  -webkit-animation: jump 0.5s infinite linear;
+  animation-fill-mode :  forwards ; 
+  -webkit-animation-fill-mode :  forwards ;
+}
+
+@keyframes rotates{
+  0%{ transform:rotate(0);}
+  100%{transform:rotate(360deg);} 
+}
+@-webkit-keyframes rotates{
+   0%{ transform:rotate(0);}
+  100%{transform:rotate(360deg);} 
+}
+
+.music{
+  position: fixed; left: 6.36rem; top: 0.43rem;
+  width: 0.59rem; height: 0.59rem; z-index: 999;
+}
+
+audio{
+  position: fixed; left: 6.36rem; top: 0.43rem;
+  width: 0.59rem; height: 0.59rem; z-index: 999;
+}
+
+.musicPlay{
+  animation:  rotates 1s infinite linear;
+  -webkit-animation: rotates 1s infinite linear;
+}
+
+
+
+
+
+
+
+
+
