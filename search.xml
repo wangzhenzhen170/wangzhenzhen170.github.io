@@ -1,6 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title><![CDATA[react]]></title>
+    <url>%2F2018%2F09%2F20%2Freact%2F</url>
+    <content type="text"></content>
+      <categories>
+        <category>js</category>
+      </categories>
+      <tags>
+        <tag>js</tag>
+        <tag>react</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[flex弹性布局]]></title>
+    <url>%2F2018%2F09%2F18%2Fflex%2F</url>
+    <content type="text"><![CDATA[Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。设为Flex布局以后，子元素的float、clear和vertical-align属性将失效。任何一个元素包括行内元素都可以指定为Flex布局，行内元素用display: inline-flex;Webkit内核的浏览器，必须加上-webkit前缀。1234.box&#123; display: -webkit-flex; /* Safari */ display: flex; &#125; 浏览器支持 Flexbox 的情况旧版浏览器，如IE 11或更低版本，不支持或仅部分支持 Flexbox 。如果你想安全的使用页面正常呈现，你应该退回到其他的 CSS 布局方式，比如结合float 的 display: inline-block 或者 display: table 等。但是，如果您只针对现代浏览器，那么 Flexbox 绝对值得一试。 基本概念采用Flex布局的元素，成为Flex容器，简称容器，它的所有子元素成为Flex项目（flex item)，简称项目]]></content>
+      <categories>
+        <category>js</category>
+      </categories>
+      <tags>
+        <tag>js</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[$.click(function(){}) 和 $.on('click',function(){})的区别]]></title>
     <url>%2F2016%2F09%2F26%2Fclick%2F</url>
     <content type="text"><![CDATA[click只能为页面现有的元素绑定点击事件，如果是动态生成的新的元素，是没有事件的而$(document).on(“click”,”指定的元素”,function(){});方法则是将指定的事件绑定在document上，而新产生的元素如果符合指定的元素，那就触发此事件总结：绑定事件的时候用on代替直接绑定：注意：1.jQuery版本要在1.7以上； 自 jQuery 版本 1.7 起，on() 方法是 bind()、live() 和 delegate() 方法的新的替代品； 如需移除事件处理程序，请使用 off() 方法；]]></content>
@@ -31,6 +54,8 @@
       </categories>
       <tags>
         <tag>js</tag>
+        <tag>ES6</tag>
+        <tag>Array</tag>
       </tags>
   </entry>
   <entry>
