@@ -79,18 +79,18 @@
 
 
 
-<meta name="description" content="Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。">
+<meta name="description" content="Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。设为Flex布局以后，子元素的float、clear和vertical-align属性将失效。任何一个元素包括行内元素都可以指定为Flex布局，行内元素用display: inline-flex;Webkit内核的浏览器，必须加上-webkit前缀。">
 <meta name="keywords" content="js">
 <meta property="og:type" content="article">
 <meta property="og:title" content="flex弹性布局">
 <meta property="og:url" content="http://yoursite.com/2018/09/18/flex/index.html">
 <meta property="og:site_name" content="阅">
-<meta property="og:description" content="Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。">
+<meta property="og:description" content="Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。设为Flex布局以后，子元素的float、clear和vertical-align属性将失效。任何一个元素包括行内元素都可以指定为Flex布局，行内元素用display: inline-flex;Webkit内核的浏览器，必须加上-webkit前缀。">
 <meta property="og:image" content="http://yoursite.com/2018/09/18/flex/flex1.jpg">
-<meta property="og:updated_time" content="2018-09-20T09:33:59.183Z">
+<meta property="og:updated_time" content="2018-09-21T08:09:04.411Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="flex弹性布局">
-<meta name="twitter:description" content="Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。">
+<meta name="twitter:description" content="Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。设为Flex布局以后，子元素的float、clear和vertical-align属性将失效。任何一个元素包括行内元素都可以指定为Flex布局，行内元素用display: inline-flex;Webkit内核的浏览器，必须加上-webkit前缀。">
 <meta name="twitter:image" content="http://yoursite.com/2018/09/18/flex/flex1.jpg">
 
 
@@ -397,9 +397,11 @@
       
 
       
-        <p>Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。<br><a id="more"></a><br>设为Flex布局以后，子元素的float、clear和vertical-align属性将失效。<br>任何一个元素包括行内元素都可以指定为Flex布局，行内元素用display: inline-flex;Webkit内核的浏览器，必须加上-webkit前缀。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">.box&#123;</div><div class="line">    display: -webkit-flex; /* Safari */</div><div class="line">    display: flex;</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+        <p>Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。<br>设为Flex布局以后，子元素的float、clear和vertical-align属性将失效。<br>任何一个元素包括行内元素都可以指定为Flex布局，行内元素用display: inline-flex;Webkit内核的浏览器，必须加上-webkit前缀。<br><a id="more"></a><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">.box&#123;</div><div class="line">    display: -webkit-flex; /* Safari */</div><div class="line">    display: flex;</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
 <h3 id="浏览器支持-Flexbox-的情况"><a href="#浏览器支持-Flexbox-的情况" class="headerlink" title="浏览器支持 Flexbox 的情况"></a>浏览器支持 Flexbox 的情况</h3><p>旧版浏览器，如IE 11或更低版本，不支持或仅部分支持 Flexbox 。如果你想安全的使用页面正常呈现，你应该退回到其他的 CSS 布局方式，比如结合float 的 display: inline-block 或者  display: table 等。但是，如果您只针对现代浏览器，那么 Flexbox 绝对值得一试。</p>
-<h3 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h3><p>采用Flex布局的元素，成为Flex容器，简称容器，它的所有子元素成为Flex项目（flex item)，简称项目<br><img src="flex1.jpg" alt="flex"></p>
+<h3 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h3><p>采用Flex布局的元素，成为Flex容器，简称容器，它的所有子元素成为Flex项目（flex item)，简称项目<br><img src="flex1.jpg" alt="flex"><br>容器默认存在两根轴：水平的主轴（main axis）和垂直的交叉轴（cross axis）</p>
+<h3 id="容器的属性"><a href="#容器的属性" class="headerlink" title="容器的属性"></a>容器的属性</h3><p>容器的属性，即设为display: flex的元素</p>
+<h4 id="1-flex-direction-决定主轴的方向（即项目的排列方向）；"><a href="#1-flex-direction-决定主轴的方向（即项目的排列方向）；" class="headerlink" title="1.flex-direction 决定主轴的方向（即项目的排列方向）；"></a>1.flex-direction 决定主轴的方向（即项目的排列方向）；</h4><p>flex-derection: row | row-reverse | colum |column-reverse;<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">row (默认值)：主轴为水平方向，起点在左端</div><div class="line">row-reverse : 主轴为水平方向，起点在右端</div><div class="line">column : 主轴为垂直方向，起点在上上沿</div><div class="line">column-reverse : 主轴为垂直方向，起点在下沿</div></pre></td></tr></table></figure></p>
 
       
     </div>
@@ -521,7 +523,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-count">13</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -543,7 +545,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-count">11</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

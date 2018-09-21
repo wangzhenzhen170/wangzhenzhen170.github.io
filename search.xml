@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title><![CDATA[css3动画]]></title>
+    <url>%2F2018%2F09%2F21%2Fcss3%2F</url>
+    <content type="text"><![CDATA[css动画的两大组成部分：transition和animation Transition在css3引入Transition（过渡）这个概念之前，css是没有时间轴的，也就是说，所有的状态变化都是即时完成 transition-duration: 1s; transition-delay: 1s; transition-property: height; transition-timing-function: ease; //简写 transition: 1s 1s height ease; transition的局限transition的优点在于简单易用，但又几个很大的局限性1.transition需要事件触发，所以没法在网页加载时自动发生2.transition时一次性的，不能重复发生，除非一再触发3.transition只能定义开始状态和结束状态，不能定义中间状态，也就是说只有两个状态4.一条transition规则只能定义一个属性的变化，不能涉及多个属性 Animation基本用法首先 css Animation需要指定动画一个周期持续的时间，以及动画效果的名称 div:hover { animation:1s rainbow; } 上面代码表示，当鼠标悬停在div元素上时，会产生名为rainbow的动画效果,持续时间为1s，为此，我们还需要用keyframes关键字，定义rainbow效果 @keyframes rainbow{ 0%{ background:#c00 } 50%{ background:red } 100%{ background:blue } } 默认情况下，动画只播放一次。加入infinite关键字，可以让动画无限次播放,也可以指定动画具体播放次数，比如3次 div:hover { animation:1s rainbow infinite; } 动画结束以后，会立即从结束状态跳回到起始状态。如果想让动画保持在结束状态，需要使用animation-fill-mode属性。]]></content>
+      <categories>
+        <category>css</category>
+      </categories>
+      <tags>
+        <tag>css3动画</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[react]]></title>
     <url>%2F2018%2F09%2F20%2Freact%2F</url>
     <content type="text"></content>
@@ -15,7 +26,7 @@
   <entry>
     <title><![CDATA[flex弹性布局]]></title>
     <url>%2F2018%2F09%2F18%2Fflex%2F</url>
-    <content type="text"><![CDATA[Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。设为Flex布局以后，子元素的float、clear和vertical-align属性将失效。任何一个元素包括行内元素都可以指定为Flex布局，行内元素用display: inline-flex;Webkit内核的浏览器，必须加上-webkit前缀。1234.box&#123; display: -webkit-flex; /* Safari */ display: flex; &#125; 浏览器支持 Flexbox 的情况旧版浏览器，如IE 11或更低版本，不支持或仅部分支持 Flexbox 。如果你想安全的使用页面正常呈现，你应该退回到其他的 CSS 布局方式，比如结合float 的 display: inline-block 或者 display: table 等。但是，如果您只针对现代浏览器，那么 Flexbox 绝对值得一试。 基本概念采用Flex布局的元素，成为Flex容器，简称容器，它的所有子元素成为Flex项目（flex item)，简称项目]]></content>
+    <content type="text"><![CDATA[Flex是Flexible Box的缩写，意为”弹性布局”，用来为盒状模型提供最大的灵活性。设为Flex布局以后，子元素的float、clear和vertical-align属性将失效。任何一个元素包括行内元素都可以指定为Flex布局，行内元素用display: inline-flex;Webkit内核的浏览器，必须加上-webkit前缀。1234.box&#123; display: -webkit-flex; /* Safari */ display: flex; &#125; 浏览器支持 Flexbox 的情况旧版浏览器，如IE 11或更低版本，不支持或仅部分支持 Flexbox 。如果你想安全的使用页面正常呈现，你应该退回到其他的 CSS 布局方式，比如结合float 的 display: inline-block 或者 display: table 等。但是，如果您只针对现代浏览器，那么 Flexbox 绝对值得一试。 基本概念采用Flex布局的元素，成为Flex容器，简称容器，它的所有子元素成为Flex项目（flex item)，简称项目容器默认存在两根轴：水平的主轴（main axis）和垂直的交叉轴（cross axis） 容器的属性容器的属性，即设为display: flex的元素 1.flex-direction 决定主轴的方向（即项目的排列方向）；flex-derection: row | row-reverse | colum |column-reverse;1234row (默认值)：主轴为水平方向，起点在左端row-reverse : 主轴为水平方向，起点在右端column : 主轴为垂直方向，起点在上上沿column-reverse : 主轴为垂直方向，起点在下沿]]></content>
       <categories>
         <category>js</category>
       </categories>
