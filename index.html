@@ -295,6 +295,135 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/09/21/git/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="柠檬">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/tuxiang.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="阅">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/09/21/git/" itemprop="url">git</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-09-21T16:50:32+08:00">
+                2018-09-21
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/09/21/git/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/09/21/git/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/09/21/css3/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -471,7 +600,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2018/09/20/react/" itemprop="url">react</a></h1>
+                <a class="post-title-link" href="/2018/09/20/react/" itemprop="url">react系列之生命周期</a></h1>
         
 
         <div class="post-meta">
@@ -1329,23 +1458,14 @@
 
       
         
-          
-            <a id="more"></a>
-<h3 id="charAt"><a href="#charAt" class="headerlink" title="charAt()"></a>charAt()</h3><p>返回指定索引位置处的字符。如果超出有效范围的索引值返回空字符串。<br>strObj.charAt(index)<br>说明：<br>index想得到的字符的基于零的索引。有效值是0与字符串长度减一之间的值。<br>例如：var str = “ABC”;   str.charAt(1);   结果：B</p>
-<h3 id="slice"><a href="#slice" class="headerlink" title="slice()"></a>slice()</h3><p>返回字符串的片段。<br>strObj.slice(start,end)<br>说明：<br>start下标从0开始的strObj指定部分其实索引。如果start为负，将它作为length+start处理，此处length为字符串的长度。<br>end小标从0开始的strObj指定部分结束索引。如果end为负，将它作为length+end处理，此处length为字符串的长度。<br>例如：012345<br>var str = “ABCDEF”; str.slice(2,4); 结果：CD</p>
-<h3 id="substring"><a href="#substring" class="headerlink" title="substring()"></a>substring()</h3><p>返回位于String对象中指定位置的子字符串。<br>strObj.substring(start,end)<br>说明：<br>start指明子字符串的起始位置，该索引从0开始起算。<br>end指明子字符串的结束位置，该索引从0开始起算。<br>substring方法使用start和end两者中的较小值作为子字符串的起始点。如果start或end为NaN或者为负数，那么将其替换为0。<br>例如：<br>012345<br>var str = “ABCDEF”;<br>str.substring(2,4); // 或 str.substring(4,2);<br>结果：CD</p>
-<h3 id="substr"><a href="#substr" class="headerlink" title="substr()"></a>substr()</h3><p>返回一个从指定位置开始的指定长度的子字符串。<br>strObj.substr(start[,length])<br>说明：<br>start所需的子字符串的起始位置。字符串中的第一个字符的索引为0。<br>length在返回的子字符串中应包括的字符个数。<br>例如：<br>var str = “ABCDEF”;<br>str.substr(2,4);<br>结果：CDEF</p>
-<h3 id="indexOf"><a href="#indexOf" class="headerlink" title="indexOf()"></a>indexOf()</h3><p>返回String对象内第一次出现子字符串位置。如果没有找到子字符串，则返回-1。<br>strObj.indexOf(substr[,startIndex])<br>说明：<br>substr要在String对象中查找的子字符串。<br>startIndex该整数值指出在String对象内开始查找的索引。如果省略，则从字符串的开始处查找。<br>例如：<br>var str = “ABCDECDF”;<br>str.indexOf(“CD”，1); // 由1位置从左向右查找 123…<br>结果：2</p>
-<h3 id="lastIndexOf"><a href="#lastIndexOf" class="headerlink" title="lastIndexOf()"></a>lastIndexOf()</h3><p>返回String对象中字符串最后出现的位置。如果没有匹配到子字符串，则返回-1。<br>strObj.lastIndexOf(substr[,startindex])<br>说明：<br>substr要在String对象内查找的子字符串。<br>startindex该整数值指出在String对象内进行查找的开始索引位置。如果省略，则查找从字符串的末尾开始。<br>例如：<br>01234567<br>var str = “ABCDECDF”;<br>str.lastIndexOf(“CD”,6); // 由6位置从右向左查找 …456<br>结果：5</p>
-<h3 id="search"><a href="#search" class="headerlink" title="search()"></a>search()</h3><p>返回与正则表达式查找内容匹配的第一个字符串的位置。<br>strObj.search(reExp)<br>说明：<br>reExp包含正则表达式模式和可用标志的正则表达式对象。<br>例如：<br>var str = “ABCDECDF”;<br>str.search(“CD”); // 或 str.search(/CD/i);<br>结果：2</p>
-<h3 id="concat"><a href="#concat" class="headerlink" title="concat()"></a>concat()</h3><p>返回字符串值，该值包含了两个或多个提供的字符串的连接。<br>str.concat([string1[,string2…]])<br>说明：<br>string1，string2要和所有其他指定的字符串进行连接的String对象或文字。<br>例如：<br>var str = “ABCDEF”;<br>str.concat(“ABCDEF”,”ABC”);<br>结果：ABCDEFABCDEFABC</p>
-<h3 id="split"><a href="#split" class="headerlink" title="split()"></a>split()</h3><p>将一个字符串分割为子字符串，然后将结果作为字符串数组返回。<br>strObj.split([separator[,limit]])<br>说明：<br>separator字符串或 正则表达式 对象，它标识了分隔字符串时使用的是一个还是多个字符。如果忽略该选项，返回包含整个字符串的单一元素数组。<br>limit该值用来限制返回数组中的元素个数。<br>例如：<br>var str = “AA BB CC DD EE FF”;<br>alert(str.split(“ “，3));<br>结果：<br>AA,BB,CC</p>
-<h3 id="toLowerCase"><a href="#toLowerCase" class="headerlink" title="toLowerCase()"></a>toLowerCase()</h3><p>返回一个字符串，该字符串中的字母被转换成小写。<br>例如：<br>var str = “ABCabc”;<br>str.toLowerCase();<br>结果：abcabc</p>
-<h3 id="toUpperCase"><a href="#toUpperCase" class="headerlink" title="toUpperCase()"></a>toUpperCase()</h3><p>返回一个字符串，该字符串中的所有字母都被转换为大写字母。<br>例如：<br>var str = “ABCabc”;<br>str.toUpperCase();<br>结果：ABCABC</p>
-<h3 id="charCodeAt"><a href="#charCodeAt" class="headerlink" title="charCodeAt()"></a>charCodeAt()</h3><p>返回一个整数，代表指定位置字符的Unicode编码。<br>strObj.charCodeAt(index)<br>说明：<br>index将被处理字符的从零开始计数的编号。有效值为0到字符串长度减1的数字。<br>如果指定位置没有字符，将返回NaN。<br>例如：<br>var str = “ABC”;<br>str.charCodeAt(0);<br>结果：65</p>
-<h3 id="fromCharCode"><a href="#fromCharCode" class="headerlink" title="fromCharCode()"></a>fromCharCode()</h3><p>从一些Unicode字符串中返回一个字符串。<br>String.fromCharCode([code1[,code2…]])<br>说明：<br>code1，code2…是要转换为字符串的Unicode字符串序列。如果没有参数，结果为空字符串。<br>例如：<br>String.fromCharCode(65,66,112);<br>结果：ABp</p>
-
-          
+          <p>一些常用字符串方法总结<br>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2016/08/05/six/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -1650,168 +1770,10 @@
 
       
         
-          
-            <p>写在前面：这一部分讲一下我对HTTP协议的认识（这句话说的太大了，所以还是先大致写一遍，常学常新，后续不断更新吧）。<br>说到HTTP协议，就要先澄清一下什么是HTTPS协议、TCP/IP协议、HTML，懂的人自然不困惑，但是新手确实不太分得清这些长得很像或常常一块儿出现的词。</p>
-<ul>
-<li>HTTP协议(Hypertext Transfer Protocol)超文本传输协议，是一个面向事务的应用层协议。在服务器进程的80端口监听来自浏览器（不一定局限于浏览器）发送的请求，服务器要返回请求页面作为响应建立TCP连接，HTTP协议规定了请求和响应的交互遵守格式和规则。</li>
-<li>HTTPS协议(Secure Hypertext Transfer Protocol)的全名叫安全超文本传输协议，其中的这个Secure就是和HTTP协议的区别，具体涉及到的是安全套接字层（SSL：Secure Sockets Layer，所以我们也常听到SSL证书），简言之HTTPS协议相对HTTP协议更加安全。</li>
-<li>TCP/IP协议，从名字上看TCP协议是传输层协议，IP协议是网络层协议，而TCP/IP协议簇又包含了四层结构（网络接口层、网络层、传输层、应用层）区分于OSI七层模型，是互联网的基础。</li>
-<li>HTML是超文本标记语言，它不是任何一个协议。HTML可理解为只是在浏览器上的一种语言，作用是显示一个页面。<br>言归正传，HTTP协议在这过程中到底做了些什么呢？<h3 id="HTTP协议解决的是什么问题？"><a href="#HTTP协议解决的是什么问题？" class="headerlink" title="HTTP协议解决的是什么问题？"></a>HTTP协议解决的是什么问题？</h3>一个打开页面的过程：<br>用户上网输入网址–&gt;浏览器向DNS请求解析IP地址–&gt;域名系统DNS解析出服务器的IP地址–&gt;浏览器和服务器建立TCP连接–&gt;浏览器打包发送请求–&gt;服务器相应并返回文件–&gt;释放TCP连接–&gt;浏览器上显示页面<br>可以看出，http协议和数据传输过程并没有太大关系，建立TCP连接（TCP协议才是传输层的协议）承担了这件事，http协议规定的是浏览器和服务器之间的报文。<br><img src="1.png" alt="http"><h3 id="HTTP的报文结构"><a href="#HTTP的报文结构" class="headerlink" title="HTTP的报文结构"></a>HTTP的报文结构</h3>HTTP报文包括三部分内容：<br>1.对报文进行描述的起始行<br>2.包含属性的首部块<br>3.包含数据的主题部分（可选）<br>HTTP又分为两类报文：<br>请求报文：从客户端发送到服务器<br>响应报文：从服务器发送到客户端<br>这两类报文的区别就是开始行不同，请求报文的开始行叫请求行、响应报文的开始行叫状态行，其余部分是一样的。<br><img src="2.png" alt="http"><br>开始行结束会有“空格”加“回车”（CR+LF）和后面首部行分开，开始行内部三个字段（请求报文：方法、URL、版本，响应报文：版本、状态码、短语）是以空格隔开。<br>首部行每一行结束都有“空格”加“回车”，首部行结束应该还有一个空行将首部行和后面实体部分隔开，即使后面没有实体部分（但是由于历史原因有些客户端和服务器在这种情况下错误的省略了最后的“空格”加“回车”，所以服务器和客户端也是能接收这样的报文的）<br>实体部分是报文的可选部分，就是HTTP要传输的内容，所以很多请求报文没有实体部分，有些响应报文也没有实体部分。<br>用打开csdn的主页举例子：<br><img src="3.png" alt="http"><br>上面没有提到报文实体部分，其实我们打开的是一个网页，实体部分就是一个html文件<h4 id="请求行中的方法"><a href="#请求行中的方法" class="headerlink" title="请求行中的方法"></a>请求行中的方法</h4>上面的请求行中有个方法，这些方法是HTTP规范中定义的，用来告诉服务器做什么。HTTP请求报文的方法包括以下几种：<br><img src="4.png" alt="http"><br>常用的是GET、POST、HEAD这几种方法，其他还有诸如PUT、DELETE这些方法。事实上后面的这些方法并不是所有服务器上都能实现的，比如有些服务器对用户发布页面有限制，会禁止PUT方法。<h4 id="响应报文中的状态码"><a href="#响应报文中的状态码" class="headerlink" title="响应报文中的状态码"></a>响应报文中的状态码</h4>状态码都是三位数字，以开头数字不同分为五个大类：<br>1xx：信息状态码<br>2xx：成功状态码（常见的是200）<br>3xx：重定向状态码，如要完成请求还要进行下一步行动（常见304，缓存未失效）<br>4xx：客户端错误状态码（常见404，无法请求URL）<br>5xx：服务器错误状态码（常见502，服务器错误）<br>具体每一大类里的个小类都有细微差别，可以参考RFC2616。<br>仔细看报文内容还有cookie部分，Content-Encoding压缩方式，cache缓存等等内容，这些内容包含也很广泛，只能先挖坑以后再说。《HTTP权威指南》一书对这些内容有深入介绍。</li>
-</ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2016/06/07/函数定义/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="柠檬">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/tuxiang.jpg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="阅">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2016/06/07/函数定义/" itemprop="url">js中定义函数的方式</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2016-06-07T20:39:52+08:00">
-                2016-06-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/js/" itemprop="url" rel="index">
-                    <span itemprop="name">js</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2016/06/07/函数定义/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/06/07/函数定义/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p>今天总结一下js中定义函数的几种方式<br>
+          <p>写在前面：这一部分讲一下我对HTTP协议的认识（这句话说的太大了，所以还是先大致写一遍，常学常新，后续不断更新吧）。<br>说到HTTP协议，就要先澄清一下什么是HTTPS协议、TCP/IP协议、HTML，懂的人自然不困惑，但是新手确实不太分得清这些长得很像或常常一块儿出现的词。<br>
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2016/06/07/函数定义/#more" rel="contents">
+            <a class="btn" href="/2016/06/10/four/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1903,7 +1865,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-count">14</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
