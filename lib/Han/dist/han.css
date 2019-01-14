@@ -54,7 +54,8 @@ a:hover {
 abbr[title] {
   border-bottom: none; /* 1 */
   text-decoration: underline; /* 2 */
-  text-decoration: underline dotted; /* 2 */
+  -webkit-text-decoration: underline dotted;
+          text-decoration: underline dotted; /* 2 */
 }
 b,
 strong {
@@ -1103,7 +1104,6 @@ ruby.romanization rt,
 h-ruby.romanization rt,
 ruby [annotation] rt,
 h-ruby [annotation] rt {
-  -moz-font-feature-settings: "liga";
   -ms-font-feature-settings: "liga";
   -webkit-font-feature-settings: "liga";
   font-feature-settings: "liga";
@@ -1122,7 +1122,6 @@ samp,
 pre,
 article blockquote i,
 article blockquote var {
-  -moz-font-feature-settings: "liga=1, locl=0";
   -ms-font-feature-settings: "liga", "locl" 0;
   -webkit-font-feature-settings: "liga", "locl" 0;
   font-feature-settings: "liga", "locl" 0;

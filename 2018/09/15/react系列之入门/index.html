@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html  lang="zh">
+<head>
+    <meta charset="utf-8">
+<title>React之简介 - 阅</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+
+
+    <meta name="description" content="react.js无疑是近几年最热门的前端框架之一，最近的项目用的react.js，自己也是刚刚用，有好多地方还是不太清楚，今天只是简单的入门记录一下。">
+<meta name="keywords" content="js,react">
+<meta property="og:type" content="article">
+<meta property="og:title" content="React之简介">
+<meta property="og:url" content="http://yoursite.com/2018/09/15/react系列之入门/index.html">
+<meta property="og:site_name" content="阅">
+<meta property="og:description" content="react.js无疑是近几年最热门的前端框架之一，最近的项目用的react.js，自己也是刚刚用，有好多地方还是不太清楚，今天只是简单的入门记录一下。">
+<meta property="og:updated_time" content="2019-01-12T10:35:49.887Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="React之简介">
+<meta name="twitter:description" content="react.js无疑是近几年最热门的前端框架之一，最近的项目用的react.js，自己也是刚刚用，有好多地方还是不太清楚，今天只是简单的入门记录一下。">
+
+
+
+
+
+<link rel="icon" href="/images/favicon.svg">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.7.2/css/bulma.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,600|Source+Code+Pro">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css">
+
+
+    
+    
+    
+    <style>body>.footer,body>.navbar,body>.section{opacity:0}</style>
+    
+
+    
+    
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/css/lightgallery.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/css/justifiedGallery.min.css">
+    
+
+    
+    
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.css">
+
+
+    
+    
+    
+    
+
+<link rel="stylesheet" href="/css/back-to-top.css">
+
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+<link rel="stylesheet" href="/css/progressbar.css">
+<script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+
+    
+    
+    
+
+    
+
+
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="is-3-column">
+    <nav class="navbar navbar-main">
+    <div class="container">
+        <div class="navbar-brand is-flex-center">
+            <a class="navbar-item navbar-logo" href="/">
+            
+                <img src="/images/tuxiang.jpg" alt="React之简介" height="28">
+            
+            </a>
+        </div>
+        <div class="navbar-menu">
+            
+            <div class="navbar-start">
+                
+                <a class="navbar-item"
+                href="/">主页</a>
+                
+                <a class="navbar-item"
+                href="/archives">归档</a>
+                
+                <a class="navbar-item"
+                href="/categories">分类</a>
+                
+                <a class="navbar-item"
+                href="/tags">标签</a>
+                
+                <a class="navbar-item"
+                href="/about">关于</a>
+                
+            </div>
+            
+            <div class="navbar-end">
+                
+                    
+                    
+                    <a class="navbar-item" target="_blank" title="Download on GitHub" href="https://github.com/wangzhenzhen170/hexo-theme-icarus">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                    
+                
+                
+                
+                <a class="navbar-item search" title="Search" href="javascript:;">
+                    <i class="fas fa-search"></i>
+                </a>
+                
+            </div>
+        </div>
+    </div>
+</nav>
+    
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-8-tablet is-8-desktop is-6-widescreen has-order-2 column-main"><div class="card">
+    
+    <div class="card-image">
+        <span  class="image is-7by1">
+            <img class="thumbnail" src="/images/4.jpg" alt="React之简介">
+        </span>
+    </div>
+    
+    <div class="card-content article ">
+        
+        <div class="level article-meta is-size-7 is-uppercase is-mobile is-overflow-x-auto">
+            <div class="level-left">
+                <time class="level-item has-text-grey" datetime="2018-09-15T13:41:02.000Z">2018-09-15</time>
+                
+                <div class="level-item">
+                <a class="has-link-grey -link" href="/categories/js/">js</a>
+                </div>
+                
+                
+                <span class="level-item has-text-grey">
+                    
+                    
+                    8 minutes read (About 1156 words)
+                </span>
+                
+            </div>
+        </div>
+        
+        <h1 class="title is-size-3 is-size-4-mobile has-text-weight-normal">
+            
+                React之简介
+            
+        </h1>
+        <div class="content">
+            <html><head></head><body><p>react.js无疑是近几年最热门的前端框架之一，最近的项目用的react.js，自己也是刚刚用，有好多地方还是不太清楚，今天只是简单的入门记录一下。<br><a id="more"></a></p>
+<h3 id="React背景介绍"><a href="#React背景介绍" class="headerlink" title="React背景介绍"></a>React背景介绍</h3><p>React 起源于 Facebook 的内部项目，因为该公司对市场上所有 JavaScript MVC 框架，都不满意，就决定自己写一套，用来架设 <code>Instagram</code> 的网站。做出来以后，发现这套东西很好用，就在2013年5月开源了，但React不是一个MVC框架，仅仅是视图（V)层的库。</p>
+<p><a href="https://reactjs.org" target="_blank" rel="external">React 官网</a><br><a href="https://doc.react-china.org" target="_blank" rel="external">React 中文文档</a></p>
+<h4 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h4><figure class="highlight bash hljs"><table><tbody><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">使用jsx语法创建组件，实现组件化开发，为函数式的UI编程方式打开大门</div><div class="line">性能高，通过diff算法和虚拟DOM实现视图的高效更新</div><div class="line">HTML仅仅是个开始</div></pre></td></tr></tbody></table></figure>
+<h3 id="为什么要用React"><a href="#为什么要用React" class="headerlink" title="为什么要用React"></a>为什么要用React</h3><ul>
+<li>组件化开发方式，符合现在Web开发的趋势</li>
+<li>技术成熟，社区完善，由Facebook专门的团队维护，技术支持可靠</li>
+<li>使用方式简单，性能非常高，支持服务端渲染</li>
+</ul>
+<h3 id="React中的核心概念"><a href="#React中的核心概念" class="headerlink" title="React中的核心概念"></a>React中的核心概念</h3><ul>
+<li>虚拟DOM (Virtual DOM)</li>
+<li>Diff算法(虚拟DOM的加速器，提升React性能的法宝)</li>
+</ul>
+<h4 id="1）虚拟DOM-Vitural-DOM"><a href="#1）虚拟DOM-Vitural-DOM" class="headerlink" title="1）虚拟DOM(Vitural DOM)"></a>1）虚拟DOM(Vitural DOM)</h4><p>React将DOM抽象为虚拟的DOM，虚拟DOM其实就是用一个对象来描述DOM,通过对比前后两个对象的差异，最终只把变化的部分重新渲染，提高渲染效率<br>为什么要用虚拟DOM,当DOM发生更改是需要遍历，而原生DOM可遍历属性多大200多个，且大部分与渲染无关，更新页面代价太大</p>
+<h5 id="VituralDOM的处理方式："><a href="#VituralDOM的处理方式：" class="headerlink" title="VituralDOM的处理方式："></a>VituralDOM的处理方式：</h5><ul>
+<li>用javaScript对象结构表示DOM树的结构，然后用这个树构建一个真正的DOM树，查到文档当中</li>
+<li>把状态变更的时候，重新构造一个新的对象树，然后用新的树和旧的树进行比较，比较两颗树差异</li>
+<li>把2所记录的差异应用到步骤1所构建的真正的DOM树上，视图就更新了</li>
+</ul>
+<p>详细学习文档：</p>
+<ul>
+<li><a href="https://github.com/livoras/blog/issues/13" target="_blank" rel="external">如何实现一个 Virtual DOM 算法</a></li>
+<li><a href="https://www.zhihu.com/question/31809713" target="_blank" rel="external">理解 Virtual DOM</a> </li>
+</ul>
+<h4 id="2）Diff算法"><a href="#2）Diff算法" class="headerlink" title="2）Diff算法"></a>2）Diff算法</h4><p>当你使用React的时候，在某个时间点render()函数创建了一棵React元素树，在下一个state或者props更新的时候，render()函数将创建一棵新的React元素树，React将对比着两棵树的不同之处，计算出如何高效的更新UI（只更新变化的地方）</p>
+<ul>
+<li>如果两棵树的根元素类型不同，React会销毁旧树，创建新树</li>
+<li>对于类型相同的React DOM 元素，React会对比两者的属性是否相同，只更新不同的属性</li>
+<li>开发者可以通过key属性指定不同树中没有发生改变的子元素</li>
+</ul>
+<h5 id="key属性"><a href="#key属性" class="headerlink" title="key属性"></a>key属性</h5><ul>
+<li><p>当在子节点的后面添加一个节点，这时候两棵树的转化工作执行的很好</p>
+<figure class="highlight bash hljs"><table><tbody><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">// 旧</div><div class="line"><ul></div><div class="line">  <li>first</li></div><div class="line">  <li>second</li></div><div class="line"></ul></div><div class="line">// 新</div><div class="line"><ul></div><div class="line">  <li>first</li></div><div class="line">  <li>second</li></div><div class="line">  <li>third</li></div><div class="line"></ul></div><div class="line">执行过程：</div><div class="line">React会匹配新旧两个<li>first</li>，匹配两个<li>second</li>，然后添加 <li>third</li> tree</div></pre></td></tr></tbody></table></figure>
+</li>
+<li><p>但是如果你在开始位置插入一个元素，那么问题就来了：</p>
+<figure class="highlight bash hljs"><table><tbody><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">// 旧</div><div class="line"><ul></div><div class="line">  <li>Duke</li></div><div class="line">  <li>Villanova</li></div><div class="line"></ul></div><div class="line"></div><div class="line">// 新</div><div class="line"><ul></div><div class="line">  <li>Connecticut</li></div><div class="line">  <li>Duke</li></div><div class="line">  <li>Villanova</li></div><div class="line"></ul></div><div class="line"></div><div class="line">在没有key属性时执行过程：</div><div class="line">React将改变每一个子删除重新创建，而非保持 <li>Duke</li> 和 <li>Villanova</li> 不变</div></pre></td></tr></tbody></table></figure>
+</li>
+</ul>
+<p>为了解决以上问题，React提供了一个 key 属性。当子节点带有key属性，React会通过key来匹配原始树和后来的树<br></p><figure class="highlight bash hljs"><table><tbody><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">// 旧</div><div class="line"><ul></div><div class="line">  <li key=<span class="hljs-string">"2015"</span>>Duke</li></div><div class="line">  <li key=<span class="hljs-string">"2016"</span>>Villanova</li></div><div class="line"></ul></div><div class="line"></div><div class="line">// 新</div><div class="line"><ul></div><div class="line">  <li key=<span class="hljs-string">"2014"</span>>Connecticut</li></div><div class="line">  <li key=<span class="hljs-string">"2015"</span>>Duke</li></div><div class="line">  <li key=<span class="hljs-string">"2016"</span>>Villanova</li></div><div class="line"></ul></div><div class="line">执行过程：</div><div class="line">现在 React 知道带有key <span class="hljs-string">'2014'</span> 的元素是新的，对于 <span class="hljs-string">'2015'</span> 和 <span class="hljs-string">'2016'</span> 仅仅移动位置即可</div></pre></td></tr></tbody></table></figure><p></p>
+<p>说明：</p>
+<ul>
+<li>key属性在React内部使用，但不会传递给你的组件</li>
+<li>在遍历数据时，推荐在组件中使用 key 属性</li>
+<li>key只需要保持与他的兄弟节点唯一即可，不需要全局唯一</li>
+<li>尽可能的减少数组index作为key，数组中插入元素的等操作时，会使得效率低下</li>
+</ul>
+<p>详细学习文档：</p>
+<ul>
+<li><a href="https://react.docschina.org/docs/reconciliation.html" target="_blank" rel="external">diff算法 - 中文文档</a> </li>
+<li><a href="https://zhuanlan.zhihu.com/p/20346379" target="_blank" rel="external">不可思议的 react diff</a> </li>
+<li><a href="https://github.com/zmmbreeze/blog/issues/9" target="_blank" rel="external">React diff 算法</a> </li>
+</ul>
+</body></html>
+        </div>
+        
+        <div class="level is-size-7 is-uppercase">
+            <div class="level-start">
+                <div class="level-item">
+                    <span class="is-size-6 has-text-grey has-mr-7">#</span>
+                    <a class="has-link-grey -link" href="/tags/js/">js</a>, <a class="has-link-grey -link" href="/tags/react/">react</a>
+                </div>
+            </div>
+        </div>
+        
+        
+        
+    </div>
+</div>
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h3 class="menu-label has-text-centered">Like this article? Support the author with</h3>
+        <div class="buttons is-centered">
+            
+                
+<div class="notification is-danger">
+    You forgot to set the <code>qrcode</code> for Alipay. Please set it in <code>_config.yml</code>.
+</div>
+
+                
+                
+<div class="notification is-danger">
+    You forgot to set the <code>qrcode</code> for Wechat. Please set it in <code>_config.yml</code>.
+</div>
+
+                
+                <!-- Visit https://www.paypal.com/donate/buttons/ to get your donate button -->
+
+<div class="notification is-danger">
+    You forgot to set the <code>business</code> and <code>currency_code</code> for Paypal. Please set it in <code>_config.yml</code>.
+</div>
+
+                
+                
+<div class="notification is-danger">
+    You forgot to set the <code>url</code> Patreon. Please set it in <code>_config.yml</code>.
+</div>
+
+                
+        </div>
+    </div>
+</div>
+
+
+
+<div class="card card-transparent">
+    <div class="level post-navigation is-flex-wrap is-mobile">
+        
+        <div class="level-start">
+            <a class="level level-item has-link-grey  article-nav-prev" href="/2018/09/18/flex/">
+                <i class="level-item fas fa-chevron-left"></i>
+                <span class="level-item">flex弹性布局</span>
+            </a>
+        </div>
+        
+        
+        <div class="level-end">
+            <a class="level level-item has-link-grey  article-nav-next" href="/2016/09/26/click/">
+                <span class="level-item">$.click(function(){})  和  $.on(&#39;click&#39;,function(){})的区别</span>
+                <i class="level-item fas fa-chevron-right"></i>
+            </a>
+        </div>
+        
+    </div>
+</div>
+
+
+</div>
+                
+
+
+
+
+<div class="column is-4-tablet is-4-desktop is-3-widescreen  has-order-1 column-left ">
+    
+        
+<div class="card widget">
+  <div class="card-content">
+    <nav class="level">
+      <div class="level-item has-text-centered">
+        <div>
+          <img class="image is-128x128 has-mb-6" style="border-radius:50%" src="/images/avatar.jpg" alt="zhenzhen">
+          
+          <p class="is-size-4 is-block">
+            zhenzhen
+          </p>
+          
+          
+          <p class="is-size-6 is-block">
+            lalalalal
+          </p>
+          
+          
+          <p class="is-size-6 is-flex is-flex-center has-text-grey">
+            <i class="fas fa-map-marker-alt has-mr-7"></i>
+            <span>
+              北京</span>
+          </p>
+          
+        </div>
+      </div>
+    </nav>
+    <nav class="level is-mobile">
+      <div class="level-item has-text-centered is-marginless">
+        <div>
+          <p class="heading">
+            Posts
+          </p>
+          <p class="title has-text-weight-normal">
+            17
+          </p>
+        </div>
+      </div>
+      <div class="level-item has-text-centered is-marginless">
+        <div>
+          <p class="heading">
+            Categories
+          </p>
+          <p class="title has-text-weight-normal">
+            5
+          </p>
+        </div>
+      </div>
+      <div class="level-item has-text-centered is-marginless">
+        <div>
+          <p class="heading">
+            Tags
+          </p>
+          <p class="title has-text-weight-normal">
+            12
+          </p>
+        </div>
+      </div>
+    </nav>
+    <div class="level">
+      <a class="level-item button is-link is-rounded" href="https://github.com/wangzhenzhen170">
+        Follow</a>
+    </div>
+    
+    
+    <div class="level is-mobile">
+      
+      <a class="level-item button is-white is-marginless" target="_blank" title="Github" href="https://github.com/wangzhenzhen170">
+        
+        <i class="fab fa-github"></i>
+        
+      </a>
+      
+      <a class="level-item button is-white is-marginless" target="_blank" title="Facebook" href="http://facebook.com">
+        
+        <i class="fab fa-facebook"></i>
+        
+      </a>
+      
+      <a class="level-item button is-white is-marginless" target="_blank" title="Twitter" href="http://twitter.com">
+        
+        <i class="fab fa-twitter"></i>
+        
+      </a>
+      
+      <a class="level-item button is-white is-marginless" target="_blank" title="Dribbble" href="http://dribbble.com">
+        
+        <i class="fab fa-dribbble"></i>
+        
+      </a>
+      
+      <a class="level-item button is-white is-marginless" target="_blank" title="RSS" href="/">
+        
+        <i class="fas fa-rss"></i>
+        
+      </a>
+      
+    </div>
+    
+  </div>
+</div>
+    
+        
+    
+        
+
+<div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+        <h3 class="menu-label">
+            Links
+        </h3>
+        <ul class="menu-list">
+        
+            <li>
+                <a class="level is-mobile" href="https://hexo.io" target="_blank">
+                    <span class="level-left">
+                        <span class="level-item">Hexo</span>
+                    </span>
+                    <span class="level-right">
+                        <span class="level-item tag">hexo.io</span>
+                    </span>
+                </a>
+            </li>
+        
+            <li>
+                <a class="level is-mobile" href="https://github.com/ppoffice" target="_blank">
+                    <span class="level-left">
+                        <span class="level-item">PPOffice</span>
+                    </span>
+                    <span class="level-right">
+                        <span class="level-item tag">github.com</span>
+                    </span>
+                </a>
+            </li>
+        
+        </ul>
+        </div>
+    </div>
+</div>
+
+
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                Categories
+            </h3>
+            <ul class="menu-list">
+            <li>
+        <a class="level is-marginless" href="/categories/css/">
+            <span class="level-start">
+                <span class="level-item">css</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">3</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/categories/jquery/">
+            <span class="level-start">
+                <span class="level-item">jquery</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">2</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/categories/js/">
+            <span class="level-start">
+                <span class="level-item">js</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">9</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/categories/工具/">
+            <span class="level-start">
+                <span class="level-item">工具</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">2</span>
+            </span>
+        </a></li><li>
+        <a class="level is-marginless" href="/categories/环境搭建/">
+            <span class="level-start">
+                <span class="level-item">环境搭建</span>
+            </span>
+            <span class="level-end">
+                <span class="level-item tag">1</span>
+            </span>
+        </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <h3 class="menu-label">
+            Tag Cloud
+        </h3>
+        <a href="/tags/Array/" style="font-size: 10px;">Array</a> <a href="/tags/ES6/" style="font-size: 10px;">ES6</a> <a href="/tags/css/" style="font-size: 13.33px;">css</a> <a href="/tags/css3动画/" style="font-size: 10px;">css3动画</a> <a href="/tags/git/" style="font-size: 13.33px;">git</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/html/" style="font-size: 10px;">html</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/jquery/" style="font-size: 13.33px;">jquery</a> <a href="/tags/js/" style="font-size: 20px;">js</a> <a href="/tags/react/" style="font-size: 16.67px;">react</a>
+    </div>
+</div>
+
+    
+    
+        <div class="column-right-shadow is-hidden-widescreen ">
+        
+            
+<div class="card widget">
+    <div class="card-content">
+        <h3 class="menu-label">
+            Recent
+        </h3>
+        
+        <article class="media">
+            
+            <a href="/2018/09/27/git常用命令/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/1.jpg" alt="git项目中常用操作">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-27T07:06:10.000Z">2018-09-27</time></div>
+                    <a href="/2018/09/27/git常用命令/" class="has-link-black-ter is-size-6">git项目中常用操作</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/工具/">工具</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2018/09/21/git/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/2.jpg" alt="Git介绍">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-21T08:50:32.000Z">2018-09-21</time></div>
+                    <a href="/2018/09/21/git/" class="has-link-black-ter is-size-6">Git介绍</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/工具/">工具</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2018/09/21/css3/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/3.jpg" alt="css3动画">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-21T02:42:12.000Z">2018-09-21</time></div>
+                    <a href="/2018/09/21/css3/" class="has-link-black-ter is-size-6">css3动画</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/css/">css</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2018/09/20/React之生命周期/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/6.jpg" alt="React之生命周期">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-20T08:41:02.000Z">2018-09-20</time></div>
+                    <a href="/2018/09/20/React之生命周期/" class="has-link-black-ter is-size-6">React之生命周期</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/js/">js</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2018/09/19/React系列之简单使用/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/5.jpg" alt="React之简单使用">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-19T14:00:02.000Z">2018-09-19</time></div>
+                    <a href="/2018/09/19/React系列之简单使用/" class="has-link-black-ter is-size-6">React之简单使用</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/js/">js</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+    </div>
+</div>
+
+        
+            <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+        <h3 class="menu-label">
+            Archives
+        </h3>
+        <ul class="menu-list">
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2018/09/">
+                <span class="level-start">
+                    <span class="level-item">September 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">7</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/09/">
+                <span class="level-start">
+                    <span class="level-item">September 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/08/">
+                <span class="level-start">
+                    <span class="level-item">August 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/07/">
+                <span class="level-start">
+                    <span class="level-item">July 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/06/">
+                <span class="level-start">
+                    <span class="level-item">June 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/05/">
+                <span class="level-start">
+                    <span class="level-item">May 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        </ul>
+        </div>
+    </div>
+</div>
+        
+            <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                Tags
+            </h3>
+            <ul class="menu-list">
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/Array/">
+                        <span class="level-start">
+                            <span class="level-item">Array</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/ES6/">
+                        <span class="level-start">
+                            <span class="level-item">ES6</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/css/">
+                        <span class="level-start">
+                            <span class="level-item">css</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">2</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/css3动画/">
+                        <span class="level-start">
+                            <span class="level-item">css3动画</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/git/">
+                        <span class="level-start">
+                            <span class="level-item">git</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">2</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/github/">
+                        <span class="level-start">
+                            <span class="level-item">github</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/hexo/">
+                        <span class="level-start">
+                            <span class="level-item">hexo</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/html/">
+                        <span class="level-start">
+                            <span class="level-item">html</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/http/">
+                        <span class="level-start">
+                            <span class="level-item">http</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/jquery/">
+                        <span class="level-start">
+                            <span class="level-item">jquery</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">2</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/js/">
+                        <span class="level-start">
+                            <span class="level-item">js</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">8</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/react/">
+                        <span class="level-start">
+                            <span class="level-item">react</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">3</span>
+                        </span>
+                    </a>
+                </li>
+                
+            </ul>
+        </div>
+    </div>
+</div>
+        
+        </div>
+    
+</div>
+
+                
+
+
+
+
+<div class="column is-4-tablet is-4-desktop is-3-widescreen is-hidden-touch is-hidden-desktop-only has-order-3 column-right ">
+    
+        
+<div class="card widget">
+    <div class="card-content">
+        <h3 class="menu-label">
+            Recent
+        </h3>
+        
+        <article class="media">
+            
+            <a href="/2018/09/27/git常用命令/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/1.jpg" alt="git项目中常用操作">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-27T07:06:10.000Z">2018-09-27</time></div>
+                    <a href="/2018/09/27/git常用命令/" class="has-link-black-ter is-size-6">git项目中常用操作</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/工具/">工具</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2018/09/21/git/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/2.jpg" alt="Git介绍">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-21T08:50:32.000Z">2018-09-21</time></div>
+                    <a href="/2018/09/21/git/" class="has-link-black-ter is-size-6">Git介绍</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/工具/">工具</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2018/09/21/css3/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/3.jpg" alt="css3动画">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-21T02:42:12.000Z">2018-09-21</time></div>
+                    <a href="/2018/09/21/css3/" class="has-link-black-ter is-size-6">css3动画</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/css/">css</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2018/09/20/React之生命周期/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/6.jpg" alt="React之生命周期">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-20T08:41:02.000Z">2018-09-20</time></div>
+                    <a href="/2018/09/20/React之生命周期/" class="has-link-black-ter is-size-6">React之生命周期</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/js/">js</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="media">
+            
+            <a href="/2018/09/19/React系列之简单使用/" class="media-left">
+                <p class="image is-64x64">
+                    <img class="thumbnail" src="/images/5.jpg" alt="React之简单使用">
+                </p>
+            </a>
+            
+            <div class="media-content">
+                <div class="content">
+                    <div><time class="has-text-grey is-size-7 is-uppercase" datetime="2018-09-19T14:00:02.000Z">2018-09-19</time></div>
+                    <a href="/2018/09/19/React系列之简单使用/" class="has-link-black-ter is-size-6">React之简单使用</a>
+                    <p class="is-size-7 is-uppercase">
+                        <a class="has-link-grey -link" href="/categories/js/">js</a>
+                    </p>
+                </div>
+            </div>
+        </article>
+        
+    </div>
+</div>
+
+    
+        <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+        <h3 class="menu-label">
+            Archives
+        </h3>
+        <ul class="menu-list">
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2018/09/">
+                <span class="level-start">
+                    <span class="level-item">September 2018</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">7</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/09/">
+                <span class="level-start">
+                    <span class="level-item">September 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/08/">
+                <span class="level-start">
+                    <span class="level-item">August 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/07/">
+                <span class="level-start">
+                    <span class="level-item">July 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">1</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/06/">
+                <span class="level-start">
+                    <span class="level-item">June 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">3</span>
+                </span>
+            </a>
+        </li>
+        
+        <li>
+            <a class="level is-marginless" href="/archives/2016/05/">
+                <span class="level-start">
+                    <span class="level-item">May 2016</span>
+                </span>
+                <span class="level-end">
+                    <span class="level-item tag">2</span>
+                </span>
+            </a>
+        </li>
+        
+        </ul>
+        </div>
+    </div>
+</div>
+    
+        <div class="card widget">
+    <div class="card-content">
+        <div class="menu">
+            <h3 class="menu-label">
+                Tags
+            </h3>
+            <ul class="menu-list">
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/Array/">
+                        <span class="level-start">
+                            <span class="level-item">Array</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/ES6/">
+                        <span class="level-start">
+                            <span class="level-item">ES6</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/css/">
+                        <span class="level-start">
+                            <span class="level-item">css</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">2</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/css3动画/">
+                        <span class="level-start">
+                            <span class="level-item">css3动画</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/git/">
+                        <span class="level-start">
+                            <span class="level-item">git</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">2</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/github/">
+                        <span class="level-start">
+                            <span class="level-item">github</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/hexo/">
+                        <span class="level-start">
+                            <span class="level-item">hexo</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/html/">
+                        <span class="level-start">
+                            <span class="level-item">html</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/http/">
+                        <span class="level-start">
+                            <span class="level-item">http</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">1</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/jquery/">
+                        <span class="level-start">
+                            <span class="level-item">jquery</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">2</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/js/">
+                        <span class="level-start">
+                            <span class="level-item">js</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">8</span>
+                        </span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a class="level is-marginless" href="/tags/react/">
+                        <span class="level-start">
+                            <span class="level-item">react</span>
+                        </span>
+                        <span class="level-end">
+                            <span class="level-item tag">3</span>
+                        </span>
+                    </a>
+                </li>
+                
+            </ul>
+        </div>
+    </div>
+</div>
+    
+    
+</div>
+
+            </div>
+        </div>
+    </section>
+    <footer class="footer">
+    <div class="container">
+        <div class="level">
+            <div class="level-start has-text-centered-mobile">
+                <a class="footer-logo is-block has-mb-6" href="/">
+                
+                    <img src="/images/tuxiang.jpg" alt="React之简介" height="28">
+                
+                </a>
+                <p class="is-size-7">
+                &copy; 2019 柠檬&nbsp;
+                Powered by <a href="http://hexo.io/" target="_blank">Hexo</a> & <a
+                        href="http://github.com/ppoffice/hexo-theme-icarus">Icarus</a>
+                </p>
+            </div>
+            <div class="level-end">
+            
+                <div class="field has-addons is-flex-center-mobile has-mt-5-mobile is-flex-wrap is-flex-middle">
+                
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Creative Commons" href="https://creativecommons.org/">
+                        
+                        <i class="fab fa-creative-commons"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Attribution 4.0 International" href="https://creativecommons.org/licenses/by/4.0/">
+                        
+                        <i class="fab fa-creative-commons-by"></i>
+                        
+                    </a>
+                </p>
+                
+                <p class="control">
+                    <a class="button is-white is-large" target="_blank" title="Download on GitHub" href="https://github.com/wangzhenzhen170/hexo-theme-icarus">
+                        
+                        <i class="fab fa-github"></i>
+                        
+                    </a>
+                </p>
+                
+                </div>
+            
+            </div>
+        </div>
+    </div>
+</footer>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script>
+<script>moment.locale("zh-Hans");</script>
+
+
+    
+    
+    
+    <script src="/js/animation.js"></script>
+    
+
+    
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@1.6.8/dist/js/lightgallery.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js" defer></script>
+    <script src="/js/gallery.js" defer></script>
+    
+
+    
+    
+
+<div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a id="btnUpdateBrowser" href="http://outdatedbrowser.com/">Update
+            my browser now </a></p>
+    <p class="last"><a href="#" id="btnCloseUpdateBrowser" title="Close">&times;</a></p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/outdatedbrowser@1.1.5/outdatedbrowser/outdatedbrowser.min.js" defer></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        outdatedBrowser({
+            bgColor: '#f25648',
+            color: '#ffffff',
+            lowerThan: 'flex'
+        });
+    });
+</script>
+
+
+    
+    
+<script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.5/unpacked/MathJax.js?config=TeX-MML-AM_CHTML" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    MathJax.Hub.Config({
+        'HTML-CSS': {matchFontHeight: false},
+        SVG: {matchFontHeight: false},
+        CommonHTML: {matchFontHeight: false}
+    });
+});
+</script>
+
+    
+    
+
+<a id="back-to-top" title="Back to Top" href="javascript:;">
+    <i class="fas fa-chevron-up"></i>
+</a>
+<script src="/js/back-to-top.js" defer></script>
+
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script>
+    <script src="/js/clipboard.js" defer></script>
+    
+
+    
+
+
+<script src="/js/main.js" defer></script>
+
+    
+    <div class="searchbox ins-search">
+    <div class="searchbox-container ins-search-container">
+        <div class="searchbox-input-wrapper">
+            <input type="text" class="searchbox-input ins-search-input" placeholder="Type something..." />
+            <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="searchbox-result-wrapper ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window) {
+        var INSIGHT_CONFIG = {
+            TRANSLATION: {
+                POSTS: 'Posts',
+                PAGES: 'Pages',
+                CATEGORIES: 'Categories',
+                TAGS: 'Tags',
+                UNTITLED: '(Untitled)',
+            },
+            CONTENT_URL: '/content.json',
+        };
+        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+    })(window);
+</script>
+<script src="/js/insight.js" defer></script>
+<link rel="stylesheet" href="/css/search.css">
+<link rel="stylesheet" href="/css/insight.css">
+    
+</body>
+</html>

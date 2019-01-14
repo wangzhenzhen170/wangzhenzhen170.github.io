@@ -30,35 +30,28 @@
   width: 300px;
 
   font-size: 16px;
-
-  -webkit-transition: .3s;
-          transition: .3s;
+  transition: .3s;
   -webkit-transform: scale(.1);
-      -ms-transform: scale(.1);
           transform: scale(.1);
   text-align: center;
   white-space: normal;
 
   opacity: 0;
-  -webkit-border-radius: 4px;
-          border-radius: 4px;
+  border-radius: 4px;
   background-color: #fff;
-  -webkit-box-shadow: 0 0 2px rgba(0, 0, 0, .5);
-          box-shadow: 0 0 2px rgba(0, 0, 0, .5);
+  box-shadow: 0 0 2px rgba(0, 0, 0, .5);
 }
 .need-share-button-opened .need-share-button_dropdown {
   visibility: visible;
 
   -webkit-transform: scale(1);
-      -ms-transform: scale(1);
           transform: scale(1);
 
   opacity: 1;
 }
 .need-share-button_dropdown-box-vertical,
 .need-share-button_dropdown-box-horizontal {
-  -webkit-border-radius: 0;
-          border-radius: 0;
+  border-radius: 0;
 }
 .need-share-button_dropdown-box-vertical {
   width: 50px;
@@ -80,8 +73,7 @@
   text-align: center;
 }
 .need-share-button_link:hover {
-  -webkit-transition: .3s;
-          transition: .3s;
+  transition: .3s;
 
   opacity: .7;
 }
@@ -161,8 +153,7 @@
   vertical-align: middle;
 
   border: 1px solid #ccc;
-  -webkit-border-radius: 4px;
-          border-radius: 4px;
+  border-radius: 4px;
   background-color: #fff;
 }
 /* Network buttons
