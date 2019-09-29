@@ -1,0 +1,245 @@
+(function (graph) {
+
+	'use strict';
+	graph.app.controller('sendOrderCtrl', ['$uibModal', 'isOsreen', '$scope', '$uibModalInstance', 'MonitoringService', 'item', 'Unit', function ($uibModal, isOsreen, $scope, $uibModalInstance, MonitoringService, item, Unit) {
+		$scope.sendParms = {};
+		$scope.sendParms.serial = item.SERIAL || item.serial;
+		$scope.sendParms.status = item.STATUS || item.status;
+		$scope.sendParms.ticket = {};
+
+		$scope.sendParms.ticket.ticketTitle = item.SOURCECINAME + " - " + item.KPINAME + " - " + item.SEVERITY;
+		$scope.sendParms.ticket.ticketSummary = L.get('COMMON_TIME')+"： " + item.FIRSTOCCURRENCE + ', '+L.get('COMMON_ALARM_OBJECT')+'：' + item.SOURCECINAME + '，'+ L.get('COMMON_DESCRIPTION')+'：' + item.SUMMARY
+		$scope.goToSelect = function (type) {
+			/*type 紧急度13  影响范围11*/
+			MonitoringService.getSelectorCodes({codeType: type}).success(function (result) {
+				if (result.success) {
+					if (type == 13) {/*紧急度*/
+						$scope.urgentData = result.data || [];
+						if ($scope.urgentData.length) {
+							$scope.urgentDefalt = $scope.urgentData[0].name;
+							$scope.sendParms.ticket.ticketSeverity = $scope.urgentData[0].value;
+						}
+
+					}
+					if (type == 11) {/*影响范围*/
+						$scope.influenceData = result.data || [];
+						if ($scope.influenceData.length) {
+							$scope.influenceDefalt = $scope.influenceData[0].name;
+							$scope.sendParms.ticket.influenceScope = $scope.influenceData[0].value;
+						}
+					}
+				}
+
+			}).error(function () {
+
+			});
+			$scope.chooseConditioncFlag = false;
+			$scope.selectFlag = !$scope.selectFlag
+		}
+		$scope.goToSelect('13');
+		/*紧急度*/
+		$scope.goToSelect('11');
+		/*影响范围*/
+		$scope.getListFn = function (e, type) {
+			e.stopPropagation();
+			if (type == 13 && $scope.urgentData) {
+				$scope.urgentFlag = !$scope.urgentFlag;
+			}
+			if (type == 11 && $scope.influenceData) {
+				$scope.influenceFlag = !$scope.influenceFlag;
+
+			}
+		}
+		$scope.getTime = function (item, type) {
+			if (type == 13) {
+				$scope.urgentFlag = false;
+				$scope.urgentDefalt = item.name;
+				$scope.sendParms.ticket.ticketSeverity = item.value;
+			}
+			if (type == 11) {
+				$scope.influenceFlag = false;
+				$scope.influenceDefalt = item.name;
+				$scope.sendParms.ticket.influenceScope = item.value;
+			}
+		}
+
+		$scope.placeholder = true;
+		$scope.tellManArry = [];
+		$scope.tellManNameArry = [];
+		$scope.sendWriteArray = [];
+		$scope.myreg = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/;
+		/*邮箱*/
+
+		//查询联系人接口
+		$scope.queryFun = function () {
+			MonitoringService.queryOpList({cdt: {opName: $scope._filterCode}}).success(function (result) {
+				$scope.tellMan = result.data;
+			}).error(function () {
+
+			});
+		}
+		//点击列表的某个联系人添加到发送人中
+		$scope.editGetMemberName = function (OpName) {
+			$scope.errorSame = false;
+			if ($scope.myreg.test(OpName.emailAdress)) {
+				if ($scope.tellManArry.length > 0) {
+					for (var i = 0; i < $scope.tellManArry.length; i++) {
+						if ($scope.tellManArry[i] == OpName.emailAdress) {
+							$scope.errorSame = true;
+						}
+					}
+					if ($scope.errorSame) {
+						Unit.error(L.get('EMV_EMAIL_HAS_BEEN_SELECTED')+'!')
+					} else {
+						$scope.tellManArry.unshift(OpName.emailAdress);
+						$scope.tellManNameArry.unshift(OpName.opCode);
+						$scope._filterCode = "";
+					}
+				} else {
+					$scope.tellManArry.unshift(OpName.emailAdress);
+					$scope.tellManNameArry.unshift(OpName.opCode);
+					$scope._filterCode = "";
+				}
+			} else {
+				Unit.error(L.get('EMV_ILLEGAL_EMAIL_FORMAT_EXISTS')+'!')
+			}
+		}
+		//点击删除某个已经选中的发送人
+		$scope.editMemDel = function ($index, item) {
+			//console.log($index)
+			$scope.tellManArry.splice($index, 1)
+			$scope.tellManNameArry.splice($index, 1)
+			var index = $scope.sendWriteArray.indexOf(item)
+			console.log(index)
+			if (index != -1) {
+				$scope.sendWriteArray.splice(index, 1)
+			}
+		}
+
+		//鼠标悬浮
+		$scope.mouserover = function () {
+			angular.element('.m-container').css('background-color', '#fff')
+			$(event.target).css('background-color', '#f0f2f4')
+		}
+
+		//按下enter键添加新联系人
+		$scope.addTellManFun = function (e) {
+			var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+			$scope.errorSame = false;
+
+			if ($scope._filterCode) {
+				if (keycode == 13) {
+					if (!$scope.myreg.test($scope._filterCode)) {/*邮箱*/
+						Unit.error(L.get('EMV_ILLEGAL_EMAIL_FORMAT_EXISTS')+'!');
+						return false;
+					}
+					if ($scope.tellManArry.length > 0) {
+						for (var i = 0; i < $scope.tellManArry.length; i++) {
+							if ($scope.tellManArry[i] == $scope._filterCode) {
+								$scope.errorSame = true;
+							}
+						}
+						if ($scope.errorSame) {
+							Unit.error(L.get('EMV_EMAIL_HAS_BEEN_SELECTED')+'!')
+						} else {
+							$scope.tellManArry.unshift($scope._filterCode);
+							$scope.tellManNameArry.unshift($scope._filterCode);
+							$scope.sendWriteArray.unshift($scope._filterCode);
+							//console.log($scope.tellManNameArry)
+							//console.log($scope.sendWriteArray)
+							$scope._filterCode = "";
+							$scope.queryFun();
+						}
+					} else {
+						$scope.tellManArry.unshift($scope._filterCode);
+						$scope.tellManNameArry.unshift($scope._filterCode);
+						$scope.sendWriteArray.unshift($scope._filterCode);
+						$scope._filterCode = "";
+						$scope.queryFun();
+
+					}
+
+
+				}
+
+			}
+		}
+		$scope._outAllNo = function () {
+			$scope._out = false;
+			$('.m-wrapper').removeClass('m-wrapperAfter')
+			angular.element('.team-creat-p-titledetail').css('margin-top', '5px')
+		}
+
+		//鼠标点击 -- 外框
+		$scope._outAll = function () {
+			$scope.queryFun();
+			$scope._out = true;
+			$('.m-wrapper').addClass('m-wrapperAfter');
+			angular.element('.team-creat-p-titledetail').css('margin-top', '80px')
+			setTimeout(function () {
+				angular.element('.m-ipt')[0].focus();
+			}, 300);
+
+		}
+
+		$scope.ok = function () {
+			$scope.errorMail = false;
+			//console.log($scope.tellManArry);
+
+			/*if($scope.tellManArry.length>0){*/
+			if ($scope.tellManArry.length) {
+				for (var i = 0; i < $scope.tellManArry.length; i++) {
+					if (!$scope.myreg.test($scope.tellManArry[i])) {
+						Unit.error(L.get('EMV_ILLEGAL_EMAIL_FORMAT_EXISTS')+'!');
+						return false;
+					}
+				}
+			}
+
+
+			if (!$scope.sendParms.ticket.ticketTitle) {
+				Unit.error(L.get('EMV_WORK_ORDER_TITLE_CANNOT_BE_EMPTY')+'!');
+				return
+			}
+			if (!$scope.sendParms.ticket.ticketSummary) {
+				Unit.error(L.get('EMV_WORK_ORDER_CONTENT_CANNOT_BE_EMPTY')+'!');
+				return
+			}
+			/*$scope.sendParms.ticket.userCodes=$scope.tellManNameArry;
+			 $scope.sendParms.ticket.userEmails=$scope.tellManArry;*/
+			$scope.sendParms.ticket.assignee = $scope.tellManNameArry;
+			$scope.sendParms.ticket.assigneeEmail = $scope.tellManArry;
+			$uibModalInstance.close();
+			MonitoringService.setSendOrders($scope.sendParms).success(function (result) {
+				if (result.success == true) {
+					if (result.data.success == true) {
+						Unit.success(result.data.message);
+						item.ALARMTICKET = L.get('EMV_ALREADY_SENT_ORDER')
+					} else {
+						Unit.error(result.data.message);
+					}
+
+				} else {
+					Unit.error(L.get('EMV_INTERFACE_FAILED'))
+				}
+			}).error(function () {
+
+			});
+			/*else{
+			 Unit.error("发送人不能为空！")
+			 }*/
+
+		};
+
+		// 取消按钮
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+		// 取消按钮
+		$scope.cancleFn = function () {
+			$scope.urgentFlag = false;
+			$scope.influenceFlag = false;
+
+		};
+	}])
+})(nameSpace.reg('graph'));

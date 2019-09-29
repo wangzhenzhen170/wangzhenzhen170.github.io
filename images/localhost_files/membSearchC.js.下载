@@ -1,0 +1,128 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.directive('memSearchC', ['$http','TeamService',function($http,TeamService) {
+		 return {
+            restrict: "AE",
+            scope:true,
+            replace:true,
+            templateUrl: 'app/template/tarsier/memSearchC.html',
+            controller:function($scope,$element,$attrs){
+                $scope._out = false;
+                $scope._filterCode = '';
+
+                //鼠标悬浮
+                $scope.mouserover = function(){
+                    $(event.target).css('background-color','#f0f2f4')
+                }
+                //鼠标离开
+                $scope.mouseleave = function(){
+                    $(event.target).css('background-color','#fff')
+                    .css('color','#74797c')
+                }
+                //鼠标点击 -- 成员
+                $scope.mousedown = function(){
+                    $(event.target).css('background-color','#d0e6f1')
+                    .css('color','#000')
+                }
+                //鼠标点击 -- 外框
+                $scope._outAll = function(){
+                    if(!$scope._out){
+                        $scope._out = true;
+                        angular.element('.m-wrapper').css('border','1px solid #FF9429')
+                        .css('box-shadow','0 0 10px 0px #e5f3fa')
+                    }
+                }
+
+                /*成员名称 加载*/
+                TeamService.queryOpList().then(function(data){
+                    $scope.teamOpNames = data.data.data;
+                    $scope.filteredTeam = $scope.teamOpNames.filter(function(member){
+                        return member.opName == $scope._filterCode || !$scope._filterCode;
+                    });
+                },function(errer){console.log(errer)});
+                /*鼠标点击抓取成员名称*/
+                $scope.getMemberNameClickFn = function(teamOpName){
+                    $scope.teamUserIds.push({userId:teamOpName.id})
+                    $scope.teamOpNameSel.push(teamOpName)
+                    $scope.startSearch = false;
+                    $scope.stMerSehCot = '';
+                };
+                /*鼠标点击删除成员名称*/
+                $scope.delMemberNameClickFn = function(opName){
+                    if(opName.opName !== $scope.loginUserName){
+                        $scope.teamOpNameSel.splice($scope.teamOpNameSel.indexOf(opName),1)
+                    }else{
+
+                    }
+                };
+                //搜索框监听
+                $scope.$watch('_filterCode', function(pv, nv){
+                    $scope.filteredTeam = $scope.teamOpNames.filter(function(member){
+                        if(member.opName.indexOf($scope._filterCode)!==-1){
+                            return member.opName
+                        }
+                    });
+                });
+            },
+            link: function (scope, element, attr) {
+                var mWrapper = $(element);
+
+                /*样式定义*/
+
+                //m-wrapper 样式
+                mWrapper.css('width','90%')
+                .css('min-height','30px')
+//                .css('max-height','298px')
+                /*.css('min-height','30px')
+                .css('max-height','200px')*/
+                .css('border','1px solid #ddd')
+                .css('border-radius','2px')
+                .css('cursor','pointer')
+                .css('margin','15px 0')
+//                .css('overflow','hidden')
+//                .css('padding','0 10px')
+                .css('box-sizing','border-box');
+
+                //m-container-wrapper 样式
+                var mContainerWrapper = mWrapper.find('.m-container-wrapper').eq(0);
+                mContainerWrapper.css('width','100%')
+                .css('width','100%')
+                .css('max-height','150px')
+//                .css('padding','0 10px')
+                .css('overflow-y','auto');
+
+                //m-save-wrapper 样式
+                mWrapper.find('.m-save-wrapper')
+                .css('width','100%')
+//                .css('min-height','50px')
+                .css('max-height','74px')
+                .css('padding','9px 10px 0 9px')
+                .css('margin-bottom','10px')
+                .css('overflow-y','auto');
+            /*    .css('display','flex')
+                .css('-webkit-align-items','center')
+                .css('align-items','center');
+  */
+                //m-ipt
+                mWrapper.find('.m-ipt')
+                .css('display','block')
+                .css('width','94%')
+                .css('height','35px')
+                .css('outline','none')
+                .css('padding','0 15px')
+                .css('margin','0 10px 10px 10px')
+                .css('border','1px solid #ddd')
+                .css('box-sizing','border-box')
+
+                /*内容定义*/
+
+                /*功能定义*/
+
+
+            }
+        };
+	}]);
+
+})(nameSpace.reg('graph'));

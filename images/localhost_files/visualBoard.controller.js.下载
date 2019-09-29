@@ -1,0 +1,355 @@
+/*
+ Created by uinnova on 2017/7/14.
+
+ */
+
+(function (graph, self) {
+
+    'use strict';
+    graph.app.controller('visualBoardCtrl', ['$scope', '$state', 'OScreenService', 'oScreenConst', 'uDialog', 'Unit', '$timeout', '$uibModal', '$interval', function ($scope, $state, OScreenService, oScreenConst, uDialog, Unit, $timeout, $uibModal, $interval) {
+        //大小缩放
+        $scope.L = L;
+        $scope.scaleNum;
+        $scope.scaling = function () {
+            var height = $('.visual_content').height();
+            var width = $('.visual_content').width();
+            if (width < 1400) {
+                $('.visual_content').css('transform', 'scale(' + width / 1500 + ')');
+                $scope.scaleNum = width / 1500;
+            } else {
+                if (height < 670) {
+                    $('.visual_content').css('transform', 'scale(' + height / 790 + ')');
+                    $scope.scaleNum = height / 790;
+                } else {
+                    $('.visual_content').css('transform', 'scale(1)');
+                    $scope.scaleNum = 1;
+
+                }
+            }
+        };
+        window.onresize = function () {
+            $scope.scaling();
+        }
+        $scope.scaling();
+        $scope.startTime;
+        $scope.endTime;
+        $scope.showAllFlag = false;
+        $scope.showAllFlagLen = false;
+        //自动数据刷新;
+        $scope.pollingTimer;
+        $scope.detailGo;
+        $scope.searchSourceId = null;
+        //事件源 ''代表全部
+        $scope.searchSourceCode = '';
+        //添加规则
+        $scope.addRulesFun = function () {
+            var SourceId = [];
+            if (!$scope.searchSourceId) {
+                SourceId = [];
+            } else {
+                SourceId.push(Number($scope.searchSourceCode))
+            }
+            uDialog.dialog({
+                class: 'ruleSetVision',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/rulesetvision.html',
+                controller: 'rulesetvisionCtrl',
+                resolve: {
+                    sourceId: function () {
+                        return SourceId;
+                    }
+
+                }
+            });
+
+        };
+        //数据源
+        $scope.queryDict = function () {
+            OScreenService.queryDict({
+                groupId: 1
+            })
+                .success(function (result) {
+                    if (Array.isArray(result.data) && result.data.length) {
+                        $scope.sourceIdTitle = result.data;
+                        $scope.sourceIdName = [];
+                        result.data.forEach(function (val) {
+                            $scope.sourceIdName.push(val.chineseName)
+                        })
+                        $scope.showSourceIdName = Unit.getArrayItems($scope.sourceIdName, 5);
+                    }
+
+                }).error(function (err) {
+                    Unit.error(L.get('EMV_DATA_REQUEST_FAILED'));
+                })
+        }
+        $scope.queryDict();
+        //切换数据源
+        $scope.changSourceFlag = -1;
+        //全部
+        $scope.changSourceId = function (item) {
+            if (item === -1) {//全部
+                $scope.changSourceFlag = item;
+                $scope.searchSourceId = '';
+                $scope.searchSourceCode = '';
+            } else {
+                $scope.changSourceFlag = item.code;
+                $scope.searchSourceId = item.code;
+                $scope.searchSourceCode = item.code;
+            }
+            $scope.selectTimeListAry = [];
+            $scope.getEventVisualFn($scope.getSetTime);
+        }
+        //最近一天
+        $scope.getOneDayTime = function (h) {
+            $scope.endTime = new Date().getTime();
+            $scope.startTime = $scope.endTime - 60 * 60 * 1000 * h;
+        };
+        console.log(L.get('EMV_LAST_TWELVE_HOURS'))
+        $scope.selectTimeDefaul = L.get('EMV_LAST_TWELVE_HOURS');
+        $scope.getSetTime = 12;
+        $scope.goToSelectTime = function (e) {
+            e && e.stopPropagation();
+            $scope.selectTimeListAry = [
+                { name: L.get('EMV_LAST_HOUR'), time: 1 },
+                { name: L.get('EMV_LAST_TWELVE_HOURS'), time: 12 },
+                { name: L.get('EMV_NEARLY_TWENTY_FOUR_HOURS'), time: 24 },
+                { name: L.get('EMV_LAST_WEEK'), time: 24 * 7 },
+                { name: L.get('EMV_LAST_MONTH'), time: 24 * 7 * 30 },
+            ]
+        }
+        $scope.selectTimeLi = function (item) {
+            $scope.selectTimeListAry = [];
+            $scope.selectTimeDefaul = item.name;
+            $scope.getSetTime = Number(item.time);
+            $scope.getEventVisualFn($scope.getSetTime);
+        }
+        $scope.ruleMap = {
+            0: {//维护期
+                dateName: 'aintenancePeriod',
+                url: 'Maintenance',
+                posBottom: false,
+                posLeft: false
+            },
+            1: {//重定义(标准化)规则
+                dateName: 'standardize',
+                url: 'standardization',
+                posBottom: false,
+                posLeft: false
+            },
+            2: {//事件过滤规则
+                dateName: 'filterRule',
+                url: 'filter',
+                posBottom: false,
+                posLeft: true
+            },
+            3: {//事件压缩规则
+                dateName: 'compressRule',
+                url: 'compressionRule',
+                posBottom: false,
+                posLeft: true
+            },
+            6: {//事件自动通知规则
+                dateName: 'sendRule',
+                url: 'notice',
+                posBottom: true,
+                posLeft: false
+            },
+            7: {//事件发送工单规则
+                dateName: 'sendOrders',
+                url: 'automaticDispatch',
+                posBottom: true,
+                posLeft: false
+            },
+            9: {//事件关联规则
+                dateName: 'relationData',
+                url: 'derive',
+                posBottom: false,
+                posLeft: false
+            },
+            20: {//事件归集
+                dateName: 'notionalPooling',
+                url: 'notionalPooling',
+                posBottom: true,
+                posLeft: true
+            },
+            12: {//事件丰富规则
+                dateName: 'richRule',
+                url: 'enrich',
+                posBottom: false,
+                posLeft: false
+            }
+        };
+        //根据时间范围查询指定时间段内事件处理情况
+        $scope.getEventVisualFn = function (getSetTime) {
+            $scope.getOneDayTime(getSetTime);
+            OScreenService.getEventVisual({
+                startTime: $scope.startTime,
+                endTime: $scope.endTime,
+                sourceId: $scope.searchSourceId
+            })
+                .success(function (result) {
+                    if (result.success) {
+                        for (var key in $scope.ruleMap) {
+                            $scope[$scope.ruleMap[key]] = null;
+                        }
+                        if (result.data) {
+                            $scope.eventData = result.data;
+                            $scope.ruleDatas = result.data.ruleDatas;
+                            $scope.finalCount = result.data.finalCount;
+                            $scope.originalCount = result.data.originalCount;
+                            if (Array.isArray($scope.ruleDatas) && $scope.ruleDatas.length) {
+                                var type;
+                                $scope.ruleDatas.forEach(function (val) {
+                                    type = val.ruleType;
+                                    if ($scope.ruleMap[type]) {
+                                        $scope[$scope.ruleMap[type].dateName] = val;
+                                        $scope[$scope.ruleMap[type].dateName].ruleGoPage = $scope.ruleMap[type].url;
+                                        $scope[$scope.ruleMap[type].dateName].posBottom = $scope.ruleMap[type].posBottom;
+                                        $scope[$scope.ruleMap[type].dateName].posLeft = $scope.ruleMap[type].posLeft;
+                                    }
+                                })
+                            }
+                            $scope.stopAutoRefresh();
+                            $scope.pollingTimer = $timeout(function () {
+                                $scope.getEventVisualFn($scope.getSetTime);
+                            }, 30000);
+                        }
+
+                    }
+
+                }).error(function () {
+                    Unit.error('数据请求失败');
+                    $scope.stopAutoRefresh();
+                    $scope.pollingTimer = $timeout(function () {
+                        $scope.getEventVisualFn($scope.getSetTime);
+                    }, 30000);
+                });
+        };
+        $scope.getEventVisualFn($scope.getSetTime);
+        //全部规则
+        $scope.getAllData = function () {
+            $scope.showAllFlag = true;
+            $scope.ruleListFive = $scope.ruleListFive.concat($scope.ruleList)
+        }
+        //收起
+        $scope.showPart = function () {
+            $scope.showAllFlag = false;
+            $scope.ruleListFive = $scope.ruleListFive.splice(0, 5)
+        }
+        //点击规则查看规则
+        $scope.noRuleFlag = false;
+        $scope.ruleMatches = function (rule, event, type) {
+            event.stopPropagation();
+            if (!rule || !rule.ruleCount) {
+                $scope.detailGo = 'tarsier.monitoring.' + $scope.ruleMap[type].url + '({ruleType:' + type + '})';
+                $scope.noRuleFlag = true;
+                $scope.toLocation(rule, event, 'noRule');
+            } else {
+                $scope.detailGo = rule.ruleGoPage;
+                $scope.noRuleFlag = false;
+                $scope.ruleParms = {
+                    startTime: $scope.startTime,
+                    endTime: $scope.endTime,
+                    ruleType: Number(rule.ruleType),
+                    sourceId: $scope.searchSourceId
+                }
+                OScreenService.ruleMatches($scope.ruleParms)
+                    .success(function (result) {
+                        $scope.ruleList = result.data;
+                        if (Array.isArray($scope.ruleList) && $scope.ruleList.length) {
+                            $scope.ruleList.forEach(function (val, index) {
+                                val.indexNum = index + 1;
+                            });
+                            if ($scope.ruleList.length > 5) {
+                                $scope.showAllFlagLen = true;
+                                $scope.ruleListFive = $scope.ruleList.splice(0, 5);
+                            } else {
+                                $scope.ruleListFive = $scope.ruleList;
+                                $scope.showAllFlagLen = false;
+                            }
+                            $scope.toLocation(rule, event);
+                        }
+
+                    }).error(function (err) {
+                        Unit.error(L.get('EMV_DATA_REQUEST_FAILED'));
+                    });
+            }
+
+        };
+        $scope.toLocation = function (rule, event, type) {
+            var current = $(event.target).parents('.modularBox');
+            var currentTop = current.offset().top;
+            var top = currentTop;
+            console.log(rule)
+            // var left = current.offset().left + Number(167 * $scope.scaleNum);
+            var left = current.offset().left + 224;
+
+            if (type === 'noRule') {
+                top -= 26;
+                left -= 30;
+            } else {
+                if (rule && rule.posBottom) {
+                    top = currentTop - 160;
+                }
+                if (rule.posLeft) {
+                    left = current.offset().left - 280;
+                }
+            }
+
+            $('.visual_rule_dataDetailBox').css('top', top);
+            $('.visual_rule_dataDetailBox').css('left', left);
+            $('.visual_rule_dataDetailBox').css('display', 'block');
+        };
+        //点击单列规则查看详情
+        $scope.getDetialContain = function (list, event) {
+            event && event.stopPropagation();
+            $state.go('tarsier.monitoring.' + $scope.detailGo, {
+                ruleID: list.id,
+                ruleName: list.name,
+                ruleType: list.ruleType
+            });
+
+            $scope.menu.open($scope.menuPrentIdMap[$scope.detailGo]);
+            $scope.menu.setSelect($scope.menuIdMap[$scope.detailGo]);
+        };
+        $(document).on('click', function (ev) {
+            var e = ev || window.event;
+            var target = e.target || e.srcElement;
+            if (!$(target).parents('.visual_rule_dataDetailBox').length) {
+                $('.visual_rule_dataDetailBox').css('display', 'none');
+                $scope.showAllFlag = false;
+                $scope.noRuleFlag = false;
+                $('.visual_rule_dataDetailBox li').removeClass('active');
+            }
+            if (!$(target).parents('.selectTime').length) {
+                $scope.selectTimeListAry = [];
+            }
+
+
+        });
+        //点击详情
+        $scope.goRulePage = function (pageRoute, ruleId) {
+            $state.go('tarsier.monitoring.' + pageRoute, {
+                id: ruleId
+            });
+            $scope.stopAutoRefresh();
+        }
+        //清除定时
+        $scope.stopAutoRefresh = function () {
+            if ($scope.pollingTimer) {
+                $timeout.cancel($scope.pollingTimer);
+                $scope.pollingTimer = null;
+            }
+
+        };
+        $scope.stopAutoRefresh();
+        $scope.$on('$destroy', function () {
+            $scope.stopAutoRefresh();
+        });
+        $scope.$on('$routeChangeStart', function (angularEvent, current, previous) {
+            $scope.stopAutoRefresh();
+        });
+
+    }]);
+})(nameSpace.reg('graph'), nameSpace.reg('monitor.current'));

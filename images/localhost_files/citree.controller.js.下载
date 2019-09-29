@@ -1,0 +1,355 @@
+(function (graph, self) {
+
+	'use strict';
+
+	graph.app.controller('MainCiTreeCtrl', ['$scope', '$state', 'CiRelationService', 'CiService', '$document', 'Unit',
+		'CiMonitorService', 'GraphInfo', '$timeout', 'Event', '$uibModal', 'Editor', 'Const', '$templateCache',
+		function ($scope, $state, CiRelationService, CiService, $document, Unit, CiMonitorService,
+				  GraphInfo, $timeout, Event, $uibModal, Editor, Const, $templateCache) {
+
+			$('#graph')
+				.click(function(){
+					var $eActive = $('.cell_box_active');
+
+					if($eActive.length){
+						$eActive.removeClass('cell_box_active');
+						var eId = $eActive[0].id;
+						if($scope.ciMaps[eId]){
+							$scope.ciMaps[eId].cellBoxActive = '';
+							$scope.ciMaps[eId].cell.setValue($eActive[0].outerHTML);
+						}
+					}
+				})
+				.on('click', '.cell_box', function(){
+					var _this = this;
+					$timeout(function(){
+						$(_this).addClass('cell_box_active');
+						var cId = _this.id;
+						if($scope.ciMaps[cId]){
+							$scope.ciMaps[cId].cellBoxActive = 'cell_box_active';
+							$scope.ciMaps[cId].cell.setValue(_this.outerHTML);
+						}
+					});
+				})
+				.on('click', '.cell_box_header', function(){
+					var eleId = $scope.getContainerId(event.target);
+					if(eleId){
+						CiService.getCi(eleId).success(function (result) {
+							$scope.selectorCiId = eleId;
+							$scope.infoParams.update('ci', {config: result.data});
+						});
+					}
+				})
+				.on('click', '.cell_box_sq1', function(){
+					$scope.ciTable($scope.getContainerId(event.target), 'monitor_event');
+				})
+				.on('click', '.cell_box_sq2', function(){
+					$scope.ciTable($scope.getContainerId(event.target), 'event_ticket');
+				})
+				.on('click', '.cell_box_sq3', function(){
+					$scope.ciTable($scope.getContainerId(event.target), 'change_ticket');
+				})
+				.on('click', '.cell_box_body', function(){
+					var eleId = $scope.getContainerId(event.target);
+					if(eleId){
+						self.editor.action.kpiUnusual(eleId);
+					}
+				});
+
+
+			$scope.$on('$stateChangeStart', function(event, toState){
+				$timeout.cancel(self.timer1);
+				$timeout.cancel(self.timer2);
+
+				if(toState.name.indexOf('home.citree') >= 0 && $scope.selectorCiId){
+					$scope.currentType = '';
+					$scope.open($scope.selectorCiId);
+				}
+			});
+
+
+			$scope.getContainerId = function (ele) {
+				var $ele = $(ele).parents('.cell_box');
+				if ($ele.length) {
+					return $ele[0].id;
+				}
+
+				return '';
+			};
+
+			$scope.filter = function(key){
+				return !key[0] === '_';
+			};
+
+			$scope.types = [];
+			$scope.template = Handlebars.compile(Unit.trimCellHtml($templateCache.get('cell/monitor1')));
+			$scope.LAYOUT.collapsedSidebar = false;
+			$scope.cellsMap = {};
+			$scope.ciDataMap = {};
+			$scope.ciIds = [];
+			$scope.$on('$viewContentLoaded', function () {
+
+				self.editor = new Editor(document.querySelector('#graph'), document.querySelector('#graph_outline'));
+				self.editor.action.disabled();
+				document.querySelector('#graph').oncontextmenu = function () {
+					return false;
+				};
+
+				if ($state.params.id) {
+					$scope.open($state.params.id, $state.params.type);
+				}
+			});
+
+			$scope.updateCiInfo = function(){
+				CiService.getCi($state.params.id).success(function (result) {
+					$scope.ciInfo = result.data;
+				});
+			};
+
+
+			$scope.open = function (id, type) {
+				CiService.treeInit(id, type)
+					.success(function (result) {
+						$scope.ciMaps = {};
+						self.editor.graph.model.clear();
+						self.editor.action.zoomActual();
+						self.editor.graph.view.setTranslate(0, 0);
+						$scope.draw(result.data);
+						$scope.types = result.data.types;
+						$scope.currentType = result.data.currentType;
+						self.editor.action.layoutVertical();
+						$scope.updateCiInfo();
+						$timeout(function(){
+							self.editor.action.zoomCenter();
+						});
+					});
+			};
+
+			$scope.go = function(name){
+				$timeout.cancel(self.timer1);
+				$timeout.cancel(self.timer2);
+				$scope.currentType = name;
+				$scope.open($state.params.id, name);
+			};
+
+			$scope.updateSide = function () {
+				$timeout.cancel(self.timer2);
+
+				CiMonitorService.getAppCount($scope.ciIds)
+					.success(function(result){
+						$.each($scope.ciIds, function(){
+							var obj = $scope.ciMaps[this];
+							var rObj = result.data[this];
+							if (obj && rObj) {
+								obj.kpiUnusual = rObj.eventCount;
+								obj.kpiCount = rObj.kpiCount;
+							}
+						});
+
+						$scope.update();
+						self.timer2 = $timeout($scope.updateSide, Const.MONITOR_TIMEOUT);
+					})
+					.error(function(){
+						self.timer2 = $timeout($scope.updateSide, Const.MONITOR_TIMEOUT);
+					});
+			};
+
+			$scope.updateOut = function () {
+				$timeout.cancel(self.timer1);
+
+				CiMonitorService.getMonitorByCis($scope.ciIds)
+					.success(function (result) {
+						$.each(result.data, function () {
+							var obj = $scope.ciMaps[this.jsonId];
+							if (obj) {
+								obj.monitorEvent = this.monitos;
+								obj.eventTicket = this.incidents;
+								obj.changeTicket = this.changes;
+							}
+						});
+
+						$scope.update();
+						self.timer1 = $timeout($scope.updateOut, Const.MONITOR_TIMEOUT);
+					})
+					.error(function () {
+						self.timer1 = $timeout($scope.updateOut, Const.MONITOR_TIMEOUT);
+					});
+			};
+
+			$scope.update = function () {
+				$.each($scope.ciIds, function(){
+					var obj = $scope.ciMaps[this];
+
+					if(obj && obj.cell){
+						obj.cell.setValue($scope.template({
+							id: obj.cell.id,
+							name: obj.name,
+							cellBoxActive: obj.cellBoxActive,
+							monitorEvent: obj.monitorEvent,
+							eventTicket: obj.eventTicket,
+							changeTicket: obj.changeTicket,
+							kpiUnusual: obj.kpiUnusual,
+							kpiCount: obj.kpiCount,
+							color1: obj.monitorEvent ? 'cell_color_warning' : 'cell_color_success',
+							color2: obj.eventTicket ? 'cell_color_warning' : 'cell_color_success',
+							color3: obj.changeTicket ? 'cell_color_warning' : 'cell_color_success',
+							fontColor: obj.kpiUnusual ? '' : 'cell_font_success',
+							// cellBoxDanger: obj.kpiUnusual ? 'cell_box_danger' : '',
+							cellBoxDanger: Math.random() < 0.5 ? 'cell_box_danger' : '',
+							cellBoxAutoSlide: Unit.getStrLength(obj.name) >= Const.GRAPH_MONITOR_VERTEX_TITLE_COUNT_OVERFLOW ? 'cell_box_auto_slide' : ''
+						}));
+					}
+				});
+
+				self.editor.graph.refresh();
+			};
+
+			$scope.ciMaps = {};
+
+			$scope.draw = function (data, cell) {
+
+				var parent = self.editor.graph.getDefaultParent();
+				var model = self.editor.graph.getModel();
+
+				var x = cell ? cell.geometry.x : 0;
+				var y = cell ? cell.geometry.y : 0;
+
+				model.beginUpdate();
+
+				try {
+					$.each(data.nodes, function () {
+						if (!$scope.ciMaps[this.id]) {
+
+							var cell = self.editor.graph.insertVertex(parent, this.id, $scope.template({
+								id: this.id,
+								name: this.client,
+								kpiUnusual: 0,
+								kpiCount: 0,
+								monitorEvent: 0,
+								eventTicket: 0,
+								changeTicket: 0,
+								color1: 'cell_color_success',
+								color2: 'cell_color_success',
+								color3: 'cell_color_success',
+								fontColor: 'cell_font_success'
+							}), x, y, Const.GRAPH_DRAG_WIDTH, Const.GRAPH_DRAG_HEIGHT, Const.GRAPH_MONITOR_VERTEX_STYLE);
+
+							$scope.ciIds.push(this.id);
+
+							$scope.ciMaps[this.id] = {
+								id: this.id,
+								cell: cell,
+								name: this.client,
+								kpiUnusual: 0,
+								kpiCount: 0,
+								monitorEvent: 0,
+								eventTicket: 0,
+								changeTicket: 0,
+								color1: 'cell_color_success',
+								color2: 'cell_color_success',
+								color3: 'cell_color_success',
+								fontColor: 'cell_font_success'
+							};
+
+							if (!this.isExpand) {
+								$scope.addOverlays(cell, this);
+							}
+						}
+					});
+
+					$.each(data.relations, function () {
+						var id = [this.from, this.name, this.to].join('_');
+						if ($scope.ciMaps[this.to] && $scope.ciMaps[this.from] && !$scope.ciMaps[id]) {
+							$scope.ciMaps[id] = self.editor.graph.insertEdge(parent, id, Unit.getMonitorEdgeHtml(this.name),
+								$scope.ciMaps[this.from].cell, $scope.ciMaps[this.to].cell, Const.GRAPH_MONITOR_EDGE_STYLE);
+						}
+					});
+
+					$scope.updateSide();
+					$scope.updateOut();
+				} finally {
+					model.endUpdate();
+				}
+
+			};
+
+			$scope.addOverlays = function (cell, data) {
+				var y = data.down ? 4 : -80;
+				var overlay = new mxCellOverlay(new mxImage(
+					Const.GRAPH_CELL_COLLAPSED_ICON, Const.GRAPH_CELL_COLLAPSED_SIZE, Const.GRAPH_CELL_COLLAPSED_SIZE));
+				overlay.cursor = 'hand';
+				overlay.align = mxConstants.ALIGN_CENTER;
+
+				overlay.offset = new mxPoint(0, y);
+				overlay.addListener(mxEvent.CLICK, mxUtils.bind(this, function () {
+
+					if (!overlay.lock) {
+						overlay.lock = true;
+						overlay.image.src = Const.GRAPH_CELL_COLLAPSED_LOADING_ICON;
+						self.editor.graph.refresh();
+
+						if (data.down) {
+							CiService.treeDown(data.id, $scope.currentType)
+								.success(function (result) {
+									$scope.draw(result.data, cell);
+									self.editor.graph.removeCellOverlay(cell, overlay);
+									self.editor.action.layoutVertical(true);
+								})
+								.error(function () {
+									overlay.lock = false;
+									overlay.image.src = Const.GRAPH_CELL_COLLAPSED_ICON;
+								});
+						} else {
+							CiService.treeUp(data.id, $scope.currentType)
+								.success(function (result) {
+									$scope.draw(result.data, cell);
+									self.editor.graph.removeCellOverlay(cell, overlay);
+									self.editor.action.layoutVertical(true);
+								})
+								.error(function () {
+									overlay.lock = false;
+									overlay.image.src = Const.GRAPH_CELL_COLLAPSED_ICON;
+								});
+						}
+
+					}
+
+					overlay.isExpand = !overlay.isExpand;
+				}));
+
+				self.editor.graph.addCellOverlay(cell, overlay);
+			};
+
+			$scope.staticIconUrl = function (icon) {
+				return Unit.static(icon);
+			};
+
+
+			$scope.ciTable = function (id, index) {
+				if (id) {
+					$uibModal.open({
+						animation: true,
+						size: 'lg',
+						templateUrl: 'app/modal/ciTable/ciTable.html',
+						controller: 'ModalCiTableCtrl',
+						resolve: {
+							editor: function () {
+								return {};
+							},
+							ciId: function () {
+								return id;
+							},
+							index: function () {
+								return index;
+							}
+						}
+					});
+				} else {
+					Unit.error('未知错误!');
+				}
+			};
+
+			$scope.infoParams = new GraphInfo();
+		}]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page.citree'));

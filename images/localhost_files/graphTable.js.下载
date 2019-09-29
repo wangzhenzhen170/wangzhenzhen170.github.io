@@ -1,0 +1,122 @@
+
+(function(){
+
+	'use strict';
+
+	var app = angular.module('graphTable', []);
+
+	app.factory('GraphTable', ['Unit', 'CiService', function(Unit, CiService){
+		
+		return function(editor){
+			this.showFlag = false;
+			this.data = [];
+
+
+			this.show = function(){
+				this.getData();
+				this.showFlag = true;
+			};
+
+			this.hide = function(){
+				this.showFlag = false;
+			};
+
+			this.format = function(data){
+				var map = {}, _this = this;
+
+				var getHead = function(obj){
+					var arr = [];
+					$.each(obj, function(key){
+						arr.push({label: key, key: key});
+					});
+
+					arr.sort(function(item){
+						return item.key === L.get('COMMON_NAME') ? -1 : 1;
+					});
+
+					return arr;
+				};
+
+				$.each(data, function(){
+					if(!map[this.categoryId]){
+						map[this.categoryId] = {
+							name: this.categoryName,
+							id: this.categoryId,
+							head: getHead(this.data),
+							rows: []
+						};
+					}
+
+					//this.data._name = this.name;
+					map[this.categoryId].rows.push(this.data);
+				});
+
+				$.each(map, function(){
+					_this.data.push(this);
+				});
+
+				console.log(_this.data);
+			};
+
+			this.getData = function(){
+				var _this = this;
+
+				if(editor){
+					this.ids = editor.action.getCisId();
+					if(this.ids.length){
+						CiService.ids(this.ids)
+							.success(function(result){
+								_this.data.splice(0);
+								_this.format(result.data);
+							});
+					}
+				}
+			};
+
+			if(editor){
+				editor.table = this;
+			}
+
+		};
+	}]);
+
+	app.controller('DirectiveGraphTableCtrl', ['$scope', 'GraphTable', '$parse', function($scope, GraphTable, $parse){
+
+		if(!$scope.hasOwnProperty('params')){
+			$scope.params = new GraphTable();
+		}
+
+		this.setupBindingsToInternalScope = function(infoParamsExpr){
+			var infoParamsGetter = $parse(infoParamsExpr);
+
+			$scope.$watch(infoParamsGetter, function(params){
+				if(angular.isUndefined(params)){
+					return;
+				}
+
+				$scope.params = params;
+			}, false);
+		};
+
+
+	}]);
+
+	app.directive('graphTable', ['$q', '$parse', function(){
+
+		return {
+			restrict: 'A',
+			priority: 1001,
+			transclude: true,
+			scope: true,
+			templateUrl: 'app/directive/graphTable/graphTable.html',
+			controller: 'DirectiveGraphTableCtrl',
+			compile: function(){
+				return function(scope, element, attrs, controller){
+					controller.setupBindingsToInternalScope(attrs.graphTable);
+				};
+			}
+		};
+
+	}]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

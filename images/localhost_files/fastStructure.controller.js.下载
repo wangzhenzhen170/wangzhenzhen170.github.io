@@ -1,0 +1,360 @@
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('fastStructureCtrl', ['$scope', '$state', '$filter', '$location', 'MonitoringService', 'Unit', '$timeout', function ($scope, $state, $filter, $location, MonitoringService, Unit, $timeout) {
+        //console.log($scope)
+        $scope.obj = {};
+        $scope.float = {
+            src: ''
+        };
+        $scope.obj.search = '';
+        $scope.showList = [];
+        $scope.structure = [];
+        $scope.Failure = true;
+        $scope.isReady = true;
+
+        $scope.searchView = function () {
+            $scope.page = 1;
+            $scope.structure = [];
+
+            if ($scope.isReady) {
+                $scope.loadingData(28, $scope.page, $scope.obj.search);
+            }
+
+        };
+        MonitoringService.getRuleById({
+            'id': 3
+        }).success(function (result) {
+            if (result) {
+
+                $scope.result = result.data;
+                $scope.CIvalue = result.data.action.ciMatches;
+                if ($scope.result.default) {
+                    $scope.diagram = result.data.action.scene;
+                    $scope.application = result.data.action.application;
+                    $scope.cluster = result.data.action.cluster;
+                    $scope.ci = result.data.action.ci;
+                }
+            }
+        })
+        $scope.saveDefaultRuleFun = function (item, index) {
+            $scope.wait = true;
+            switch (index) {
+                case 1:
+                    $scope.cluster = item;
+                    break;
+                case 2:
+                    $scope.application = item;
+                    break;
+                case 3:
+                    $scope.diagram = item;
+                    break;
+            }
+            MonitoringService.saveRule({
+                'id': 3,
+                'name': L.get('COMMON_DEFAULT') + L.get('EMV_COLLECTION_RULE'),
+                'ruleType': 20,
+                'active': 1,
+                'priority': 1,
+                'description': L.get('COMMON_DEFAULT') + L.get('EMV_COLLECTION_RULE'),
+                'action': {
+                    'application': $scope.application,
+                    'ci': $scope.ci,
+                    'cluster': $scope.cluster,
+                    'scene': $scope.diagram,
+                }
+
+
+
+            }).success(function (result) {
+
+                if (result.success) {
+
+                    $timeout(function () {
+                        $scope.$emit('notionalPool');
+                        $timeout(function () {
+                            Unit.success(L.get('COMMON_SET_SUCCESSFULLY'));
+                            $scope.wait = false;
+                        }, 2000);
+                    }, 8000);
+
+
+                } else {
+                    $timeout(function () {
+                        Unit.success(L.get('COMMON_SETTING') + L.get('COMMON_FAILURE'));
+                        $scope.wait = false;
+                        item = !item;
+                    }, 8000);
+
+                }
+
+            }).error(function () {
+                $timeout(function () {
+                    Unit.success(L.get('COMMON_SETTING') + L.get('COMMON_FAILURE'));
+                    $scope.wait = false;
+                    item = !item;
+                }, 8000);
+
+            });
+        }
+
+        $scope.loadingData = function (pageSize, page, name) {
+            $scope.isReady = false;
+            MonitoringService.queryDiagramAndMonitorPage({
+                pageSize: pageSize,
+                pageNum: page,
+                cdt: {
+                    name: name
+                }
+            }).success(function (result) {
+                $scope.isReady = true;
+                if (result.success) {
+                    $scope.allTotal = result.data.totalRows;
+                    $scope.structure = $scope.structure.concat(result.data.data);
+                    $scope.loadingIMG = false;
+                    console.log($scope.structure)
+                } else {
+                    Unit.error(L.get('COMMON_VIEW') + L.get('COMMON_FAILED_TO_LOAD') + '！');
+                    $scope.Failure = false;
+                }
+
+            }).error(function () {
+
+            });
+        };
+        $scope.page = 1;
+        $scope.loadingData(28, $scope.page, $scope.obj.search);
+        $scope.load = function () {
+            angular.element('.FSlist').scroll(function () {
+                var scrollTop = document.getElementById('FS-list').scrollTop;
+                var scrollHeight = document.getElementById('FS-list').scrollHeight;
+                var offsetHeight = document.getElementById('FS-list').offsetHeight;
+                if (scrollTop > 1000) {
+                    $scope.topImg = true;
+                } else {
+                    $scope.topImg = false;
+                }
+                if (scrollHeight - (offsetHeight + scrollTop) <= 0 && ($scope.allTotal > $scope.structure.length)) {
+                    $scope.page++;
+                    if ($scope.page > 1) {
+                        $scope.loadingIMG = true;
+                    }
+                    $scope.loadingData(28, $scope.page, $scope.obj.search);
+                }
+            });
+
+        }
+        //回到顶部
+        $scope.topImgFun = function () {
+            $('.FSlist').animate({
+                scrollTop: 0
+            }, 300);
+        }
+
+        //鼠标悬浮显示大图片
+        $scope.moveFun = function ($event) {
+            var element = document.querySelector('#imgLarge');
+            element.style.top = $event.pageY + 5 + 'px';
+            if ($event.pageX > 1620) {
+                element.style.left = $event.pageX - 260 + 'px';
+            } else {
+                element.style.left = $event.pageX + 5 + 'px';
+            }
+
+        };
+        $scope.floatShowFun = function () {
+            angular.element('.alertimg').parent().stop().animate({
+                opacity: 1
+            }, 300);
+        };
+        $scope.floatHideFun = function () {
+            angular.element('.alertimg').parent().stop().animate({
+                opacity: 0
+            }, 0);
+        };
+
+
+        /*创建场景取消按钮*/
+        $scope.cancleFun = function () {
+            console.log(1111)
+            $scope.toggle = false;
+            $scope.obj.scensName = '';
+            $scope.$emit('structureSave');
+            console.log($scope.structure);
+            $.each($scope.structure, function (index, item) {
+                item.check = false;
+                item.background = '#fff';
+            })
+            $scope.showList = [];
+        }
+
+        /*创建场景保存按钮*/
+        $scope.saveFun = function () {
+            if ($scope.obj.scensName) {
+                MonitoringService.saveOrUpdateSceneAndLinksAndDiagrams({
+                    scene: {
+                        sceneName: $scope.obj.scensName,
+                        isMonitor: 1
+                    },
+                    sceneDiagrams: $scope.saveID
+                }).success(function (result) {
+                    if (result.success) {
+                        //保存组合视图
+                        var param = $scope.getComboDiagramParam($scope.obj.scensName, $scope.saveID, result.data);
+                        MonitoringService.saveComboDiagram(param);
+                        $scope.$emit('structureSave');
+                        $scope.cancleFun();
+                        Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'));
+
+                    } else {
+                        Unit.error(result.message);
+                    }
+
+                }).error(function () {
+
+                });
+            } else {
+                Unit.error(L.get('COMMON_PLEASE_ENTER_A_NAME'));
+            }
+
+        }
+
+        // 获取组合视图需要的参数
+        $scope.getComboDiagramParam = function (sceneName, diagrams, sceneId) {
+            var combDiagrams = [];
+
+            $.each(diagrams, function (index) {
+                var json = {};
+                json.diagramId = this.diagramId;
+                json.px = Math.ceil((index + 1) / 3);
+                json.py = index % 3 + 1;
+                json.direct = 0;
+                combDiagrams.push(json);
+            });
+
+            var param = {
+                sceneId: sceneId,
+                diagramInfo: {
+                    combDiagrams: combDiagrams,
+                    diagram: {
+                        name: sceneName,
+                        diagramType: 2,
+                        dirId: 0,
+                        isOpen: 0,
+                        combCols: 3,
+                        combRows: 3,
+                        status: 1
+                    }
+                },
+            };
+
+            return param;
+        };
+
+        /*根据选中的视图数量判断是否让右侧拉出框显示*/
+        $scope.showRightFloat = function () {
+            //判断是否有选中某个视图，展示右侧列表
+            if ($scope.showList.length > 0) {
+                $scope.toggle = true;
+                setTimeout(function () {
+                    angular.element('.FSRwidth').animate({
+                        right: 0
+                    }, 600);
+                }, 1);
+            } else {
+                $scope.toggle = false;
+            }
+        }
+
+
+        /*获取选中视图下的告警id和视图本身的id*/
+        $scope.getViewIDwarningID = function () {
+            for (var x = 0; x < $scope.showList.length; x++) {
+                if ($scope.showList[x].totalCount > 0) {
+                    $scope.checkedIDArr = $scope.checkedIDArr.concat($scope.showList[x].ciCodes);
+                }
+                $scope.saveID.push({
+                    diagramId: $scope.showList[x].vcDiagramInfo.diagram.id
+                });
+            }
+
+        };
+
+        /*选中的视图下如果有告警调接口，向左侧推送数据*/
+        $scope.getWarningData = function () {
+            if ($scope.checkedIDArr.length > 0) {
+
+                MonitoringService.viewAlarmList($scope.checkedIDArr).success(function (result) {
+                    $scope.warningCI = result.data;
+
+                    $scope.$emit('structureWarning', $scope.warningCI);
+                }).error(function () {
+
+                });
+            } else {
+                $scope.$emit('structureWarning', []);
+                $scope.warningCI = [];
+            }
+        }
+
+
+        /*创建场景删除某个告警*/
+        $scope.deleteFun = function (i) {
+            $scope.checkedIDArr = [];
+            $scope.saveID = [];
+            for (var x = 0; x < $scope.showList.length; x++) {
+                if (i.vcDiagramInfo.diagram.id === $scope.showList[x].vcDiagramInfo.diagram.id) {
+                    $scope.showList.splice(x, 1);
+                    $scope.structure.forEach(function (item) {
+                        if (item.vcDiagramInfo.diagram.id === i.vcDiagramInfo.diagram.id) {
+                            item.background = '#fff';
+                        }
+
+                    });
+
+                }
+            }
+            $scope.getViewIDwarningID(); //获取选中视图下的告警id和视图本身的id
+            $scope.showRightFloat(); //判断右侧是否显示
+            $scope.getWarningData(); //选中的视图下如果有告警调接口，向左侧推送数据
+            i.delete = false;
+            i.check = false;
+            i.fsckecked = false;
+            i.mouseOver = false;
+
+        }
+        $scope.showList = [];
+        /*点击中间部分的某个视图*/
+        $scope.toggleFun = function (i) {
+            $scope.checkedIDArr = []; //选中的且告警个数不为0的id
+            $scope.saveID = []; //选中的视图的id，在保存时调用接口用到
+
+            //点击某个告警的选中和取消选中事件，设置选中个数超过36，不能再选中
+            if (i.check) {
+                if ($scope.showList.length < 36) {
+                    $scope.showList.push(i);
+                    //$scope.checkedIDArr.push(i.id)
+                } else {
+                    Unit.error(L.get('EMV_UP_TO_X_VIEWS_AVAILABLE', { x: 36 }));
+                    i.check = false;
+                }
+                i.background = $filter('severityColor')(i.severity);
+            } else {
+                for (var x = 0; x < $scope.showList.length; x++) {
+                    if (i.vcDiagramInfo.diagram.id === $scope.showList[x].vcDiagramInfo.diagram.id) {
+                        $scope.showList.splice(x, 1);
+                    }
+                }
+                i.background = '#fff';
+            }
+            $scope.getViewIDwarningID(); //获取选中视图下的告警id和视图本身的id
+            $scope.showRightFloat(); //判断右侧是否显示
+            $scope.getWarningData(); //选中的视图下如果有告警调接口，向左侧推送数据
+
+
+        }
+
+    }]);
+
+})(nameSpace.reg('graph'));

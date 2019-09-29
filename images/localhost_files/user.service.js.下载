@@ -1,0 +1,37 @@
+(function(graph) {
+
+	'use strict';
+
+	graph.app.service('UserService', ['$http', 'Unit', function($http, Unit) {
+
+
+		return {
+
+			profile: function() {
+				return $http.get(Unit.api('/userprofile'));
+			},
+			/**
+			 * 获取当前用户信息
+			 */
+			getCurUser: function() {
+				return $http.post(Unit.monitorApi('/integration/authority/getCurUser'));
+			},
+			/**
+			 * 获取导航栏数据
+			 */
+			getNav: function() {
+				return $http.post(Unit.monitorApi('/navigationbar/projects'));
+			},
+			/**
+			 * 获取登录配置信息
+			 */
+			getLoginInfo: function() {
+				return $http.post(Unit.monitorApi('/configuration/getConfiguration'));
+			}
+		};
+
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

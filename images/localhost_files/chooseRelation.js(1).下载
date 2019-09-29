@@ -1,0 +1,19 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('chooseRelationService', ['$http', '$q', 'Unit', 'MockPromise', function($http, $q, Unit, MockPromise){
+
+        var o = {};
+        //获取数据
+        o.get = function(data){
+            return $http.post(Unit.diagramApi('/ciRltClass/queryList'), data);
+        };
+        o.save = function(data){
+            return $http.post(Unit.diagramApi('/ciRlt/saveOrUpdate'), data);
+        }
+        return o;
+	}]);
+
+})(nameSpace.reg('graph'));

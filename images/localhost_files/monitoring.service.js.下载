@@ -1,0 +1,913 @@
+(function (graph) {
+
+    'use strict';
+
+    graph.app.service('MonitoringService', ['$http', 'Unit', 'MockPromise', '$q', function ($http, Unit, MockPromise, $q) {
+
+        //获取故障、告警列表
+        /*this.getEventList = function(param) {
+            return $http.post(Unit.monitorApi('/event/eventList'), param);
+        };*/
+        //获取故障、告警列表(新)
+        this.getEventList = function (param) {
+            return $http.post(Unit.monitorApi('/incident/selectIncidentPageList'), param);
+        };
+        //全部事件台搜索
+		/*this.selectPage_WeiBo = function(param) {
+			return $http.post(Unit.monitorApi('/event/selectPage_WeiBo'), param);
+		};*/
+        //全部事件台搜索
+        this.selectPage_WeiBo = function (param) {
+            return $http.post(Unit.monitorApi('/event/alarmPageList'), param);
+        };
+        //故障下的告警列表
+        this.getFaultEventlist = function (param) {
+            return $http.post(Unit.monitorApi('/event/alarmList'), param);
+        };
+        //告警详情
+        this.getAlertDetail = function (param) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.monitorApi('/event/alarmInfo'), param, {
+                timeout: deferred.promise
+            });
+
+            $promise.cancel = function () {
+                deferred.resolve();
+            };
+            return $promise;
+
+        };
+        this.getAlertDetailDiscard = function (param) {
+            return $http.post(Unit.monitorApi('/event/alarmDiscardInfo'), param);
+        };
+        //事件台告警数量
+        /*  this.getEventNum = function() {
+              return $http.post(Unit.monitorApi('/event/eventTypeCount'), {});
+          };*/
+        //事件台告警数量(新)
+        this.getEventNum = function () {
+            return $http.post(Unit.monitorApi('/incident/eventTypeCount'), {});
+        };
+        //告警时序图
+        this.getSequential = function (param) {
+            return $http.post(Unit.monitorApi('/event/sequenceDiagram'), param);
+        };
+        //确认故障
+        /*this.confirmEvent = function(param) {
+			return $http.post(Unit.monitorApi('/event/ackEventView'), param);
+		};*/
+        this.confirmEvent = function (param) {
+            return $http.post(Unit.monitorApi('/incident/ackIncident'), param);
+        };
+        /*确认告警*/
+        this.confirmFault = function (param) {
+            return $http.post(Unit.monitorApi('/event/ackEventAlarm'), param);
+        };
+        //取消确认故障
+        /*this.cancelConfirm = function(param) {
+            return $http.post(Unit.monitorApi('/event/cancleAckedEvent'), param);
+        };*/
+        this.cancelConfirm = function (param) {
+            return $http.post(Unit.monitorApi('/incident/cancleAckedIncident'), param);
+        };
+        /*取消确认告警*/
+        this.cancelConfirmFault = function (param) {
+            return $http.post(Unit.monitorApi('/event/cancleAckedEvent'), param);
+        };
+        //关闭故障
+        /* this.closeEvent = function(param) {
+             return $http.post(Unit.monitorApi('/event/closeEventView'), param);
+         };*/
+        this.closeEvent = function (param) {
+            return $http.post(Unit.monitorApi('/incident/closeIncident'), param);
+        };
+        /*关闭告警*/
+        this.closeFault = function (param) {
+            return $http.post(Unit.monitorApi('/event/closeEventAlarm'), param);
+        };
+        //快速构建场景列表展示
+        this.queryDiagramAndMonitorList = function (param) {
+            return $http.post(Unit.monitorApi('/scene/queryDiagramAndMonitorList'), param);
+        };
+        //点击视图窗口展示告警信息
+        this.viewAlarmList = function (param) {
+            return $http.post(Unit.monitorApi('/event/viewAlarmList'), param);
+        };
+        //获取KPI指标趋势图数据
+        this.getKpiDiagram = function (param) {
+            // return $http.post(Unit.monitorApi('/event/performanceDiagram'), param);
+            return $http.post(Unit.diagramApi('/comb/getPerformanceList'), param);
+        };
+        //保存视图到场景
+        this.saveOrUpdateSceneAndLinksAndDiagrams = function (param) {
+            return $http.post(Unit.monitorApi('/scene/saveOrUpdateSceneAndLinksAndDiagrams'), param);
+        };
+        //快速构建场景列表分页接口
+        this.queryDiagramAndMonitorPage = function (param) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.monitorApi('/scene/queryDiagramAndMonitorPage'), param, {
+                timeout: deferred.promise
+            });
+
+            $promise.cancel = function () {
+                deferred.resolve();
+            };
+            return $promise;
+            //return $http.post(Unit.monitorApi('/scene/queryDiagramAndMonitorPage'), param);
+        };
+        //发送邮件查询用户列表不分页
+        this.queryOpList = function (param) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.monitorApi('/scene/queryOpList'), param, {
+                timeout: deferred.promise
+            });
+
+            $promise.cancel = function () {
+                deferred.resolve();
+            };
+            return $promise;
+
+        };
+        //发送邮件点击发送
+        this.sendEventMail = function (param) {
+            return $http.post(Unit.monitorApi('/event/sendEventMail'), param);
+        };
+        /*发送邮件（新）*/
+        this.eventNotify = function (param) {
+            return $http.post(Unit.monitorApi('/event/eventNotify'), param);
+        };
+        this.genData = function (param) {
+            return $http.post(Unit.monitorApi('/event/genData'), param);
+        };
+        //规则克隆
+        this.copyRule = function (param) {
+            return $http.post(Unit.monitorApi('/rule/copyRule'), param);
+        };
+        //压缩规则列表查询
+        this.queryRule = function (param) {
+            return $http.post(Unit.monitorApi('/rule/queryRule'), param);
+        };
+        //压缩规则激活反激活
+        this.activeRule = function (param) {
+            return $http.post(Unit.monitorApi('/rule/activeRule'), param);
+        };
+        //新建压缩规则名称
+        this.checkRuleName = function (param) {
+            return $http.post(Unit.monitorApi('/rule/checkRuleName'), param);
+        };
+        //校验可视化规则
+
+        this.checkBatchRuleName = function (param) {
+            return $http.post(Unit.monitorApi('/rule/checkBatchRuleName'), param);
+        };
+        //添加规则保存
+        this.saveRule = function (param) {
+            return $http.post(Unit.monitorApi('/rule/saveRule'), param);
+        };
+        //添加可视化规则
+        this.addBatchRules = function (param) {
+            return $http.post(Unit.monitorApi('/rule/addBatchRules'), param);
+        };
+        //获取压缩规则数据
+        this.getRuleById = function (param) {
+            return $http.post(Unit.monitorApi('/rule/getRuleById'), param);
+        };
+        //获取压缩规则预览列表数据
+        this.previewEvent = function (param) {
+            return $http.post(Unit.monitorApi('/rule/previewEvent'), param);
+        };
+        //获取屏蔽预览列表数据
+        this.previewMemoryEvent = function (param) {
+            return $http.post(Unit.monitorApi('/rule/previewMemoryEvent'), param);
+        };
+        //下载模板接口
+        this.getTemplate = function (param, type) {
+            return $http.post(Unit.monitorApi('/rule/getTemplate/' + type), param, { responseType: 'arraybuffer' })
+
+        };
+        //导入接口
+        this.importSelector = function (file) {
+            var fromData = new FormData();
+            angular.forEach(file, function (value) {
+                fromData.append('file', value);
+            });
+
+            return $http.post(Unit.monitorApi('/rule/importSelector'), fromData, {
+                headers: {
+                    'Content-Type': undefined
+                }
+            });
+        };
+
+
+        //快速屏蔽
+        this.fastDiscardEvent = function (param) {
+            return $http.post(Unit.monitorApi('/event/fastDiscardEvent'), param);
+        };
+        //获取维护期列表数据
+        this.queryMaPeriod = function (param) {
+            return $http.post(Unit.monitorApi('/maPeriod/queryMaPeriod'), param);
+        };
+        //删除压缩规则
+        this.deleteRule = function (param) {
+            return $http.post(Unit.monitorApi('/rule/deleteRule'), param);
+        };
+        //获取邮件通知用户信息列表
+        this.userList = function (param) {
+            return $http.post(Unit.monitorApi('/rule/userList'), param);
+        };
+        //获取登陆用户信息列表
+        this.user = function (param) {
+            return $http.post(Unit.monitorApi('/system/getUserInfo'), param);
+        };
+        //获取登陆用户信息
+        this.getUserById = function (id) {
+            return $http.post(Unit.monitorApi('/system/getUserById/' + id));
+        };
+
+        //删除维护期
+        this.deleteMaPeriod = function (param) {
+            return $http.post(Unit.monitorApi('/maPeriod/deleteMaPeriod'), param);
+        };
+        //导出报告
+        this.exportImportMsg = function (param) {
+            return $http.post(Unit.monitorApi('/system/exportImportMsg'), param);
+        };
+        //维护期实例查询
+        this.getCiPageList = function (param) {
+            return $http.post(Unit.monitorApi('/system/getCiPageList'), param);
+        };
+        //维护期实例查询
+        this.getCiInfoPageList = function (param) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.monitorApi('/system/getCiInfoPageList'), param, {
+                timeout: deferred.promise
+            });
+
+            $promise.cancel = function () {
+                deferred.resolve();
+            };
+            return $promise;
+
+            // return $http.post(Unit.monitorApi('/system/getCiInfoPageList'), param);
+        };
+        //通过ID查询维护期信息
+        this.getMaPeriodById = function (param) {
+            return $http.post(Unit.monitorApi('/maPeriod/getMaPeriodById'), param);
+        };
+        //维护期新建名称校验重复
+        this.checkMaPeriodName = function (param) {
+            return $http.post(Unit.monitorApi('/maPeriod/checkMaPeriodName'), param);
+        };
+        //维护期保存
+        this.saveMaPeriod = function (param) {
+            return $http.post(Unit.monitorApi('/maPeriod/saveMaPeriod'), param);
+        };
+        //维护期点击生效
+        this.stopMaPeriod = function (param) {
+            return $http.post(Unit.monitorApi('/maPeriod/stopMaPeriod'), param);
+        };
+
+        //获取大屏列表标题数据
+        this.getOScreenListTitle = function (param) {
+            return $http.post(Unit.monitorApi('/event/queryViewFields'), param);
+        };
+        //获取大屏列表数据
+        this.getOScreenList = function (param) {
+            return $http.post(Unit.monitorApi('event/queryEventPage'), param);
+        };
+        //发送邮件点击发送
+        this.sendEvents = function (param) {
+            return $http.post(Unit.monitorApi('/event/sendEventsMail'), param);
+        };
+        /*自定义视图板块*/
+
+        //校验新建的视图名称是否已存在{viewName:"abc"}
+        this.isViewExist = function (param) {
+            return $http.post(Unit.monitorApi('/view/isViewExist'), param);
+        };
+        //新增视图{viewName:"abc"}
+        this.addview = function (param) {
+            return $http.post(Unit.monitorApi('/view/addview'), param);
+        };
+        //获取所有视图
+        this.getAllviews = function (param) {
+            return $http.post(Unit.monitorApi('/view/getAllviews'), param);
+        };
+        //根据视图ID查询视图的保存条件{viewId}
+        this.queryUserFilterInfo = function (param) {
+            return $http.post(Unit.monitorApi('/view/queryUserFilterInfo'), param);
+        };
+
+        //查字典表
+        this.queryDictGroup = function (param) {
+            return $http.post(Unit.monitorApi('/dictGroup/queryDictGroup'), param);
+        };
+        //添加字典组
+        this.saveDictGroup = function (param) {
+            return $http.post(Unit.monitorApi('/dictGroup/saveDictGroup'), param);
+        };
+        //删除字典组
+        this.delDictGroup = function (param) {
+            return $http.post(Unit.monitorApi('/dictGroup/delDictGroup'), param);
+        };
+        //校验字典组名称
+        this.checkGroupName = function (param) {
+            return $http.post(Unit.monitorApi('/dictGroup/checkGroupName'), param);
+        };
+        //查询字典表
+        this.queryDict = function (param) {
+            return $http.post(Unit.monitorApi('/dict/queryDict'), param, { ignoreLoadingBar: true });
+        };
+        //删除字典表
+        this.delDict = function (param) {
+            return $http.post(Unit.monitorApi('/dict/delDict'), param);
+        };
+        //修改字典表
+        this.saveDict = function (param) {
+            return $http.post(Unit.monitorApi('/dict/saveDict'), param);
+        };
+        //校验字典表名称
+        this.checkCodeByGroupId = function (param) {
+            return $http.post(Unit.monitorApi('/dict/checkCodeByGroupId'), param);
+        };
+        //查询下拉框信息
+        this.getModelCode = function (param) {
+            return $http.post(Unit.monitorApi('/system/getModelCode'), param);
+        };
+        // 保存组合视图
+        this.saveComboDiagram = function (param) {
+            return $http.post(Unit.monitorApi('/scene/saveOrUpdateCombDiagramInEmv'), param);
+        };
+        // 根据场景ID查询组合视图ID
+        this.getComboDiagramIdByScene = function (param) {
+            return $http.post(Unit.monitorApi('/scene/querySceneDiagramListByCdt'), param);
+        };
+        //配置信息
+        this.getCiPropertyByCiCode = function (param) {
+            return $http.post(Unit.monitorApi('/event/getCiPropertyByCiCode'), param);
+        };
+        //获取关联视图
+        this.getEventDiagramByCiCode = function (param) {
+            return $http.post(Unit.monitorApi('/eventDiagram/getEventDiagramByCiCode'), param);
+        };
+        //获取操作记录
+        this.getEventOperations = function (param) {
+            return $http.post(Unit.monitorApi('/event/getEventOperations'), param);
+        };
+        //获取事件级别定义列表
+        this.severitylist = function (param) {
+            return $http.post(Unit.monitorApi('/severity/list'), param);
+        };
+        //保存事件级别定义列表
+        this.saveSeverity = function (param) {
+            return $http.post(Unit.monitorApi('/severity/saveSeverity'), param);
+        };
+        //事件级别名称校验
+        this.validateSeverity = function (param) {
+            return $http.post(Unit.monitorApi('/severity/validateSeverity'), param);
+        };
+        //删除事件级别
+        this.delSeverity = function (param) {
+            return $http.post(Unit.monitorApi('/severity/delSeverity'), param);
+        };
+        //上传声音接口
+
+        this.uploadVoiceFile = function (file) {
+            var fromData = new FormData();
+            angular.forEach(file, function (value) {
+                fromData.append('file', value);
+            });
+
+            return $http.post(Unit.monitorApi('/severity/uploadVoice'), fromData, {
+                headers: {
+                    'Content-Type': undefined
+                }
+            });
+        };
+        //删除声音
+        this.removeVoiceSource = function (param) {
+            return $http.post(Unit.monitorApi('/severity/removeVoiceSource'), param);
+        };
+        //删除事件级别
+        this.delSeverity = function (param) {
+            return $http.post(Unit.monitorApi('/severity/delSeverity'), param);
+        };
+        // 从字典表获取下拉菜单
+        this.getSelectorCodes = function (param) {
+            return $http.post(Unit.monitorApi('/system/getSelectorCodes'), param);
+        };
+        // 获取所有关注（订阅)自定义事件台
+        this.getSubViews = function (param) {
+            return $http.post(Unit.monitorApi('/view/getSubViews'), param);
+        };
+        // 获取自定义事件台下各个状态的数量
+        this.queryViewCount = function (param) {
+            return $http.post(Unit.monitorApi('/event/queryViewCount'), param);
+        };
+        // 所属应用线状图
+        this.queryCiApplicationGroup = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/queryCiApplicationGroup'), param);
+        };
+        // 事件告警级别饼状图
+        this.querySeverityGroupBing = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/querySeverityGroupBing'), param);
+        };
+        // 事件源统计柱状图
+        this.querySourceIdGroup = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/querySourceIdGroup'), param);
+        };
+        // 全部事件中的维护期
+		/*this.getDiscardEventList = function(param) {
+			return $http.post(Unit.monitorApi('/event/eventDiscardList'), param);
+        };*/
+        /*新*/
+        this.getDiscardEventList = function (param) {
+            return $http.post(Unit.monitorApi('/event/eventDiscardPageList'), param);
+        };
+        // 团队管理保存
+        this.saveGroup = function (param) {
+            return $http.post(Unit.monitorApi('/group/saveGroup'), param);
+        };
+        // 查询单个团队信息
+        this.queryByIdGroup = function (param) {
+            return $http.post(Unit.monitorApi('/group/queryById'), param);
+        };
+        // 查询全部团队信息
+        this.queryAllGroup = function (param) {
+            return $http.post(Unit.monitorApi('/group/queryPage'), param);
+        };
+        // 校验团队名称是否重复
+        this.isGroupAlreadyExist = function (param) {
+            return $http.post(Unit.monitorApi('/group/isGroupAlreadyExist'), param);
+        };
+        //查询值班人信息
+        this.getOnDutyPostList = function (param) {
+            return $http.post(Unit.monitorApi('rule/getOnDutyPostList'), param);
+        };
+        // 删除团队
+        this.deleteGroup = function (param) {
+            return $http.post(Unit.monitorApi('/group/deleteGroup'), param);
+        };
+
+        // 菜单权限
+        this.vframe = function (param) {
+            return $http.post(Unit.monitorApi('/sys/vframe/getAuthMenuTreeByRootModuCode'), param);
+        };
+        // 获取丰富规则的ciCLass
+        this.getCiClassCodes = function (param) {
+            return $http.post(Unit.monitorApi('/system/getCiClassCodes'), param);
+        };
+        // 获取丰富规则的ci属性
+        this.getCiAttrDefs = function (param) {
+            return $http.post(Unit.monitorApi('/system/getCiAttrDefs'), param);
+        };
+        // 确认、取消是否有权限
+        this.validate = function (param) {
+            return $http.post(Unit.monitorApi('/group/validate'), param);
+        };
+        // 告警详情的告警信息
+        this.eventDetails = function (param) {
+            return $http.post(Unit.monitorApi('/event/eventDetails'), param);
+        };
+        // 维护期告警详情的告警信息
+        this.eventDiscardDetails = function (param) {
+            return $http.post(Unit.monitorApi('/event/eventDiscardDetails'), param);
+        };
+        // 压缩详情列表数据
+        this.queryEventPage = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/queryEventPage'), param);
+        };
+        // 故障处理记录
+        this.getIncidentOperations = function (param) {
+            return $http.post(Unit.monitorApi('/incident/getIncidentOperations'), param);
+        };
+        //应用事件墙
+        this.queryEventAppWall = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/queryEventAppWall'), param);
+        };
+        //事件墙点击单个应用
+        this.queryAppWallUpDown1Level = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/queryAppWallUpDown1Level'), param);
+        };
+        //时光轴
+        this.selectTimeAxisEvent = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/selectTimeAxisEvent'), param);
+        };
+
+        //告警派单率
+        this.ticketSendRate = function (param) {
+            return $http.post(Unit.monitorApi('/eventTicket/ticketSendRate'), param);
+        };
+        //事件统计 事件指标top10
+        this.columnCountTop = function (param) {
+            return $http.post(Unit.monitorApi('/eventVisual/columnCountTop10'), param);
+        };
+        //应用概览
+        // this.getLast24HourAppCount = function (param) {
+        //     return $http.post(Unit.monitorApi('/eventVisual/getLast24HourAppCount'), param);
+        // };
+
+        //告警归集统计
+        this.listCombineData = function (param) {
+            return $http.post(Unit.monitorApi('/eventVisual/listCombineData'), param);
+        };
+        //故障恢复时长统计
+        this.listCombineDuration = function (param) {
+            return $http.post(Unit.monitorApi('/eventVisual/listCombineDuration'), param);
+        };
+        //自定义实时查询联想
+        this.columnCountTop10forView = function (param) {
+            return $http.post(Unit.monitorApi('eventVisual/columnCountTop10forView'), param);
+        };
+        //展示信息设置查询
+        this.queryEventModel = function (param) {
+            return $http.post(Unit.monitorApi('/eventModel/queryEventModel'), param);
+        };
+        //更新展示信息设置查询
+        this.updateBatchEventModel = function (param) {
+            return $http.post(Unit.monitorApi('/eventModel/updateBatchEventModel'), param);
+        };
+
+        //模拟告警发送
+        this.sendEvent = function (param) {
+            return $http.post(Unit.monitorApi('/event/sendEvent'), param);
+        };
+
+        //报告分享生成
+        this.shareSave = function (param) {
+            return $http.post(Unit.monitorApi('/graphReport/save'), param);
+        };
+        //报告分享发送
+        this.graphReportNotify = function (param) {
+            return $http.post(Unit.monitorApi('/event/graphReportNotify'), param);
+        };
+
+        //个性化化设置单条保存
+        this.saveEventModelSourceId = function (param) {
+            return $http.post(Unit.monitorApi('/eventModel/saveEventModelSourceId'), param);
+        };
+        //个性化化设置单条删除
+        this.delEventModelSourceId = function (param) {
+            return $http.post(Unit.monitorApi('/eventModel/delEventModelSourceId'), param);
+        };
+        //获取pmvUrl
+        this.selectPMVUrl = function (param) {
+            return $http.post(Unit.monitorApi('/system/selectPMVUrl'), param);
+        };
+
+        //获取未关联CI列表数据
+        this.selectNeedComplementEvent = function (param) {
+            return $http.post(Unit.monitorApi('/eventVisual/selectNeedComplementEvent'), param);
+        };
+        //获取未关联CI列表数据列表
+        this.needComplementEvent = function (param) {
+            return $http.post(Unit.monitorApi('/eventVisual/needComplementEvent'), param);
+        };
+
+        //通过uuid查询快照条件
+        this.queryByUUID = function (param) {
+            return $http.post(Unit.monitorApi('/graphReport/queryByUUID'), param);
+        };
+        //大屏右键中的发送工单
+        this.setSendOrders = function (param) {
+            return $http.post(Unit.monitorApi('/eventTicket/sendTicket'), param);
+        };
+        //获取cmv地址
+        this.selectCMVUrl = function (param) {
+            return $http.post(Unit.monitorApi('/system/selectCMVUrl'), param);
+        };
+        //搜索模拟告警可选字段
+        this.getCiList = function (param) {
+            return $http.post(Unit.monitorApi('/system/getCiList'), param);
+        };
+        //监控源统计查询接口
+        this.monitorSourceCount = function (param) {
+            return $http.post(Unit.monitorApi('/event/monitorSourceCount'), param);
+        };
+        //查询重点对象状态统计信息列表接口
+        this.queryMajorCiCount = function (param) {
+            return $http.post(Unit.monitorApi('/dict/queryMajorCiCount'), param);
+        };
+        //ci分类查询
+        this.getCiClassCodes = function (param) {
+            return $http.post(Unit.monitorApi('/system/getCiClassCodes'), param);
+        };
+        //查询ci分类下的所有ci
+        this.getCcCiByClassId = function (param) {
+            return $http.post(Unit.monitorApi('/system/getCcCiByClassId'), param);
+        };
+        //增加ci
+        this.saveDict4Group15 = function (param) {
+            return $http.post(Unit.monitorApi('/dict/saveDict4Group15'), param);
+        };
+        //获取关联查询数据
+        this.associateEventList = function (param) {
+            return $http.post(Unit.monitorApi('/event/associateEventList'), param);
+        };
+        //获取变更次数
+        this.countCiDetailAccount = function (param) {
+            return $http.post(Unit.monitorApi('/event/countCiDetailAccount'), param);
+        };
+        //获取变更详情
+        this.getCiDetailAccount = function (param) {
+            return $http.post(Unit.monitorApi('/event/getCiDetailAccount'), param);
+        };
+
+        //经验库管理-获取分页列表
+        this.experienceSelectPage = function (param) {
+            return $http.post(Unit.monitorApi('/experience/selectPage'), param);
+        };
+        //经验库管理-添加
+        this.saveExperience = function (param) {
+            return $http.post(Unit.monitorApi('/experience/saveExperience'), param);
+        };
+        //经验库管理-删除
+        this.delExperience = function (param) {
+            return $http.post(Unit.monitorApi('/experience/delExperience'), param);
+        };
+        //经验库管理-修改时查条件
+        this.getExperienceById = function (param) {
+            return $http.post(Unit.monitorApi('/experience/getExperienceById/' + param));
+        };
+        //经验库管理-验证
+        this.selectorValidation = function (param) {
+            return $http.post(Unit.monitorApi('/experience/selectorValidation'), param);
+        };
+        //查询处理经验
+        this.getExperienceByEvent = function (param) {
+            return $http.post(Unit.monitorApi('/experience/getExperienceByEvent'), param);
+        };
+        //查询处理规则
+        this.getEventRules = function (param, eventType) {
+            return $http.post(Unit.monitorApi('/event/getEventRules/' + eventType), param);
+        };
+
+        this.selectorValidation = function (param, id) {
+            return $http.post(Unit.monitorApi('/experience/selectorValidation/' + id), param);
+        };
+        //创建CI保存标识
+        this.saveCreateLog = function (param) {
+            return $http.post(Unit.monitorApi('eventVisual/saveCreateLog'), param);
+        };
+        //大屏告警详情中点击影响分析获取difid
+        this.influenceAnalyzeParam = function (param) {
+            return $http.post(Unit.monitorApi('event/influenceAnalyzeParam'), param);
+        };
+        //大屏是否添加过值班日志
+        this.queryPageList = function (param) {
+            return $http.post(Unit.monitorApi('eventLog/queryPageList'), param);
+        };
+        //添加应用
+        this.appSuperMarketAdd = function (param) {
+            return $http.post(Unit.monitorApi('appSupermarket/add'), param);
+        };
+        //查询指标数据
+        this.getPerformanceList = function (param) {
+            return $http.post(Unit.monitorApi('performance/getPerformanceList'), param);
+        };
+        //查询指标数据
+        this.queryLatest2HourAppOverview = function (param) {
+            return $http.post(Unit.monitorApi('eventShow/queryLatest2HourAppOverview'), param);
+        };
+
+        //事件概览-时光轴
+        this.appOverviewTimeAxis = function (param) {
+            return $http.post(Unit.monitorApi('eventShow/appOverviewTimeAxis'), param);
+        };
+        //事件概览-无分层时光轴
+        this.appOverviewTimeAxisNoLevel = function (param) {
+            return $http.post(Unit.monitorApi('eventShow/appOverviewTimeAxisNoLevel'), param);
+        };
+        //事件概览-层次
+        this.getTimeAxisLevel = function (param) {
+            return $http.post(Unit.monitorApi('eventShow/getTimeAxisLevel'), param);
+        };
+
+        //查询logo
+        this.getLogosByType = function (param, type) {
+            return $http.post(Unit.monitorApi('/system/getLogosByType/' + type), param);
+        };
+        //查询
+        this.eventAppList = function (param) {
+            return $http.post(Unit.monitorApi('/event/eventAppList'), param);
+        };
+        //查询时序图
+        this.sequenceDiagramApp = function (param) {
+            return $http.post(Unit.monitorApi('/event/sequenceDiagramApp'), param);
+        };
+        //查询负责人信息
+        this.getEventCiOwner = function (param, status, serial) {
+            return $http.post(Unit.monitorApi('/event/getEventCiOwner/ ' + status + '/' + serial), param);
+        };
+        //查询应用
+        this.queryCiApplication = function (param, type) {
+            return $http.post(Unit.monitorApi('/eventShow/queryCiApplication'), param);
+        };
+
+        //获取应用ID
+        this.getCiCodeValueByAttr = function (param, type) {
+            return $http.post(Unit.monitorApi('/event/getCiCodeValueByAttr'), param);
+        };
+
+        //配置管理-分类应用
+        this.queryTimeAlixLevel = function (param, type) {
+            return $http.post(Unit.monitorApi('/userDefineConf/queryTimeAlixLevel'), param);
+        };
+        //配置管理-保存
+        this.modifyTimeAlixLevel = function (param, type) {
+            return $http.post(Unit.monitorApi('/userDefineConf/modifyTimeAlixLevel'), param);
+        };
+
+        //菜单
+        this.queryAuthMenuTreeNodes = function (param, type) {
+            return $http.post(Unit.monitorApi('/sys/vframe/queryAuthMenuTreeNodes'), param);
+        };
+        //菜单收藏
+        this.enshrineMenu = function (param, type) {
+            return $http.post(Unit.monitorApi('/sys/vframe/enshrineMenu/' + param));
+        };
+        //取消菜单收藏
+        this.unenshrineMenu = function (param, type) {
+            return $http.post(Unit.monitorApi('/sys/vframe/unenshrineMenu/' + param));
+        };
+
+        //同源分析-通过应用查应用id
+        this.getCiCodeValueByAttr = function (param, type) {
+            return $http.post(Unit.monitorApi('/event/getCiCodeValueByAttr'), param);
+        };
+        this.getCiCodeValuesByAttrList = function (param, type) {
+            return $http.post(Unit.monitorApi('/event/getCiCodeValuesByAttrList'), param);
+        };
+
+        //事件概览
+        this.queryEventOverview = function (param) {
+            return $http.post(Unit.monitorApi('/eventConsole/queryEventOverview'), param);
+        };
+        this.queryActiveEventCount = function (param) {
+            return $http.post(Unit.monitorApi('/eventConsole/queryActiveEventCount'), param);
+        };
+
+        //浏览器校验
+        this.queryBrowserUrl = function (param) {
+            return $http.post(Unit.monitorApi('/sys/vframe/queryBrowserUrl'), param);
+        };
+
+        //巡检报表
+        this.queryInspReports = function (param) {
+            return $http.post(Unit.monitorApi('/insp/queryInspReportByPage'), param);
+        };
+        this.queryInspReportsByDate = function (param) {
+            return $http.post(Unit.monitorApi('/insp/queryInspReportByDate'), param);
+        };
+        this.queryInspReportsByDateRange = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryInspReportByDateRange'), param);
+        };
+        this.queryPages = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryInspReportsPagesCount'), param);
+        };
+        this.queryRoomNames = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryRoomNames'), param);
+        };
+        this.queryRoomsByName = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryRoomCodesByName'), param);
+        };
+        this.queryInspEvents = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryEventsBySerial'), param);
+        };
+        this.queryConcernsByReportId = function (param) {
+            return $http.post(Unit.monitorApi('insp/getConcernsByReportCode'), param);
+        };
+        this.queryActiveEventsByRoomName = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryEventsByRoom'), param);
+        };
+        this.queryClosedEventsByRoomName = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryEventsClosedByRoom'), param);
+        };
+        this.queryConcerns = function (param) {
+            return $http.post(Unit.monitorApi('insp/getConcerns'), param);
+        };
+        this.queryConcernsToday = function (param) {
+            return $http.post(Unit.monitorApi('insp/getConcernsToday'), param);
+        };
+        this.saveInspReport = function (param) {
+            return $http.post(Unit.monitorApi('insp/saveInspReport'), param);
+        };
+        this.queryConcernsByReportTime = function (param) {
+            return $http.post(Unit.monitorApi('insp/getConcernsByReportTime'), param);
+        };
+        this.queryOndutyTime = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryOndutyTime'), param);
+        };
+        this.updateInquirer = function (param) {
+            return $http.post(Unit.monitorApi('insp/updateInquirer'), param);
+        };
+        this.saveConcern = function (param) {
+            return $http.post(Unit.monitorApi('insp/saveConcern'), param);
+        };
+        this.updateConcern = function (param) {
+            return $http.post(Unit.monitorApi('insp/updateConcern'), param);
+        };
+        this.uploadFile = function (param) {
+            return $http.post(Unit.monitorApi('insp/uploadFile'), param, {
+                headers: {
+                    'Content-Type': undefined
+                }
+            });
+        };
+        this.queryOtherActiveEvents = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryOtherEvents'), param);
+        };
+        this.queryOtherClosedEvents = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryOtherEventsClosed'), param);
+        };
+
+        this.queryInspReportById = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryInspReportById'), param);
+        };
+        this.saveInspReportAllInfo = function (param) {
+            return $http.post(Unit.monitorApi('insp/saveInspReportAllInfo'), param);
+        };
+        this.queryNewReportInfo = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryNewReportInfo'), param);
+        };
+        this.queryRooms = function (param) {
+            return $http.post(Unit.monitorApi('insp/queryRooms'), param);
+        };
+        this.insertInspTime = function (param) {
+            return $http.post(Unit.monitorApi('autoInsp/insertInspTime'), param);
+        };
+        this.updateInspTime = function (param) {
+            return $http.post(Unit.monitorApi('autoInsp/updateInspTime'), param);
+        };
+        this.queryInspTime = function (param) {
+            return $http.post(Unit.monitorApi('autoInsp/queryInspTime'), param);
+        };
+        this.deleteInspTime = function (param) {
+            return $http.post(Unit.monitorApi('autoInsp/deleteInspTime'), param);
+        };
+        this.startAutoInsp = function (param) {
+            return $http.post(Unit.monitorApi('autoInsp/startAutoInsp'), param);
+        };
+        this.stopAutoInsp = function (param) {
+            return $http.post(Unit.monitorApi('autoInsp/stopAutoInsp'), param);
+        };
+        this.getAutoStatus = function (param) {
+            return $http.post(Unit.monitorApi('autoInsp/getAutoStatus'), param);
+        };
+        this.saveAutoInspReport = function (param) {
+            return $http.post(Unit.monitorApi('autoInsp/saveAutoInspReport'), param);
+        };
+        this.queryInspDuration = function (param) {
+            return $http.post(Unit.monitorApi('autoInsp/queryInspDuration'), param);
+        };
+        this.deleteInspReports = function (param) {
+            return $http.post(Unit.monitorApi('insp/deleteInspReports'), param);
+        };
+        this.saveReport = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/saveReport'), param);
+        };
+        this.getName = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/getName'), param);
+        };
+        this.deleteReports = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/deleteReports'), param);
+        };
+        this.updateReport = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/updateReport'), param);
+        };
+        this.queryReportsByPage = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/queryReportsByPage'), param);
+        };
+        this.getUpdateFlag = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/getUpdateFlag'), param);
+        };
+        this.getNewReport = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/getNewReport'), param);
+        };
+        this.queryFacilityByRoomCode = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/queryFacilityByRoomCode'), param);
+        };
+        this.getAllRooms = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/getAllRooms'), param);
+        };
+        this.queryReportById = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/queryReportById'), param);
+        };
+        this.queryRecentReport = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/queryRecentReport'), param);
+        };
+        this.deleteSummaries = function (param) {
+            return $http.post(Unit.monitorApi('onDutyReport/deleteSummaries'), param);
+        };
+        this.isItListEnabled = function (param) {
+            return $http.post(Unit.monitorApi('event/isItListEnabled'), param);
+        };
+
+    }]);
+
+})(nameSpace.reg('graph'));

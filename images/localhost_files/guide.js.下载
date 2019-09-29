@@ -1,0 +1,181 @@
+(function (graph) {
+
+	'use strict';
+	graph.app.directive('uiBackdrop', ['$document', function($document) {
+		return {
+			restrict: 'EA',
+			replace: true,
+			template:'<div class="modal-backdrop fade in {{backdropClass}}"  style="z-index: 1040"></div>',
+			scope: {
+				backdropClass: '=',
+				zIndex: '='
+			}
+		};
+	}])
+		.directive('trainningStep', ['$timeout', '$http', '$templateCache', '$compile', '$uibPosition', '$injector', '$window','$document', '$q', '$controller', function($timeout, $http, $templateCache, $compile, $uibPosition, $injector, $window,$document, $q, $controller) {
+			return {
+				restrict: 'EA',
+				replace: true,
+				templateUrl: 'app/directive/newPersonGuide/guideModle.html',
+				scope: {
+					step: '=',
+					trainnings: '=',
+					nextStep: '&',
+					preStep: '&',
+					cancel: '&'
+				},
+				link: function(stepPanelScope, elm) {
+					var stepPanel = elm.find('.step-panel');
+					stepPanelScope.$watch('step', function(step) {
+						if (!step) {
+							return;
+						}
+
+						stepPanelScope.currentTrainning = stepPanelScope.trainnings[stepPanelScope.step - 1];
+
+						var contentScope = stepPanelScope.$new(false);
+						loadStepContent(contentScope, {
+							'currentStep': stepPanelScope.step,
+							'trainnings': stepPanelScope.trainnings,
+							'currentTrainning': stepPanelScope.currentTrainning,
+							'trainningInstance': {
+								'nextStep': stepPanelScope.nextStep,
+								'cancel': stepPanelScope.cancel,
+								'preStep':stepPanelScope.preStep
+							}
+						}).then(function(tplAndVars) {
+							elm.find('.popover-content').html($compile(tplAndVars[0])(contentScope));
+						}).then(function() {
+							var pos = stepPanelScope.currentTrainning.position;
+							adjustPosition(stepPanelScope, stepPanel, pos);
+						});
+
+					});
+
+					angular.element($window).bind('resize', function() {
+						adjustPosition(stepPanelScope, stepPanel, stepPanelScope.currentTrainning.position);
+					});
+
+					stepPanelScope.$on('$destroy', function() {
+						angular.element($window).unbind('resize');
+					});
+
+					function getPositionOnElement(stepScope, setpPos) {
+						return $uibPosition.positionElements(angular.element(setpPos), stepPanel, stepScope.currentTrainning.placement, true);
+					}
+					function getOffset(element){
+						var boundingClientRect = element[0].getBoundingClientRect();
+						return {
+							width: boundingClientRect.width || element.prop('offsetWidth'),
+							height: boundingClientRect.height || element.prop('offsetHeight'),
+							top: boundingClientRect.top + ($window.pageYOffset || $document[0].documentElement.scrollTop),
+							left: boundingClientRect.left + ($window.pageXOffset || $document[0].documentElement.scrollLeft)
+						};
+					}
+					function positionOnElement(stepScope, setpPos) {
+						var targetPos = angular.isString(setpPos) ? getPositionOnElement(stepScope, setpPos) : setpPos;
+						var positionStyle = stepScope.currentTrainning || {};
+						positionStyle.top = targetPos.top + 'px';
+						positionStyle.left = targetPos.left + 'px';
+						stepScope.positionStyle = positionStyle;
+						/*元素本身的位置*/
+						var elePos = getOffset(angular.element(setpPos));
+						var eleStyle ={};
+						eleStyle.top = elePos.top + 'px';
+						eleStyle.left = elePos.left + 'px';
+						eleStyle.width = elePos.width + 'px';
+						eleStyle.height = elePos.height + 'px';
+						stepScope.eleStyle = eleStyle;
+						stepScope.arrowPos={};/*三角的位置*/
+						if(stepScope.currentTrainning.direction&&stepScope.currentTrainning.direction=='left'){
+							if(setpPos=='#guideLi_0'){
+								positionStyle.left=Number(elePos.left)+Number(10)+'px';
+							}else{
+								positionStyle.left=eleStyle.left;
+							}
+							stepScope.arrowPos.left='20%'
+						}
+						if(stepScope.currentTrainning.direction&&stepScope.currentTrainning.direction=='right'){
+							positionStyle.left=Number(elePos.left)-Number(elePos.width)-121+'px';
+							stepScope.arrowPos.left='85%'
+						}
+
+					}
+
+					function adjustPosition(stepScope, stepPanel, pos) {
+						if (!pos) {
+							return;
+						}
+
+						var setpPos = angular.isFunction(pos) || angular.isArray(pos) ? $injector.invoke(pos, null, {
+							trainnings: stepScope.trainnings,
+							step: stepScope.setp,
+							currentTrainning: stepScope.currentTrainning,
+							stepPanel: stepPanel
+						}) : pos;
+
+						//get postion should wait for content setup
+						$timeout(function() {
+							positionOnElement(stepScope, setpPos);
+						});
+					}
+
+
+
+					function loadStepContent(contentScope, ctrlLocals) {
+						var trainningOptions = contentScope.currentTrainning,
+							getTemplatePromise = function(options) {
+								return options.template ? $q.when(options.template) :
+									$http.get(angular.isFunction(options.templateUrl) ? (options.templateUrl)() : options.templateUrl, {
+										cache: $templateCache
+									}).then(function(result) {
+										return result.data;
+									});
+							},
+
+							getResolvePromises = function(resolves) {
+								var promisesArr = [];
+								angular.forEach(resolves, function(value) {
+									if (angular.isFunction(value) || angular.isArray(value)) {
+										promisesArr.push($q.when($injector.invoke(value)));
+									}
+								});
+								return promisesArr;
+							},
+
+							controllerLoader = function(trainningOptions, trainningScope, ctrlLocals, tplAndVars) {
+								var ctrlInstance;
+								ctrlLocals = angular.extend({}, ctrlLocals || {}, trainningOptions.locals || {});
+								var resolveIter = 1;
+
+								if (trainningOptions.controller) {
+									ctrlLocals.$scope = trainningScope;
+									angular.forEach(trainningOptions.resolve, function(value, key) {
+										ctrlLocals[key] = tplAndVars[resolveIter++];
+									});
+
+									ctrlInstance = $controller(trainningOptions.controller, ctrlLocals);
+									if (trainningOptions.controllerAs) {
+										trainningScope[trainningOptions.controllerAs] = ctrlInstance;
+									}
+								}
+
+								return trainningScope;
+							};
+
+						var templateAndResolvePromise = $q.all([getTemplatePromise(trainningOptions)].concat(getResolvePromises(trainningOptions.resolve || {})));
+						return templateAndResolvePromise.then(function resolveSuccess(tplAndVars) {
+							controllerLoader(trainningOptions, contentScope, ctrlLocals, tplAndVars);
+							return tplAndVars;
+
+						});
+					}
+
+				}
+			};
+		}])
+
+
+
+
+})(nameSpace.reg('graph'));

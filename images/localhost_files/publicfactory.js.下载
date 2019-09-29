@@ -1,0 +1,472 @@
+/**
+ * Created by Administrator on 2017/1/10.
+ */
+
+(function(graph){
+
+	'use strict';
+	graph.app.factory('Reddit', function($http,$timeout) {
+		var Reddit = function() {
+			this.boxs = [
+				{
+					data: {
+						id:111,
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '222',
+						team: '333',
+						author: '44'
+					}
+				},
+				{
+					data: {
+						id:2,
+						currname: '9',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '8',
+						author: '7'
+					}
+				},
+				{
+					data: {
+						id:3,
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						id:4,
+						currname: '2',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '3',
+						author: '5'
+					}
+				},
+				{
+					data: {
+						id:5,
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '5',
+						author: '7'
+					}
+				},
+				{
+					data: {
+						id:6,
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						id:7,
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						id:8,
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						id:9,
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						id:10,
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				}
+			];
+			this.data = [
+				{
+					data: {
+						id:11,
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						id:12,
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						id:13,
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						id:11,
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						id:12,
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						id:13,
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						id:14,
+						currname: '2',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '3',
+						author: '5'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '5',
+						author: '7'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '2',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '3',
+						author: '5'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '5',
+						author: '7'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				}
+			];
+			console.log(this.boxs.length)
+			console.log(this.data.length)
+			this.allData = this.data;
+			this.loading = "loading。。。。。。";
+			this.after = '';
+		};
+		Reddit.prototype.public = function() {
+			this.box1=this.data.slice(0,10);
+			this.data.splice(0,10);
+
+			// if (this.Disappear) return;
+			this.Disappear = true;
+			var that = this;
+			// var url = "https://api.reddit.com/hot?after=" + this.after + "&jsonp=JSON_CALLBACK";
+			// $http.jsonp(url).success(function(data) {
+			// 	var items = data.data.children;
+			// 	for (var i = 0; i < items.length; i++) {
+			// 		this.items.push(items[i].data);
+			// 	}
+			// 	this.after = "t3_" + this.items[this.items.length - 1].id;
+			// 	this.busy = false;
+			// }.bind(this));
+			$timeout(function() {
+				for (var i = 0; i < that.box1.length; i++) {
+					that.boxs.push(that.box1[i]);
+				}
+				if(that.data.length==0){
+					console.log('已加载到底部')
+
+					that.loading = "没有更多啦。。。";
+				}
+				that.Disappear = false;
+			},3000);
+		};
+		return Reddit;
+	});
+})(nameSpace.reg('graph'));

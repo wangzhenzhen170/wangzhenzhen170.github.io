@@ -1,0 +1,84 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.directive('dropDownBox', function($http) {
+		 return {
+            restrict: "AE",
+            replace: false,
+            scope:false,
+            templateUrl: 'app/directive/dropDownBox/dropDownBox.html',
+            controller:function($scope, $element, $attrs, $transclude) {
+
+                $scope.L = L;
+                $scope.content = '';//关系值
+                $scope._filterCode = '';// 搜索值
+
+                /**
+                 * 鼠标悬浮
+                 */
+                $scope.mouserover = function () {
+                    $(event.target).css('background-color', '#f0f2f4')
+                };
+
+                /**
+                 * 鼠标离开
+                 */
+                $scope.mouseleave = function () {
+                    $(event.target).css('background-color', '#fff').css('color', '#74797c')
+                };
+
+                /**
+                 * 鼠标点击 -- 成员
+                 */
+                $scope.mousedown = function () {
+                    $(event.target).css('background-color', '#d0e6f1').css('color', '#000');
+                };
+
+                /**
+                 * 取消外框 --focus状态
+                 * @private
+                 */
+                $scope._outAllNo = function () {
+                    $scope._out = false;
+                    angular.element('.ddb-wrapper').css('border', '1px solid #ddd')
+                    angular.element('.ddb-wrapper').css('boxShadow','none');
+
+                }
+
+                /**
+                 * 鼠标点击下拉框展开
+                 * @param {[[Type]]} item 遍历内容
+                 * @param {object}   e    鼠标事件
+                 */
+                $scope._out =false;
+                $scope.dropDown = function(e){
+                    $scope._out = true;
+                    setTimeout(function () {
+                        angular.element('.ddb-ipt')[0].focus(); //input 框 获得焦点
+                    }, 300)
+//                    e.target.parentNode.style.boxShadow = '0 1px 6px rgba(0,0,0,0.3)';
+                    angular.element('.ddb-wrapper').css('boxShadow','0 1px 6px rgba(0,0,0,0.3)');
+                };
+
+                /**
+                 * 鼠标点击取值
+                 * @param {[[Type]]} item [[Description]]
+                 * @param {object}   e    [[Description]]
+                 */
+                $scope.getVal = function(item,e){
+                    $scope._out = false;
+                    $scope._filterCode = '';//清空搜索值；
+                    $scope.content = item.classStdCode;
+                    angular.element('.ddb-wrapper').css('boxShadow','none');
+//                    $scope.costType = item.costType;//属性
+                    $scope.ciClassId = item.id; //分类
+                    $scope.saveDatas.classId = item.id; //分类
+                    angular.element('.ddb-ipt')[0].value = '';//搜索框 内容情况
+                }
+
+            }
+        };
+	});
+
+})(nameSpace.reg('graph'));

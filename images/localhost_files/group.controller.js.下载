@@ -1,0 +1,582 @@
+//var dropObj ={};
+(function(graph, self){
+
+	'use strict';
+	graph.app.controller('MainGroupCtrl',['$scope','$state', 'Unit','ViewService','GroupService', 'CiService', '$uibModal', function($scope, $state, Unit, ViewService, GroupService, CiService, $uibModal){
+
+		$scope.static = Unit.static;
+
+		$scope.accordion = {
+			base: true
+		};
+
+		$scope.LAYOUT.collapsedSidebar = false;
+
+		$scope.groupItemArray = [];
+		$scope.groupImgBox = [];
+		$scope.colorBox = {};
+		$scope.group = {};
+		$scope.group.content = {};
+		$scope.group.content.viewDescription = '';
+		$scope.group.content.d2setting = {};
+		$scope.group.content.d3setting = {};
+		$scope.group.content.d2setting.views=[];
+		$scope.group.content.d3setting.rows = 3;
+		$scope.group.content.d3setting.cols = 3;
+		$scope.group.content.d3setting.layerMargin = 200;
+		$scope.group.content.d3setting.layerItemMargin = 10;
+		$scope.group.content.d2setting.toolbarSize = 130;
+		$scope.group.content.d2setting.outLineSize = 90;
+		$scope.group.content.d2setting.layout = 'top';
+		$scope.group.content.d2setting.maxCount = 4;
+		$scope.group.content.d2setting.toolbarBgColor = '#C0C0C0';
+		$scope.group.content.d2setting.btnColor = '#616161';
+		$scope.nowd3Layer = null;
+		$scope.nowEv = null;
+
+		$scope.indexNow3d = null;
+		$scope.colNow3d = null;
+
+		$scope.index = null;
+		$scope.col = null;
+
+		//监控行列
+		$scope.$watchGroup(['group.content.d3setting.rows','group. content.d3setting.cols'],function(newValues) {
+
+			$scope.group.content.d3setting.layers = [];
+			$scope.group.content.d2setting.views = [];
+
+			var i, j;
+
+			for (i = 0; i < newValues[0]; i++) {
+				var temp = [];
+				for (j = 0; j < newValues[1]; j++) {
+					if ($scope.groupImgBox[i] === undefined) {
+						temp[j] = null;
+					} else {
+						if ($scope.groupImgBox.length !== 0 && $scope.groupImgBox[i][j] !== undefined && $scope.groupImgBox[i][j] !== null) {
+							temp[j] = $scope.groupImgBox[i][j];
+						} else {
+							temp[j] = null;
+						}
+					}
+				}
+
+				$scope.group.content.d3setting.layers.push(temp);
+			}
+
+			$scope.width=100/newValues[1]+'%';
+			$scope.height=($('.main-box-content-panel-container-body').width()*Number(100/newValues[1]))/100*(1/2);
+		},true);
+
+
+		//跳转到列表
+		$scope.goList = function(){
+			$state.go('home.group.listmine');
+		};
+
+		//显示设置颜色面板
+		$scope.setBgColor = function(i,e,index,col){
+
+			$scope.nowd3Layer =i;
+			$scope.nowEv = e;
+			$scope.indexNow3d = index;
+			$scope.colNow3d = col;
+
+			setTimeout(function(){
+
+				$scope.$apply();
+
+				if($(e.target).parents('.group-box-item').find('img') && $(e.target).parents('.group-box-item').find('img').attr('id')){
+
+					$scope.setConfig = true;
+
+					$('.group-box-item-box').each(function(){
+						$(this).css('boxShadow','2px 2px 2px #eee');
+					});
+
+					if($(e.target).attr('class') ==='group-box-item-box'){
+
+						$(e.target).css('boxShadow','0 0 3px #047FF5');
+
+					}else{
+
+						$(e.target).parents('.group-box-item-box').css('boxShadow','0 0 3px #047FF5');
+
+					}
+
+					$scope.viewContent={
+						viewTitle : i.viewTitle,
+						viewText : i.viewText
+					};
+
+					$scope.$apply();
+
+				}else{
+
+					$scope.setConfig = false;
+					$('.group-box-item-box').each(function(){
+						$(this).css('boxShadow','2px 2px 2px #eee');
+					});
+
+				}
+			},10);
+		};
+
+		//设置背景颜色
+		$scope.setBg = function(){
+			if($($scope.nowEv.target).hasClass('group-box-item-out')){
+				$($scope.nowEv.target).css({backgroundColor:$scope.colorBox.bgColor});
+			}else{
+				$($scope.nowEv.target).parents('.group-box-item-out').css({backgroundColor:$scope.colorBox.bgColor});
+			}
+			$scope.nowd3Layer.floorBgColor =$scope.colorBox.bgColor;
+		};
+
+		//重置颜色
+
+		$scope.recoverColor = function(){
+			$scope.colorBox.bgColor = '#f5f5f5';
+			$scope.nowd3Layer.floorBgColor = $scope.colorBox.bgColor;
+		};
+
+		//显示设置面板
+		$scope.showSet = function(){
+			$scope.setConfig = false;
+		};
+
+		//删除视图
+		$scope.delViewBtn = function(){
+
+			if($($scope.nowEv.target).attr('class') ==='group-box-item-box'){
+				$($scope.nowEv.target).css('boxShadow','2px 2px 2px #eee');
+			}else{
+				$($scope.nowEv.target).parents('.group-box-item-box').css('boxShadow','2px 2px 2px #eee');
+			}
+
+			$scope.nowd3Layer = null;
+			$scope.nowEv = null;
+			$scope.setConfig = false;
+
+			$scope.group.content.d3setting.layers[$scope.indexNow3d][$scope.colNow3d] = $scope.nowd3Layer;
+			$scope.indexNow = $scope.colNow =  null;
+		};
+
+		//鼠标滑过删除
+		$scope.delView = function(i,e,index,col){
+
+			$scope.nowd3Layer =i;
+			$scope.nowEv = e;
+			$scope.indexNow3d= index;
+			$scope.colNow3d = col;
+			$scope.delViewBtn();
+
+		};
+
+		//鼠标滑过旋转
+		$scope.setView = function(i,e,index,col){
+
+			$scope.nowd3Layer =i;
+			$scope.nowEv = e;
+			$scope.indexNow3d = index;
+			$scope.colNow3d = col;
+			$scope.setD=$scope.nowd3Layer.isVertical ? true:false;
+			$scope.setD = !$scope.setD;
+
+			if($scope.setD){
+
+				$($scope.nowEv.target).parents('.group-box-item').find('img').css({transform:'skew(0deg)',width:'90%',height:'90%'});
+				$scope.nowd3Layer.isVertical = true;
+
+			}else{
+
+				$($scope.nowEv.target).parents('.group-box-item').find('img').css({transform:'skew(45deg)',width:'60%',height:'40%'});
+				$scope.nowd3Layer.isVertical = false;
+
+			}
+
+		};
+
+
+		//图片拖拽
+		$scope.allowDrop = function(ev){
+			ev.stopPropagation();
+			ev.preventDefault();
+		};
+
+		$scope.drag = function(ev){
+
+			var index = $(ev.target).data('index') ? $(ev.target).data('index') : $(ev.target).parents('.group-box-item-box').data('index') ;
+			var col = $(ev.target).data('col') ? $(ev.target).data('col') : $(ev.target).parents('.group-box-item-box').data('col');
+
+			if(index !== undefined){
+				$scope.bgColor=$scope.group.content.d3setting.layers[index][col].floorBgColor;
+				$scope.transform =$scope.group.content.d3setting.layers[index][col].isVertical;
+				$scope.index=index;
+				$scope.col=col;
+			}
+
+			ev.dataTransfer.setData('Text',ev.target.id);
+
+		};
+
+		$scope.drop = function(ev) {
+
+			ev.preventDefault();
+			var data = ev.dataTransfer.getData('Text');
+			var $node = $('#' + data);//获得元素
+			var parentId = $node.parent().attr('id');
+			var index,col;
+
+
+			index = $(ev.target).is('span') ? $(ev.target).parent().data('index') : $(ev.target).data('index');
+			col = $(ev.target).is('span') ? $(ev.target).parent().data('col') : $(ev.target).data('col');
+
+			index = $(ev.target).is('img') ? $(ev.target).parents('.group-box-item-box').data('index') : index;
+			col = $(ev.target).is('img') ? $(ev.target).parents('.group-box-item-box').data('col') : col;
+
+			$scope.group.content.d3setting.layers[index][col]={};
+			$scope.group.content.d3setting.layers[index][col].src = $node.attr('data-origin-src');
+			$scope.group.content.d3setting.layers[index][col].viewText = $node.attr('data-text');
+			$scope.group.content.d3setting.layers[index][col].floorBgColor = $scope.bgColor ? $scope.bgColor :'#f5f5f5';
+			$scope.group.content.d3setting.layers[index][col].isVertical = $scope.transform !==undefined ? $scope.transform :false;
+			$scope.group.content.d3setting.layers[index][col].viewTitle = parentId ? $node.attr('data-content') : $node.attr('data-title');
+			$scope.group.content.d3setting.layers[index][col].viewid  = parentId ? $node.attr('data-main') : $node.attr('id');
+
+			if(parentId){
+				$scope.group.content.d3setting.layers[$scope.index][$scope.col] = null;
+			}
+
+			$scope.groupImgBox = angular.copy($scope.group.content.d3setting.layers);
+			$scope.setBgColor($scope.group.content.d3setting.layers[index][col],ev,index,col);
+			$scope.$apply();
+		};
+
+		//鼠标滑过
+		$scope.hasImg = function(e){
+			if($(e.target).parents('.group-box-item').find('img').attr('id')){
+				$(e.target).parents('.group-box-item').find('.group-box-item-operateBtn').css({display:'block'});
+			}else{
+				$(e.target).parents('.group-box-item').find('.group-box-item-operateBtn').css({display:'none'});
+			}
+		};
+
+		$scope.hasImgOut = function(e){
+			$(e.target).parents('.group-box-item').find('.group-box-item-operateBtn').css({display:'none'});
+		};
+
+
+		//获取2d视图
+		$scope.get2dViews = function(){
+
+			var i, j;
+
+			for( i=0; i<$scope.group.content.d3setting.layers.length; i++){
+				for( j = 0 ; j < $scope.group.content.d3setting.layers[i].length ; j++){
+
+					//var str = $scope.group.content.d2setting.views.join(',');
+
+					if($scope.group.content.d3setting.layers[i][j] && $scope.group.content.d3setting.layers[i][j].viewid){
+
+						$scope.group.content.d2setting.views.push($scope.group.content.d3setting.layers[i][j].viewid);
+
+						//if(str.indexOf($scope.group.content.d3setting.layers[i][j].viewid) === -1){
+						//
+						//	$scope.group.content.d2setting.views.push($scope.group.content.d3setting.layers[i][j].viewid)
+						//
+						//}else{
+						//
+						//	break;
+						//
+						//}
+					}
+
+				}
+			}
+
+		};
+		//保存视图
+		$scope.saveView = function(){
+
+			if($scope.group.name === undefined || $scope.group.name==='' || $scope.group.content.viewDescription ===''){
+				Unit.error(graph.translate('ERROR_ENTER_NAME_OR_DESCRIPTION'));
+
+				if(!$scope.accordion.base){
+					$scope.accordionHandle('base');
+				}
+
+				return;
+			}
+
+			$scope.group.content.d2setting.views =[];
+			$scope.get2dViews();
+			$scope.group.views = $scope.group.content.d2setting.views;
+
+			var saveData = {
+				views: $scope.group.views,
+				name: $scope.group.name,
+				focusCi: $scope.group.focusCi ?  $scope.group.focusCi : [],
+				role: $scope.group.roles,
+				operationGroup: $scope.group.actionGroups
+			};
+
+			$scope.group.actionGroups = null;
+			$scope.group.roles = null;
+			$scope.group.focusCi = null;
+			saveData.content = JSON.stringify($scope.group);
+
+			GroupService.save(saveData).success(function(){
+				$scope.goList();
+			});
+		};
+
+		//刷新
+		$scope.refresh = function(){
+			ViewService.private()
+				.success(function(result){
+					$scope.views = result.data;
+				});
+		};
+
+		$scope.expandView = function() {
+			$scope.isExpand = true;
+			var $dom = $('.main-box-content-panel-container');
+			var $dom1 = $('.main-box-content-heading');
+			$dom1.css('position', 'fixed').css('top', 0).css('left', 0).css('width', '100%').css('z-index', 11);
+			$dom.css('position', 'fixed').css('background-color', 'white').css('margin-top', $dom1.css('height')).css('z-index', 10);
+			//$scope.outline.resize();
+			$scope.isFull = true;
+			$scope.popoverPlacement = 'bottom';
+		};
+
+		$scope.compressView = function() {
+			$scope.isExpand = false;
+			var $dom = $('.main-box-content-panel-container');
+			$dom.css('position', 'absolute').css('z-index', 1).css('margin-top', 0).removeAttr('background-color');
+
+			var $dom1 = $('.main-box-content-heading');
+			$dom1.css('position', 'relative').css('z-index', 10).removeAttr('top');
+			$dom1.removeAttr('left');
+			//$scope.outline.resize();
+			$scope.isFull = false;
+			$scope.popoverPlacement = 'top';
+		};
+
+		//更新视图
+		$scope.updateView = function(){
+			if($scope.group.name === undefined || $scope.group.name==='' || $scope.group.content.viewDescription ===''){
+				Unit.error(graph.translate('ERROR_ENTER_NAME_OR_DESCRIPTION'));
+
+				if(!$scope.accordion.base){
+					$scope.accordionHandle('base');
+				}
+
+				return;
+			}
+
+			$scope.group.content.d2setting.views =[];
+			$scope.get2dViews();
+			$scope.group.views = angular.copy($scope.group.content.d2setting.views);
+
+			var saveData = {
+				views: $scope.group.views,
+				id: $state.params.id,
+				name: $scope.group.name,
+				focusCi: $scope.group.focusCi ?  $scope.group.focusCi : [],
+				role: $scope.group.roles,
+				operationGroup: $scope.group.actionGroups
+			};
+
+			$scope.group.roles = null;
+			$scope.group.focusCi = null;
+			$scope.group.actionGroups = null;
+			saveData.content = JSON.stringify($scope.group);
+
+			GroupService.update(saveData).success(function(){
+				$scope.goList();
+			});
+
+		};
+
+		//另存为视图
+		$scope.saveAsView = function(){
+
+			Unit.prompt(graph.translate('ENTER_VIEW_NAME'), function(res){
+				if(res === null){
+					return;
+				}
+
+				if(!res){
+					Unit.error(graph.translate('ERROR_ENTER_NAME_OR_DESCRIPTION'));
+					return;
+				}
+
+				$scope.group.name = res;
+				$scope.group.content.d2setting.views =[];
+
+				$scope.get2dViews();
+				$scope.group.views = angular.copy($scope.group.content.d2setting.views);
+
+				var saveData = {
+					views: $scope.group.views,
+					name: $scope.group.name,
+					focusCi: $scope.group.focusCi ?  $scope.group.focusCi : [],
+					role: $scope.group.roles,
+					operationGroup: $scope.group.actionGroups
+				};
+
+				$scope.group.roles = null;
+				$scope.group.focusCi = null;
+				$scope.group.actionGroups = null;
+				saveData.content = JSON.stringify($scope.group);
+
+				GroupService.save(saveData).success(function(res){
+					$state.go('home.group.edit',{id:res.data.id});
+				});
+
+			}, graph.translate('VIEW_NAME'));
+		};
+
+
+		$scope.addLinks = function(item){
+
+			if(item.url && item.name){
+				if(!$scope.group.links){
+					$scope.group.links = [];
+				}
+
+				$scope.group.links.push({
+					name: item.name,
+					url: item.url
+				});
+
+				item.name = '';
+				item.url = '';
+			}
+
+		};
+
+		$scope.queryCiByKeys = function(val){
+			return CiService.get({
+				page: 1,
+				pageSize: 10,
+				all: true,
+				like: {
+					'name': val
+				}
+			}).then(function(responed){
+				if(responed.status === 200){
+					self.ciResults = responed.data.data.datas;
+					return responed.data.data.datas.map(function(item){
+						return item.name;
+					});
+				}
+			});
+		};
+
+		$scope.addFocusCi = function(o){
+
+			if(!$scope.group.focusCi ){
+				$scope.group.focusCi = [];
+			}
+
+			for(var i=0; i<self.ciResults.length; i++){
+				if(self.ciResults[i].name === o.ciName){
+					o.ciName = '';
+
+					$scope.group.focusCi.push({
+						ciName: self.ciResults[i].name,
+						ciId: self.ciResults[i].id,
+						kpis: [],
+						_isShow: true
+					});
+
+					break;
+				}
+			}
+		};
+
+
+		$scope.addKpi = function(ci, $event){
+
+			$event.stopPropagation();
+
+			$uibModal.open({
+				// size: 'lg',
+				animation: true,
+				backdrop: 'static',
+				templateUrl: 'app/modal/kpiChoose/kpiChoose.html',
+				controller: 'ModalKpiChooseCtrl',
+				resolve: {
+					ci: function () {
+						return ci;
+					},
+					fn: function(){
+						return function(arr){
+							ci.kpis = arr;
+							$scope._refresh();
+						};
+					}
+				}
+			});
+		};
+
+		$scope.addActionGroup = function(selectedGroups){
+			$uibModal.open({
+				// size: 'lg',
+				animation: true,
+				backdrop: 'static',
+				templateUrl: 'app/modal/actionGroupsChoose/actionGroupsChoose.html',
+				controller: 'ModalActionGroupsChooseCtrl',
+				resolve: {
+					selectedGroups: function () {
+						return selectedGroups ? selectedGroups : [];
+					},
+					fn: function(){
+						return function(arr){
+							$scope.group.actionGroups = arr;
+						};
+					}
+				}
+			});
+		};
+
+
+		$scope.addRole = function(selected){
+			$uibModal.open({
+				// size: 'lg',
+				animation: true,
+				backdrop: 'static',
+				templateUrl: 'app/modal/roleChoose/roleChoose.html',
+				controller: 'ModalRoleChooseCtrl',
+				resolve: {
+					selected: function () {
+						return selected ? selected : [];
+					},
+					fn: function(){
+						return function(arr){
+							$scope.group.roles = arr;
+						};
+					}
+				}
+			});
+		};
+
+
+		$scope.accordionHandle = function(name){
+
+			$.each($scope.accordion, function(key){
+				$scope.accordion[key] = name === key ? !$scope.accordion[key] : false;
+			});
+
+			if(!$scope.accordion.hasOwnProperty(name)){
+				$scope.accordion[name] = true;
+			}
+		};
+
+	}]);
+
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));
+
+

@@ -1,0 +1,691 @@
+(function (graph, self) {
+
+    'use strict';
+
+    graph.app.controller('eventStatisticsCtrl', ['$scope', '$state', 'MonitoringService', 'oScreenConst', 'uDialog', 'Unit', '$timeout', '$uibModal', '$interval', function ($scope, $state, MonitoringService, oScreenConst, uDialog, Unit, $timeout, $uibModal, $interval) {
+
+        var oDate = new Date();
+        var intStartTime = oDate.getFullYear() + "/" + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + "/" + oDate.getDate();
+        $scope.startD = intStartTime //获取系统的年；
+        var intEndTime = oDate.getFullYear() + "/" + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + "/" + oDate.getDate()
+        $scope.endD = intEndTime;   //获取系统的年；
+
+
+        /*事件选择*/
+        $scope.selectTimeDefaul = L.get('EMV_LAST_SEVEN_DAYS');
+        $scope.getSetTime = 7;
+        $scope.selectTimeListAry = [
+            { 'name': L.get('COMMON_LAST_DAY'), 'time': '1' },
+            { 'name': L.get('EMV_LAST_SEVEN_DAYS'), 'time': '7' },
+            { 'name': L.get('EMV_LAST_HALF_MONTH'), 'time': '15' },
+            { 'name': L.get('EMV_LAST_MONTH'), 'time': '30' },
+            { 'name': L.get('EMV_LAST_THREE_MONTHS'), 'time': '90' }
+        ]
+        $scope.selectTimeListFlag = false;
+        $scope.goToSelectTime = function () {
+            //e.stopPropagation();
+            $scope.selectTimeListFlag = true;
+        }
+        /*时间筛选*/
+        $scope.selectTimeLi = function (item) {
+            $scope.selectTimeListFlag = false;
+            $scope.selectTimeDefaul = item.name;
+            $scope.showTitleDefalt = item.name;
+            $scope.startTime = getLocalTime(item.time);
+            $scope.startD = intStartTime;
+            $scope.endD = intEndTime;
+            $scope.startTimeHour = '00:00:00';
+            //$scope.endTimeHour='00:00:00';
+            $scope.endTimeHour = '23:59:59';
+            $scope.columnCountTop();
+            $scope.eventCiTop();
+            $scope.listCombineData();
+            $scope.CombineTimeData();
+        }
+        $scope.startTimeHour = '00:00:00';
+        //$scope.endTimeHour='00:00:00';
+        $scope.endTimeHour = '23:59:59';
+        $scope.$on('startTimeHour', function (event, msg) {
+            $scope.startTimeHour = msg;
+        });
+        $scope.$on('endTimeHour', function (event, msg) {
+            $scope.endTimeHour = msg;
+        });
+        /*报告分享*/
+        $scope.shareReport = function (type) {
+            $uibModal.open({
+                size: 'shareReport',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/shareReport.html',
+                controller: 'shareReportCtrl',
+                resolve: {
+                    startTime: function () {
+                        return $scope.startTime;/*开始时间戳*/
+                    },
+                    endTime: function () {
+                        return $scope.endTime;/*结束时间戳*/
+                    },
+                    viewId: function () {
+                        return $scope.viewId;
+                    },
+                    timeArea: function () {
+                        if ($scope.selectTimeDefaul == L.get('EMV_CUSTOM_CHOICE')) {
+                            return true
+                        } else {
+                            return false
+                        }
+                    },
+                    eventShowName: function () {
+                        return $scope.eventShowName;/*事件范围*/
+                    },
+                    topTenColumnOne: function () {
+                        return $scope.topNumFirstKey;/*top10第一个英文名*/
+                    },
+                    topTenColumnOneChn: function () {
+                        return $scope.topNumFirstKeyName;/*top10第一个中文名*/
+                    },
+                    topTenColumnTwo: function () {
+                        return $scope.topNumSecondKey;/*top10第二个英文名*/
+                    },
+                    topTenColumnTwoChn: function () {
+                        return $scope.topNumSecondKeyName;/*top10第二个中文名*/
+                    },
+
+
+                }
+            });
+        }
+
+
+        /*自定义时间确定*/
+        $scope.goToTimeSearch = function () {
+
+            if (!$("#startTime").val() || !$scope.startTimeHour) {
+                Unit.error(L.get('EMV_PLEASE_SELECT_THE_START_TIME'));
+                return;
+            }
+            if (!$("#endTime").val() || !$scope.endTimeHour) {
+                Unit.error(L.get('EMV_PLEASE_SELECT_THE_END_TIME'));
+                return;
+            }
+            var startTime = ($("#startTime").val() + " " + $scope.startTimeHour);
+            var endTime = $("#endTime").val() + ' ' + $scope.endTimeHour;
+            $scope.startTime = Number((new Date(startTime)).getTime());
+            $scope.endTime = Number((new Date(endTime)).getTime());
+
+            if ($scope.startTime > $scope.endTime) {
+                Unit.error(L.get('COMMON_ENDTIMEMUSTBEGREATERTHANTHESTARTTIME'));
+                return;
+            }
+            $scope.startD = $("#startTime").val();
+            $scope.endD = $("#endTime").val();
+            $scope.startTimeHour = $scope.startTimeHour;
+            $scope.endTimeHour = $scope.endTimeHour;
+            $scope.columnCountTop();
+            $scope.eventCiTop();
+            $scope.listCombineData();
+            $scope.CombineTimeData();
+            //$scope.selectTimeDefaul='自定义时间'
+            var startGetD = $scope.startD.split('/');
+            var endGetD = $scope.endD.split('/')
+            $scope.selectTimeDefaul = startGetD[1] + "." + startGetD[2] + "-" + endGetD[1] + '.' + endGetD[2];
+            $scope.showTitleDefalt = $scope.startD + '- ' + $scope.endD;
+            $scope.selectTimeListFlag = false;
+            $scope.selectDefTimeFlag = false;
+
+        }
+        $scope.selectDefTimeFlag = false;
+        $scope.selectDefTime = function () {
+            $scope.selectDefTimeFlag = true;
+        }
+        /*事件台选择*/
+        $scope.selectViewFlag = false;
+        $scope.selectView = function () {
+            $scope.selectViewFlag = true;
+        }
+        /*TOP10*/
+        /*获取几天前的0时0分1秒的时间戳*/
+        function getLocalTime(num) {
+            var nowData = new Date();
+            $scope.endTime = nowData.getTime();
+            var nS = new Date($scope.endTime - 3600000 * 24 * num);
+            var year = nS.getFullYear();
+            var month = Number(nS.getMonth()) + Number(1) < 10 ? '0' + (Number(nS.getMonth()) + Number(1)) : Number(nS.getMonth()) + Number(1);
+            var date = nS.getDate();
+            var nowD = year + "/" + month + "/" + date + ' ' + "00:00:01";
+            //console.log(new Date(nowD.replace(new RegExp("-","gm"),"/")));
+            return new Date(nowD.replace(new RegExp("-", "gm"), "/")).getTime();
+
+
+        }
+        $scope.startTime = getLocalTime(7);
+        $scope.topNumFirstKeyName = L.get('EMV_EVENT_INDICATOR');/*第一个TOP默认名*/
+        $scope.topNumSecondKeyName = L.get('EMV_EVENT_OBJECT');/*第二个TOP默认名*/
+        /*指标TOP10*/
+        $scope.viewId = '';
+        $scope.eventShowName = L.get('EMV_ALL_EVENTS')
+        $scope.topNumFirstKey = 'KPINAME',/*第一个TOP 事件指标 KPINAME*/
+            $scope.columnCountTop = function () {
+                $scope.topAryLoading = true;
+                var parm = {
+                    startTime: $scope.startTime,
+                    endTime: $scope.endTime,
+                    column: $scope.topNumFirstKey,
+                    viewId: $scope.viewId,
+                }
+                MonitoringService.columnCountTop(parm)
+                    .success(function (result) {
+                        if (result.success) {
+                            var data = result.data;
+                            $scope.topAry = [];
+                            $scope.topAryLoading = false;
+                            $scope.TopName = data.yAxis_data;
+                            $scope.topNum = data.series_data;
+                            var maxNum = Math.max.apply(Math, $scope.topNum) / 0.8;
+                            $.each($scope.TopName, function (index) {
+                                var obj = {}
+                                obj.name = this;
+                                obj.num = $scope.topNum[index];
+                                obj.click_param = data.click_param[index];
+                                obj.length = Math.round(($scope.topNum[index] / maxNum) * 100) + '%';
+                                $scope.topAry.push(obj);
+                            })
+                            //console.log($scope.topAry);
+                        }
+                    })
+                    .error(function (err) { console.error(err) })
+            }
+        $scope.columnCountTop();
+        /*对象TOP10*/
+        $scope.topNumSecondKey = 'SOURCECINAME'/*第一个TOP 事件对象 CINAME*/
+        $scope.eventCiTop = function () {
+            $scope.eventTopAryLoading = true;
+            var parm = {
+                startTime: $scope.startTime,
+                endTime: $scope.endTime,
+                column: $scope.topNumSecondKey,
+                viewId: $scope.viewId,
+            }
+            MonitoringService.columnCountTop(parm)
+                .success(function (result) {
+                    if (result.success) {
+                        var data = result.data;
+                        //console.log(data);
+                        $scope.eventTopAry = [];
+                        $scope.eventTopAryLoading = false;
+                        $scope.eventTopName = data.yAxis_data;
+                        $scope.eventTopNum = data.series_data;
+                        var maxNum = Math.max.apply(Math, $scope.eventTopNum) / 0.8;
+                        $.each($scope.eventTopName, function (index) {
+                            var obj = {}
+                            obj.name = this;
+                            obj.num = $scope.eventTopNum[index];
+                            obj.click_param = data.click_param[index];
+                            obj.length = Math.round(($scope.eventTopNum[index] / maxNum) * 100) + '%';
+                            $scope.eventTopAry.push(obj);
+                        })
+                        //console.log($scope.eventTopAry);
+                    }
+                })
+                .error(function (err) { console.error(err) })
+        }
+        $scope.eventCiTop();
+        /*TOP下钻*/
+        $scope.topDetail = function (flag, item) {
+            //console.log(item)
+            var topDetailParms = {
+                search_param: {},
+                startTime: $scope.startTime,
+                endTime: $scope.endTime,
+                selectCount: true
+            }
+            if (flag == 1) {/*第一个图*/
+                topDetailParms.search_param[$scope.topNumFirstKey] = item.click_param;
+            }
+            if (flag == 2) {/*第二个*/
+                topDetailParms.search_param[$scope.topNumSecondKey] = item.click_param;
+                //topDetailParms.search_param.SOURCENAME=item.name;
+            }
+
+            if ($scope.viewId) {
+                topDetailParms = $scope.viewId;
+            }
+
+            uDialog.dialog({
+                class: 'compressDetail',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/topDetail.html',
+                controller: 'topDetailCtrl',
+                resolve: {
+                    topDetailParms: function () {
+                        return topDetailParms
+                    },
+                    name: function () {
+                        return L.get('COMMON_EVENT')
+                    }
+
+
+                }
+            });
+        }
+        /*top对象可选*/
+        $scope.topChoose = function (type) {
+            var item = {};
+            if (type == 1) {
+                item.type = 1;
+                item.showContent = $scope.topNumFirstKey;
+            }
+            if (type == 2) {
+                item.type = 2;
+                item.showContent = $scope.topNumSecondKey;
+            }
+            $uibModal.open({
+                size: 'top10',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/topChoose.html',
+                controller: 'topChooseCtrl',
+                resolve: {
+                    item: function () {
+                        return item;/*1 第一个top，2第二个top*/
+                    },
+                    fn: function () {
+                        return function (d) {
+                            if (type == 1) {
+                                $scope.topNumFirstKey = d.showKey;
+                                $scope.topNumFirstKeyName = d.showKeyName;
+                                $scope.columnCountTop();
+                            }
+                            if (type == 2) {
+                                $scope.topNumSecondKey = d.showKey;
+                                $scope.topNumSecondKeyName = d.showKeyName;
+                                $scope.eventCiTop();
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        /*告警归集统计折线图*/
+        $scope.listCombineData = function () {
+            $scope.combinDateListLoading = true;
+            var parm = {
+                startTime: $scope.startTime,
+                endTime: $scope.endTime
+                /*viewId:''*/
+            }
+            MonitoringService.listCombineData(parm)
+                .success(function (result) {
+                    //console.log(result);
+                    if (result.success) {
+                        $scope.combinDateList = result.data;
+                        $scope.combinDateListLoading = false;
+                        $scope.eventListAry = [];/*事件*/
+                        $scope.alarmListAry = [];/*告警*/
+                        $scope.incidentListAry = [];/*故障*/
+                        $scope.dataTime = [];
+                        $.each($scope.combinDateList, function (index) {
+                            if (this.displayType == 2) {
+                                $scope.combinDateTotal = this;
+                                $scope.combinDateList.splice(index, 1)
+                            } else {
+                                $scope.eventListAry.push(this.eventCount);
+                                $scope.alarmListAry.push(this.alarmCount)
+                                $scope.incidentListAry.push(this.incidentCount);
+                                $scope.dataTime.push(this.combinDate);
+                                this.alarmRate = parseInt((this.incidentCount / this.eventCount) * 100)
+                            }
+
+                        })
+                        $timeout.cancel($scope.chartTimer);
+                        $scope.chartTimer = null;
+                        $scope.chartTimer = $timeout(function () {
+                            /*折线图*/
+                            $scope.allDataLineChart = echarts.init(document.getElementById('lineMain'));
+                            var optionLine = {
+                                baseOption: {
+                                    tooltip: {
+                                        /*鼠标放在图像上显示当时的数据信息*/
+                                        trigger: 'axis',
+                                        textStyle: {
+                                            align: 'center',
+                                        },
+                                        extraCssText: 'background: #000000;border-radius: 0;padding: 10px 10px;',
+                                        formatter: function (params) {
+                                            var result = '';
+                                            params.forEach(function (item, index) {
+                                                if (index == 2) {
+                                                    result += '<span style="font-size: 16px;">' + item.value + '</span>' + ' ' + '<span style="font-size: 14px;">' + item.seriesName + '</span>' + '<br/>';
+                                                } else {
+                                                    result += '<span style="font-size: 16px;">' + item.value + '</span>' + ' ' + '<span style="font-size: 14px;">' + item.seriesName + '</span>' + ' <i class="fa fa-long-arrow-right" style="color:#A7AAB0" aria-hidden="true"></i> ';
+                                                }
+
+                                            });
+                                            var rata = params[0].value ? parseInt((params[2].value / params[0].value) * 100) : 0;
+                                            result += '<span style="font-size: 12px;color: #A7AAB0">(' + L.get('EMV_COLLECTION_RATE') + rata + '% )</span>';
+                                            return result;
+                                        }
+                                    },
+                                    legend: {
+                                        right: 46,
+                                        top: 10,
+                                        data: [L.get('COMMON_EVENT'), L.get('COMMON_CAVEAT'), L.get('EMV_FAULT_VIEW')]
+                                    },
+                                    grid: {
+                                        top: 50,
+                                        right: '50',
+                                        left: '20',
+                                        bottom: '40',
+                                        containLabel: true
+                                    }
+                                    ,
+                                    xAxis: {
+                                        type: 'category',
+                                        boundaryGap: false,
+                                        //nameGap:30,
+                                        axisLine: {
+                                            lineStyle: {
+                                                color: '#A7AAB0'
+                                            }
+
+                                        },
+                                        data: $scope.dataTime
+                                    },
+                                    yAxis: {
+                                        type: 'value',
+                                        minInterval: 1,
+                                        min: 0,
+                                        axisLine: {
+                                            lineStyle: {
+                                                color: '#A7AAB0'
+                                            }
+
+                                        },
+                                    },
+                                    series: [{
+                                        name: L.get('COMMON_EVENT'),
+                                        type: 'line',
+                                        smooth: true,
+                                        symbol: 'circle',
+                                        symbolSize: 6,
+                                        data: $scope.eventListAry
+                                    },
+                                    {
+                                        name: L.get('COMMON_CAVEAT'),
+                                        type: 'line',
+                                        smooth: true,
+                                        symbol: 'circle',
+                                        symbolSize: 6,
+                                        data: $scope.alarmListAry
+                                    },
+                                    {
+                                        name: L.get('EMV_FAULT_VIEW'),
+                                        type: 'line',
+                                        smooth: true,
+                                        symbol: 'circle',
+                                        symbolSize: 8,
+                                        data: $scope.incidentListAry
+                                    }
+                                    ],
+                                    color: ['#47A6DC', '#F86060', '#FDD2D2'],
+                                },
+                            };
+                            $scope.allDataLineChart.setOption(optionLine);
+                        }, 200);
+
+
+
+
+
+                    }
+                })
+                .error(function (err) { console.error(err) })
+        }
+        $scope.listCombineData();
+
+        /*告警恢复时长*/
+        $scope.CombineTimeData = function () {
+            $scope.combinTimeListLoadin = true;
+            var parm = {
+                startTime: $scope.startTime,
+                endTime: $scope.endTime
+                /*viewId:''*/
+            }
+            MonitoringService.listCombineDuration(parm)
+                .success(function (result) {
+                    //console.log(result);
+                    if (result.success) {
+                        $scope.combinTimeList = result.data;
+                        $scope.combinTimeListLoadin = false;
+                        $scope.recoveryAry = [];/*恢复时长*/
+                        $scope.responseAry = [];/*相应时长*/
+                        $scope.alarmCountNumAry = [];/*告警量*/
+                        $scope.XTime = [];
+                        var width = $(".chartBox").width();
+                        //alert(width);
+                        $(".lineChart").css('width', width);
+                        $.each($scope.combinTimeList, function (index) {
+                            if (this.displayType == 2) {
+                                $scope.combinTimeTotal = this;
+                                $scope.combinTimeList.splice(index, 1)
+                            } else {
+                                $scope.recoveryAry.push(this.mttr);
+                                $scope.responseAry.push(this.mtta)
+                                $scope.alarmCountNumAry.push(this.alarmCount);
+                                $scope.XTime.push(this.combinDate);
+                                //this.alarmRate=parseInt((this.incidentCount/this.eventCount)*100)
+                            }
+
+                        })
+                        /*最大告警量*/
+                        $scope.maxAlarmCountNumAry = Math.ceil(Math.max.apply(Math, $scope.alarmCountNumAry) / 5) * 5;
+                        //console.log(maxAlarmCountNumAry)
+                        var maxRecoveryAry = Math.ceil(Math.max.apply(Math, $scope.recoveryAry) / 5) * 5;
+                        var maxResponseAry = Math.ceil(Math.max.apply(Math, $scope.responseAry) / 5) * 5;
+                        $scope.timeMaxM = Math.max(maxRecoveryAry, maxResponseAry);
+                        $timeout.cancel($scope.lineTimer);
+                        $scope.lineTimer = null;
+                        $scope.lineTimer = $timeout(function () {
+                            $scope.recoveryLineChart();
+                        }, 200);
+
+
+
+                    }
+                })
+                .error(function (err) { console.error(err) })
+        }
+        /*告警恢复时长图*/
+        $scope.recoveryLineChart = function () {
+            /*折线图*/
+            $scope.myLineChart = echarts.init(document.getElementById('timeMain'));
+            var option = {
+                tooltip: {
+                    trigger: 'axis',
+                    textStyle: {
+                        align: 'left',
+                    },
+                    extraCssText: 'background: #000000;border-radius: 0;padding: 10px 10px;',
+                    formatter: function (params) {
+                        //console.log(params)
+                        var result = '';
+                        params.forEach(function (item, index) {
+                            result += '<span style="font-size: 12px;color: #E4E4E4">' + item.seriesName.split('（')[0] + '</span>' + '：' + '<span style="font-size: 16px;">' + item.value + '</span>' + '<br/>';
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    right: 46,
+                    top: 10,
+                    legendHoverLink: false,
+                    data: [L.get('EMV_AVERAGE_RECOVERY_MINUTE'), L.get('EMV_AVERAGE_RESPONSE_MINUTE'), L.get('EMV_ALARM_AMOUNT')],
+                },
+                grid: {
+                    top: 50,
+                    right: '50',
+                    left: '20',
+                    bottom: '40',
+                    containLabel: true
+                },
+                //calculable : true,
+                xAxis: [
+                    {
+                        type: 'category',
+                        //boundaryGap: false,
+                        data: $scope.XTime,
+                        axisLine: {
+                            lineStyle: {
+                                color: '#A7AAB0'
+                            }
+
+                        },
+                    }
+                ],
+                yAxis: [
+                    {
+                        type: 'value',
+                        //name: '恢复时长',
+                        position: 'left',
+                        axisLine: {
+                            lineStyle: {
+                                color: '#A7AAB0'
+                            },
+                            axisLabel: {
+                                formatter: '{value}min'
+                            }
+
+                        },
+                        minInterval: 1,
+                        //splitNumber:5,
+                        min: 0,
+                        //max:$scope.timeMaxM,
+                    },
+                    {
+                        type: 'value',
+                        //name: '告警量',
+                        position: 'right',
+                        axisLabel: {
+                            formatter: '{value}'
+                        },
+                        minInterval: 1,
+                        splitLine: {
+                            show: false
+                        },
+                        min: 0,
+                        //max:$scope.maxAlarmCountNumAry,
+                        //splitNumber:5,
+                        axisLine: {
+                            lineStyle: {
+                                color: '#A7AAB0'
+                            }
+
+                        },
+                        //minInterval:1
+                    },
+                ],
+                series: [
+                    {
+                        name: L.get('EMV_AVERAGE_RECOVERY_MINUTE'),
+                        type: 'line',
+                        symbol: 'circle',
+                        symbolSize: 6,
+                        yAxisIndex: 0,
+                        smooth: true,
+                        data: $scope.recoveryAry
+                    },
+                    {
+                        name: L.get('EMV_AVERAGE_RESPONSE_MINUTE'),
+                        type: 'line',
+                        symbol: 'circle',
+                        symbolSize: 6,
+                        yAxisIndex: 0,
+                        smooth: true,
+                        data: $scope.responseAry
+                    },
+                    {
+                        name: L.get('EMV_ALARM_AMOUNT'),
+                        type: 'bar',
+                        barWidth: '20%',
+                        barMaxWidth: '30',
+                        //yAxis: 1,
+                        yAxisIndex: 1,
+                        itemStyle: {
+                            emphasis: {
+                                color: '#F8F8F8'
+                            }
+                        },
+                        data: $scope.alarmCountNumAry
+                    },
+
+                ],
+                color: ['#47A6DC', '#FDD2D2', '#EFEFEF'],
+            };
+            $scope.myLineChart.setOption(option);
+        }
+        $scope.CombineTimeData();
+        window.onresize = function () {
+            $scope.myLineChart && $scope.myLineChart.resize();
+            $scope.allDataLineChart && $scope.allDataLineChart.resize();
+
+        }
+        $scope.bodyInt = function (e) {
+            e.stopPropagation();
+            if (!$(e.target).hasClass('myEventSelect')) {
+                $scope.selectViewFlag = false;
+            }
+            if ((!$(e.target).hasClass('mySelectTime') && !$(e.target).parents('.mySelectTime').length) || $(e.target).hasClass('backBtn')) {
+                $scope.selectTimeListFlag = false;
+                $scope.selectDefTimeFlag = false;
+            }
+            if (!$(e.target).parents('.public-select-time').length && !$(e.target).hasClass("timeInput")) {
+                $(".select-time").hide();
+            }
+        }
+        //下载告警统计报告  start
+
+        /*时间戳转化成时间格式*/
+        $scope.formatTime = function (time) {
+            var nS = new Date(time);
+            //var   year=nS.getFullYear();
+            var month = Number(nS.getMonth()) + Number(1) < 10 ? '0' + (Number(nS.getMonth()) + Number(1)) : Number(nS.getMonth()) + Number(1);
+            var date = nS.getDate();
+            var hour = nS.getHours();
+            var min = nS.getMinutes();
+            var s = nS.getSeconds();
+            //几月几日 =>月-日
+            //return month+L.get('EMV_MONTH')+date+L.get('COMMON_DAY_1')
+            return month + '/' + date
+
+        }
+        $scope.sharePageUrl = '';
+        $scope.getSharePageUrl = function () {
+            var saveParm = {};
+            saveParm.startTime = $scope.startTime;
+            saveParm.endTime = $scope.endTime;
+            saveParm.viewId = $scope.viewId;
+            saveParm.topTenColumnOne = $scope.topNumFirstKey;
+            saveParm.topTenColumnTwo = $scope.topNumSecondKey;
+            saveParm.timeArea = $scope.formatTime($scope.startTime) + '-' + $scope.formatTime($scope.endTime);
+            saveParm.eventArea = $scope.eventShowName;
+            saveParm.topTenColumnOneChn = $scope.topNumFirstKeyName;
+            saveParm.topTenColumnTwoChn = $scope.topNumSecondKeyName;
+
+
+            MonitoringService.shareSave(saveParm).success(function (result) {
+                if (result.success) {
+                    $scope.sharePageUrl = window.location.href.split('#')[0] + '#/tarsier/monitoring/sharePage?id=' + result.data;
+                    window.open($scope.sharePageUrl);
+                }
+            }).error(function () {
+
+            });
+        };
+
+        //下载告警统计报告  end
+
+
+    }]);
+})(nameSpace.reg('graph'), nameSpace.reg('monitor.current'));

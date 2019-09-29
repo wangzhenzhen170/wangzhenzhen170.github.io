@@ -1,0 +1,432 @@
+(function (graph) {
+
+  'use strict';
+  graph.app.controller('detailMoreCtrl', ['$uibModal', '$scope', '$sce', 'isOsreen', '$uibModalInstance', 'MonitoringService', 'flag', 'pageFlag', 'eventType', 'data', 'params', 'css', 'Unit', 'viewId', 'uDialog', '$cookies', '$timeout', function ($uibModal, $scope, $sce, isOsreen, $uibModalInstance, MonitoringService, flag, pageFlag, eventType, data, params, css, Unit, viewId, uDialog, $cookies, $timeout) {
+
+    var ciCode = '';
+    var oDate = new Date();
+    var intStartTime = oDate.getFullYear() + '/' + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + '/' + oDate.getDate();
+    var intEndTime = oDate.getFullYear() + '/' + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + '/' + oDate.getDate();
+    $scope.startD = intStartTime; //获取系统的年；
+    $scope.keyValue = L.get('COMMON_NONE');
+    $scope.endD = intEndTime;   //获取系统的年；
+    $scope.getBeforeDate = function (n) {
+      var date = {};
+      //var n = n;
+      var d = new Date();
+      date.endtimeStamp = Date.parse(d);
+      var year = d.getFullYear();
+      var mon = d.getMonth() + 1;
+      var day = d.getDate();
+      date.endtime = year + L.get('COMMON_YEAR') + (mon < 10 ? ('0' + mon) : mon) + L.get('COMMON_MONTH') + (day < 10 ? ('0' + day) : day) + L.get('COMMON_DAY_1');
+      if (day <= n) {
+        if (mon > 1) {
+          mon = mon - 1;
+        }
+        else {
+          year = year - 1;
+          mon = 12;
+        }
+      }
+      d.setDate(d.getDate() - n);
+      year = d.getFullYear();
+      mon = d.getMonth() + 1;
+      day = d.getDate();
+      date.starttimeStamp = Date.parse(d);
+
+      date.starttime = year + L.get('COMMON_YEAR') + (mon < 10 ? ('0' + mon) : mon) + L.get('COMMON_MONTH') + (day < 10 ? ('0' + day) : day) + L.get('COMMON_DAY_1');
+      return date;
+
+    }
+
+    //console.log($scope.getBeforeDate())
+
+
+
+
+    $scope.dateRange = {};
+    //$scope.type=1;
+    $scope.dateRange.display = L.get('COMMON_LAST_DAY');
+    $scope.classList = [
+      { display:  L.get('COMMON_LAST_DAY'), value: 1 },
+      { display: L.get('EMV_LAST_SEVEN_DAYS'), value: 7 },
+      { display: L.get('EMV_LAST_THIRTY_DAYS'), value: 30 },
+
+    ];
+    $scope.pageSize = 8;
+    $scope.currentPage = 1;
+    $scope.starttimeStamp = $scope.getBeforeDate($scope.classList[0].value).starttimeStamp;
+    $scope.endtimeStamp = $scope.getBeforeDate($scope.classList[0].value).endtimeStamp;
+    $scope.starttime = $scope.getBeforeDate($scope.classList[0].value).starttime;
+    $scope.endtime = $scope.getBeforeDate($scope.classList[0].value).endtime;
+    /*自定义时间确定*/
+    $scope.goToTimeSearch = function ($event) {
+      $event.stopPropagation();
+      if (!$('#startTime').val()) {
+        Unit.error(L.get('EMV_PLEASE_SELECT_THE_START_TIME'));
+        return;
+      }
+      if (!$('#endTime').val()) {
+        Unit.error(L.get('EMV_PLEASE_SELECT_THE_END_TIME'));
+        return;
+      }
+      var startTime = $('#startTime').val() + ' ' + '00:00:00';
+      var endTime = $('#endTime').val() + ' ' + '23:59:59';
+
+      $scope.startTime = Number((new Date(startTime)).getTime());
+      $scope.endTime = Number((new Date(endTime)).getTime());
+
+      if ($scope.startTime > $scope.endTime) {
+        Unit.error(L.get('EMV_UNREASONABLE_END_TIME')+','+L.get('EMV_PLEASE_RE_SELECT'));
+        return;
+      }
+      $scope.startD = $('#startTime').val();
+      $scope.endD = $('#endTime').val();
+
+
+
+      //$scope.dateRange.display='自定义时间'
+      var startGetD = $scope.startD.split('/');
+      var endGetD = $scope.endD.split('/')
+      $scope.dateRange.display = startGetD[1] + '.' + startGetD[2] + '-' + endGetD[1] + '.' + endGetD[2];
+      $scope.showTitleDefalt = $scope.startD + '- ' + $scope.endD;
+      $scope.starttimeStamp = Number((new Date(startTime)).getTime());
+      $scope.endtimeStamp = Number((new Date(endTime)).getTime());
+      $scope.starttime = $scope.startD.substring(0, 4) + L.get('COMMON_YEAR') + $scope.startD.substring(5, 7) + L.get('COMMON_MONTH') + $scope.startD.substring(8, 10) + L.get('COMMON_DAY_1');
+      $scope.endtime = $scope.endD.substring(0, 4) + L.get('COMMON_YEAR') + $scope.endD.substring(5, 7) + L.get('COMMON_MONTH') + $scope.endD.substring(8, 10) + L.get('COMMON_DAY_1');
+      //$scope.loadData();
+      // $scope.getData($scope.type);
+      $scope.selectDefTimeFlag = false;
+      $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+    }
+    $scope.selectDefTimeFlag = false;
+    $scope.goBack = function () {
+      $scope.selectDefTimeFlag = false;
+    }
+
+    $scope.loadData = function () {
+      $scope.totalRows = '';
+      $scope.listData = '';
+      var keyValue;
+      if ($scope.keyValue === L.get('COMMON_NONE')) {
+        keyValue = '';
+      } else {
+        keyValue = $scope.keyValue;
+      }
+      //console.log(data)
+      MonitoringService.associateEventList({
+        startTime: $scope.starttimeStamp,
+        endTime: $scope.endtimeStamp,
+        pageSize: $scope.pageSize,
+        pageNum: $scope.currentPage,
+        ciCode: data.sourceciname || data.SOURCECINAME,
+        keyField: 'SOURCEALERTKEY',
+        keyValue: keyValue,
+        serial: data.serial || data.SERIAL
+
+      }).success(function (result) {
+        if (result.success) {
+          if (result.data) {
+            $scope.totalRows = result.data.totalRows;
+            $scope.pageSize = result.data.pageSize;
+            $scope.listData = result.data.data;
+            var colorObj = localStorage.getItem('colorkey');
+            colorObj = JSON.parse(colorObj)
+            $scope.colorArr = colorObj.data;
+            //console.log($scope.colorArr)
+            $.each($scope.listData, function (index, item) {
+              //console.log(item.severity)
+              var flag = 0
+              $.each($scope.colorArr, function (index, item1) {
+
+                if (item.severity === item1.severity) {
+                  item.backgroundColor = { 'background': item1.color }
+                  //$scope.color={'color':$scope.color}
+                  //console.log($scope.background)
+                  flag = 1;
+                  return false;
+
+                }
+
+
+              })
+              if (flag === 0) {
+                item.backgroundColor = { 'background': 'gray' }
+
+              }
+
+            })
+          }
+
+        } else {
+
+        }
+      }).error(function () {
+
+      });
+    };
+    $scope.loadData();
+    $scope.paging = function (data) {
+      $scope.pageSize = data.pageSize;
+      $scope.currentPage = data.currentPage;
+      $scope.loadData();
+
+    }
+    $scope.selectClassify = function (item) {
+      $scope.dateRange.display = item.display;
+      $scope.showTitleDefalt = item.display;
+      $scope.starttimeStamp = $scope.getBeforeDate(item.value).starttimeStamp;
+      $scope.endtimeStamp = $scope.getBeforeDate(item.value).endtimeStamp;
+      $scope.starttime = $scope.getBeforeDate(item.value).starttime;
+      $scope.endtime = $scope.getBeforeDate(item.value).endtime;
+      //$scope.getBeforeDate(item.value);
+      // $scope.loadData();
+      //$scope.getData($scope.type);
+      $scope.selectDefTimeFlag = false;
+    }
+
+
+
+
+
+    $scope.selectFun = function () {
+      event.stopPropagation();
+      // $(this).toggleClass('active');
+      //console.log(234)
+      $('.drop-menu').stop().slideToggle(150);
+    }
+
+    // $('.select-wrap').on('click', function(event){
+
+
+    // });
+    $(document).on('click', function () {
+      //console.log(232)
+      $('.select-wrap1').find('.drop-menu').stop().slideUp(150);
+      $scope.selectDefTimeFlag = false;
+    });
+
+    //打开CMV影响分析
+    $scope.openFriendFun = function (item) {
+      if (item) {
+        var sendP = {
+          ciName: item.ciname
+        }
+        MonitoringService.influenceAnalyzeParam(sendP).success(function (data) {
+          if (data.success) {
+            if (data.data.defId) {
+              var param = '?ciId=' + item.ciid;
+              var code = '0309';
+              var url = '/monitor-web/cmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&freedomUrl=' + param;
+              window.open(url);
+            } else {
+              Unit.error(L.get('EMV_NO_ASSOCIATED_EFFECT'));
+            }
+
+          } else {
+            Unit.error(L.get('EMV_NO_ASSOCIATED_CI'));
+
+          }
+
+        });
+
+        return false;
+      } else {
+        Unit.error(L.get('EMV_DATA_HAS_A_PROBLEM'))
+      }
+
+
+    }
+    $scope.pageFlag = pageFlag;/*1是全部事件 2是自定义事件*/
+    $scope.eventType = eventType;
+    $scope.isOsreen = isOsreen;/*true 是大屏模式*/
+    $scope.compressDetail = function (serial) {
+      uDialog.dialog({
+        class: 'compressDetail',
+        animation: true,
+        backdrop: 'static',
+        templateUrl: 'app/modal/manageAlert/compressDetail.html',
+        controller: 'compressDetailCtrl',
+        resolve: {
+          serial: function () {
+            return serial
+          },
+          css: function () {
+            return css
+          },
+          type: function () {
+            return 'DUPLICATESERIAL'
+          },
+          startTime: function () {
+            return 0
+          },
+          endTime: function () {
+            return 0
+          },
+          isWeihuPeriod: function () {
+            return 1
+          },
+        }
+      });
+    }
+    $scope.pmvShow = false;
+    $scope.moreTimeRelative = false;
+    $timeout(function () {
+      $scope.moreTimeRelative = true;
+    }, 8000)
+    window.addEventListener('message', function (evt) {
+      var o = evt.data && typeof evt.data === 'string' && JSON.parse(evt.data);
+      if (o && o.dashboards_length === 0) {
+        $scope.pmvFlag = true;
+        $scope.pmvShow = true;
+      } else {
+        $scope.pmvFlag = false;
+        $scope.pmvShow = true;
+      }
+
+    });
+
+    $scope.viewId = viewId;
+
+
+    if (data.CI) {
+      ciCode = data.CI;
+    }else if (data.ci) {
+      ciCode = data.ci;
+    } else if (data.ciname) {
+      ciCode = data.ciname;
+    } else if (data.CINAME) {
+      ciCode = data.CINAME;
+    } else {
+      ciCode = '';
+    }
+    if (data.ci && data.ciname && data.sourceciname) {
+      ciCode = data.ciname;
+    }
+    $timeout(function () {
+      MonitoringService.selectPMVUrl({}).success(function (data) {
+        if (data.success) {
+          $scope.pmvUrl = data.data;
+          var url = $scope.pmvUrl + '/pmv/dashboard/show.html?#ciCode=' + encodeURIComponent(ciCode) + '&showTimeControl&showRoute&color=#4aa8ff';
+          $scope.myURL = $sce.trustAsResourceUrl(url);
+        } else {
+          Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'));
+
+        }
+
+      }).error(function () {
+        Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'));
+      });
+    });
+    // MonitoringService.selectPMVUrl({}).success(function (data) {
+
+    //     $scope.pmvUrl = data.data;
+    //     var timestamp = Date.parse(new Date());
+    //     // var url = $scope.pmvUrl+'/pmv/dashboard/show.html?'+timestamp+'#ciCode='+ciCode+'&showTimeControl';
+    //     var url = $sce.trustAsResourceUrl($scope.pmvUrl + '/pmv/dashboard/show.html?#ciCode=' + encodeURIComponent(ciCode) + '&showTimeControl');
+    //     $scope.myURL = $sce.trustAsResourceUrl(url);
+    // });
+
+    $scope.css = css;
+    //consoleconsole.log(css)
+    $scope.alertDetail = [];
+    $scope.configInform = [];
+    $scope.EventOperations = [];
+    $scope.goToDMV = function (code, id) {
+      if (id) {
+        var url = '/monitor-web/dmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&freedomUrl=/' + id;
+        //consoleconsole.log(url)
+        window.open(url);
+      }
+    };
+    if (data.eventType === 1 || data.eventType === 2) {
+      //获取详情数据
+      MonitoringService.getAlertDetail(params).success(function (data) {
+        $scope.detailMoreItem = data.data;
+
+        if (data.success) {
+          MonitoringService.eventDetails(params).success(function (data) {
+            //consoleconsole.log(data)
+            if (data.success) {
+              $scope.alarmInfor = [];
+              $scope.alarmInfor = data.data.event;
+              console.log($scope.alarmInfor)
+
+            }
+          });
+          $scope.alertDetail = data.data;
+          //console.log($scope.alertDetail)
+          if ($scope.alertDetail.icon) {
+            $scope.imgPhoto = { 'background': 'url(' + $scope.alertDetail.icon + ') no-repeat 50%' };
+          } else {
+            $scope.imgPhoto = { 'background': "url('assets/images//tarsier/monitor/warning.png') no-repeat 50%" };
+          }
+          var colorObj = localStorage.getItem('colorkey');
+          colorObj = JSON.parse(colorObj)
+          $scope.colorArr = colorObj.data;
+          //console.log($scope.colorArr)
+          $.each($scope.colorArr, function (index, item) {
+            //console.log(item.severity)
+            if (item.severity === $scope.alertDetail.severity) {
+              $scope.color = item.color;
+              $scope.background = { 'border-left': 'solid 8px ' + $scope.color + '' }
+              $scope.color = { 'color': $scope.color }
+              //console.log($scope.background)
+            }
+          })
+        }
+
+      });
+
+
+    } else {
+      MonitoringService.getAlertDetailDiscard(params).success(function (data) {
+        $scope.detailMoreItem = data.data;
+        MonitoringService.eventDiscardDetails(params).success(function (data) {
+          //console.log(data)
+          $scope.alarmInfor = [];
+          $scope.alarmInfor = data.data.event;
+
+          //console.log($scope.alarmInfor)
+        });
+
+        $scope.alertDetail = data.data;
+        if ($scope.alertDetail.icon) {
+          $scope.imgPhoto = { 'background': 'url(' + $scope.alertDetail.icon + ') no-repeat 50%' };
+        } else {
+          $scope.imgPhoto = { 'background': "url('assets/images//tarsier/monitor/warning.png') no-repeat 50%" };
+        }
+        var colorObj = localStorage.getItem('colorkey');
+        colorObj = JSON.parse(colorObj)
+        $scope.colorArr = colorObj.data;
+        //consoleconsole.log($scope.colorArr)
+        $.each($scope.colorArr, function (index, item) {
+          //console.log(item.severity)
+          if (item.severity === $scope.alertDetail.severity) {
+            $scope.color = item.color
+            $scope.background = { 'border-left': 'solid 8px ' + $scope.color + '' }
+            $scope.color = { 'color': $scope.color }
+            //console.log($scope.background)
+          }
+        })
+      });
+    }
+    MonitoringService.getEventOperations({ serial: params.serial }).success(function (data) {
+      $scope.EventOperations = data.data;
+      //console.log($scope.EventOperations)
+    });
+    MonitoringService.getCiPropertyByCiCode({ ciCode: ciCode }).success(function (data) {
+      $scope.configInform = data.data;
+    });
+    MonitoringService.getEventDiagramByCiCode({ ciCode: ciCode }).success(function (data) {
+      $scope.Diagram = data.data;
+    });
+    $scope.flag = flag;
+    $scope.cancel = function () {
+      $uibModalInstance.close({ ok: false });
+
+    };
+
+
+  }])
+})(nameSpace.reg('graph'));

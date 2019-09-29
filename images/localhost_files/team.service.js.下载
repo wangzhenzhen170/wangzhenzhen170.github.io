@@ -1,0 +1,191 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('TeamService', ['$http', '$q', 'Unit', function($http, $q, Unit){
+
+        //不分页查询组以及每个组内的成员信息
+        this.queryGroupInfoList = function(id){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/group/queryGroupInfoList'),
+                data: {
+                    id:id
+                }
+            })
+        };
+        this.teamHomeDataInter = function(data){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/group/queryGroupInfoList'),
+                data: data
+            })
+        };
+
+        //分页查询组以及每个组内的成员信息
+        /*this.teamHomeDataInter = function(data){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/group/queryGroupInfoPage'),
+                data: data
+            })
+         };*/
+
+        //保存组和组内的信息 -- 创建
+        this.saveOrUpdateGroupInfoCreate = function(groupName,groupDesc,groupUsers,groupImage){
+
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/group/saveOrUpdateGroupInfo'),
+                params: {
+                },
+                data: {
+                    group:{
+                        groupName:groupName,
+                        groupDesc:groupDesc,
+                        groupImage:groupImage
+                    },
+                groupUsers:groupUsers
+                }
+            })
+        };
+
+        //保存组和组内的信息 -- 编辑
+        this.saveOrUpdateGroupInfoEdit = function(id,groupName,groupDesc,groupUsers,groupImage){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/group/saveOrUpdateGroupInfo'),
+                params: {
+                },
+                data: {
+                  group:{
+                      id:id,
+                      groupName:groupName,
+                      groupDesc:groupDesc,
+                      groupImage:groupImage
+                  },
+                groupUsers:groupUsers,
+                }
+            })
+        };
+
+        //根据组ID删除组信息,同时删除用户组信息
+        this.removeGroupById = function(id){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/group/removeGroupById'),
+                params: {
+                },
+                data: {
+                   id:id
+                }
+            })
+        };
+        this.queryDiagramByGroupId = function(id){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('diagram/queryDiagramByGroupId'),
+                params: {
+                },
+                data:{
+                    id:id
+                }
+            })
+        };
+
+        //编辑小组 获得小组成员名称
+        this.saveOrUpdateGroupUser = function(id){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/saveOrUpdateGroupUser'),
+                params: {
+                },
+                data: {
+                    groupId:id
+                }
+            })
+        };
+        //根据userId 查用户
+        this.queryOpList = function(userId){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/group/queryOpList'),
+                params: {
+                },
+                data:{
+                    cdt : {
+                        ids : userId
+                    }
+                }
+            })
+        };
+        //进入小组详情 不分页根据小组ID查询视图信息
+         this.queryDiagramByGroupId = function(id){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/comb/queryDiagramEventByGroupId'),
+                params: {
+                },
+                data:id
+
+            })
+        };
+        //删除小组视图
+		this.removeDiagramGroup = function(userId,groupId,diagramId){
+			return $http({
+				method: 'POST',
+				url: Unit.diagramApi('/group/removeDiagramGroup'),
+				params: {
+				},
+				data:{
+					userId: userId,
+	 				diagramGroup: { groupId: groupId, diagramId: diagramId}
+
+		        }
+
+			})
+		};
+        //移除小组视图
+		this.removeDiagramGroupByIds = function(data){
+			return $http({
+				method: 'POST',
+				url: Unit.diagramApi('/group/removeDiagramGroupByIds'),
+				data:data
+			})
+		};
+        //获得当前用户
+		this.getCurUser = function(){
+			return $http({
+				method: 'post',
+				url: Unit.diagramApi('/integration/authority/getCurUser'),
+			})
+		};
+        //上传头像
+        this.addImage = function(fd){
+			return $http({
+				method: 'POST',
+				url: Unit.diagramApi('/group/addImage'),
+				headers:{'Content-Type':undefined},
+                transformRequest:angular.identity,
+				data:fd
+			})
+		};
+        // 删除小组；
+		this.removeDirByIds = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/removeDirByIds'), params);
+		};
+        //删除头像
+        this.removeImage = function(groupImage){
+			return $http({
+				method: 'POST',
+				url: Unit.diagramApi('/group/removeImage'),
+				data:{
+                    groupImage: groupImage
+                }
+			})
+		};
+
+    }]);
+
+})(nameSpace.reg('graph'));

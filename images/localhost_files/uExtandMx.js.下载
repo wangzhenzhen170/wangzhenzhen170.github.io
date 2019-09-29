@@ -1,0 +1,72 @@
+/**
+ * 重写mx的一些原生方法以实现自己的某些功能
+ */
+(function () {
+    // 重写mxCellRenderer.prototype.getLabelValue方法，
+    // 以实现通过style隐藏元素的label
+    var getLabelValue = mxCellRenderer.prototype.getLabelValue;
+    /**
+     * 标志隐藏label的样式名
+     * uHideLabel = 1 则隐藏
+     */
+    mxConstants.uSTYLE_HIDELABEL = 'uHideLabel';
+    mxCellRenderer.prototype.getLabelValue = function (cellState) {
+        if (cellState.style && cellState.style.uHideLabel) {
+            return "";
+        }
+        
+        // 如果是Edge的标签元素，当Edge隐藏Label时同时将标签隐藏
+        if (cellState.cell.parent.edge) {
+            var pstate = cellState.view.getState(cellState.cell.parent);
+            if (pstate && pstate.style && pstate.style.uHideLabel) {
+                return "";
+            }
+        }
+
+        return getLabelValue.apply(this, arguments);
+    }
+
+    /**
+     * 隐藏指定cell的label
+     * @param {Array.<mxCell>} cells - 需要隐藏label的cell列表
+     */
+    mxGraph.prototype.uHideCellLabels = function (cells) {
+        var cells = cells instanceof Array ? cells : [cells];
+        this.setCellStyles(mxConstants.uSTYLE_HIDELABEL, 1, cells);
+    };
+
+    /**
+     * 显示指定cell的label
+     * @param {Array.<mxCell>} cells - 需要显示label的cell列表
+     */
+    mxGraph.prototype.uShowCellLabels = function (cells) {
+        var cells = cells instanceof Array ? cells : [cells];
+        this.setCellStyles(mxConstants.uSTYLE_HIDELABEL, 0, cells);
+    };
+
+    /**
+     * 设置是否显示指定cell的label
+     * @param {Array.<mxCell>} cells - 需要设置是否显示label的cell列表
+     * @param {boolean} visible - 是否可见
+     */
+    mxGraph.prototype.uSetLabelVisible = function (cells, visible) {
+        visible ? this.uShowCellLabels(cells) : this.uHideCellLabels(cells);
+    };
+
+
+
+    /**
+     * 重绘mxText的configureCanvas方法，实现label使用cell的opacity
+     */
+    var configureCanvas = mxText.prototype.configureCanvas;
+    mxText.prototype.configureCanvas = function () {
+        if (this.state.style && this.state.style.opacity < 100) {
+            this.opacity = this.state.style.opacity;
+        }
+
+        configureCanvas.apply(this, arguments);
+    }
+
+    // 缩放导致的label隐藏
+    mxConstants.uSTYLE_SCALE_HIDELABEL = 'scaleHideLabel';
+})();

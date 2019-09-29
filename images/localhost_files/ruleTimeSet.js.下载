@@ -1,0 +1,199 @@
+(function (graph) {
+
+    'use strict';
+    //右侧浮动层
+    graph.app.directive('ruleTimeSet111', function () {
+        return {
+            restrict: 'AE',
+            replace: true,
+            scope: {
+                ruleType: '@ruleType',
+                arryLineLongFun: '=arryLineLongFun',
+                dutyPersonShow: '=dutyPersonShow'
+            },
+            templateUrl: 'app/directive/ruleFilterEvent/ruleTimeSet.html',
+            controller: ['$scope', '$timeout', '$state', 'Unit', 'uDialog', 'DefinedEventsService', 'MonitoringService', '$uibModal', function ($scope, $timeout, $state, Unit, uDialog, DefinedEventsService, MonitoringService, $uibModal) {
+                MonitoringService.getModelCode({ 'function': true, ruleType: 0 }).success(function (result) {
+                    console.log(result.data)
+                    $scope.classList = result.data;
+                }).error(function () {
+
+                });
+                $scope.L = L;
+                $scope.dutyPersonShow();
+                $scope.objs = {};
+                $scope.severity = 1;
+                $scope.level = [1, 2, 3, 4];
+                $scope.objs.timeOutlevel = 1;
+                $scope.objs.bgtrue = false;
+                $scope.personSendArray = [];
+                $scope.teamCheckedArray = [];
+                var UserTeams = {};
+                $scope.$broadcast('UserTeams', UserTeams);
+                $scope.$on('UserTeams1', function (event, data) {
+                    //console.log(data)
+                    $scope.personCheckedArray = data.Users;
+                    $scope.dutyPersonArray = data.dutyperson;
+                    $scope.teamCheckedArray = data.Teams;
+                    $scope.$emit('timeoutPersonCheckedArray', $scope.personCheckedArray);
+                    $scope.$emit('timeoutTeamCheckedArray', $scope.teamCheckedArray);
+                    $scope.$emit('timeoutdutyPersonArray', $scope.dutyPersonArray);
+                })
+                $scope.checkopCode = [];//给后台传的邮件用户名
+                $scope.personCheckedArray = [];//显示在页面上的邮件用户名
+                $scope.mailContentString = '';
+                $scope.selectLevel = function (le) {
+                    $scope.objs.timeOutlevel = le;
+                    $scope.severity = le;
+                    $scope.$emit('timeOutSeverity', $scope.severity)
+                }
+                //$scope.objs.timeOutTime='';
+                $scope.noticeWay = 1;
+                $scope.$emit('timeoutPersonCheckedArray', $scope.personCheckedArray)
+                $scope.$emit('timeoutMailContentString', $scope.mailContentString)
+                $scope.$emit('timeOutTime', $scope.objs.timeOutTime)
+                $scope.$emit('timeOutSeverity', $scope.severity)
+                $scope.$emit('timeOutNoticeWay', $scope.noticeWay)
+                $scope.objs.timeOutTime = 0;
+                $scope.$emit('timeOutTime', $scope.objs.timeOutTime)
+                $scope.$on('duration', function (event, data) {
+                    $scope.objs.timeOutTime = data;
+                    console.log($scope.objs.timeOutTime)
+                    $scope.$emit('timeOutTime', $scope.objs.timeOutTime)
+
+                })
+                $(document).on('click', function () {
+                    $('.public-select-time').find('.select-time').hide();
+                });
+
+                $scope.emitMailFun = function () {
+                    if ($scope.objs.bgtrue) {
+                        $scope.noticeWay = 1;
+                        $scope.$emit('timeOutNoticeWay', $scope.noticeWay)
+                        $scope.$emit('timeOutPersonSendArray', $scope.personSendArray)
+                        $scope.$emit('timeOutSeverity', $scope.severity)
+                    }
+                }
+                // 		//获取邮件通知人信息
+                // $scope.queryUserFun=function(mailname){
+                // 	var obj;
+                // 	if(mailname){
+                // 		obj={name:mailname}
+                // 	}else{
+                // 		obj={}
+                // 	}
+                // 	MonitoringService.userList(obj).success(function(result) {
+                // 		$scope.personArray=result.data
+                // 	}).error(function() {
+
+                // 	});
+                // }
+                $scope.$watch('mailContentString', function () {
+                    $scope.$emit('timeoutMailContentString', $scope.mailContentString)
+                })
+                // $scope.queryPerson=function(){
+                // 	$scope.queryUserFun($scope.objs.searchPerson)
+                // }
+                // $scope.queryUserFun();
+                // $scope.queryPerson();
+                //邮件通知选择联系人
+                // $scope.checkPersonFun=function(person){
+                // 	$scope.personCheckedArray.push(person);
+                // 	$scope.personSendArray.push(person.userName);
+                // 	$scope.$emit('timeoutPersonCheckedArray',$scope.personCheckedArray)
+
+                // }
+
+                // $scope.removeCheckedFun=function(item,$index){
+                // 	$scope.personCheckedArray.splice($index,1)
+                // 	$scope.personSendArray.splice($index,1)
+                // 	$scope.$emit('timeoutPersonCheckedArray',$scope.personCheckedArray)
+                // }
+
+                $scope.mailContentFun = function (e) {
+                    var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+                    if ((window.event.shiftKey) && (keycode === 52 || keycode === 229)) {
+                        $scope.mailContentFlag = true;
+                        console.log($scope.mailContentFlag)
+                        $timeout(
+                            function () {
+                                $($('.set-timeOut .mailContentli')[0]).addClass('active');
+                            }, 2
+                        )
+
+
+                    } else {
+                        if (keycode !== 13 && keycode !== 38 && keycode !== 40) {
+                            $scope.mailContentFlag = false;
+                            $timeout(function () {
+                                $scope.mailtextareaVal = $('.mailContent').val()
+                                $scope.mailContentString = $scope.mailtextareaVal;
+
+                            })
+
+                        }
+                    }
+
+                    if (keycode === 38) {
+                        e.preventDefault();
+                        hintListCtrl($('.set-timeOut .mailContentlist'), 'UP');
+                    } else if (keycode === 40) {
+                        e.preventDefault();
+                        hintListCtrl($('.set-timeOut .mailContentlist'), 'DOWN');
+                    }
+                    if (keycode === 13) {
+                        e.preventDefault();
+                        $scope.mailContentString += '${' + $('.mailContentlist .active span').text() + '}';
+                        $('.set-timeOut .mailContent').val($scope.mailContentString)
+                        $scope.$emit('timeoutMailContentString', $scope.mailContentString)
+                        $('.set-timeOut .mailContentli').removeClass('active')
+                        $scope.mailContentFlag = false;
+
+                    }
+
+                }
+                $scope.checkedInforFun = function (li) {
+                    console.log(li)
+                    $scope.mailContentString += li.display;
+                    console.log($scope.mailContentString)
+                    $('.set-timeOut .mailContent').val($scope.mailContentString)
+                    $scope.$emit('timeoutMailContentString', $scope.mailContentString)
+                    $('.set-timeOut .mailContentli').removeClass('active')
+                    $scope.mailContentFlag = false;
+                }
+
+                function hintListCtrl(hint_wrap, direction) {
+                    var hint_List = hint_wrap.find('.mailContentli'),
+                        hint_Active = hint_wrap.find('.mailContentli.active');
+                    var wrapHeight = hint_wrap.height();
+                    if (hint_List.hasClass('active')) {
+                        var length = hint_List.length;
+                        var index = hint_Active.index();
+                        if (direction === 'UP') {
+                            index === 0 ? index = length - 1 : index--;
+                        } else if (direction === 'DOWN') {
+                            index === length - 1 ? index = 0 : index++;
+                        }
+                        hint_List.removeClass('active');
+                        var select_hint = hint_List.eq(index);
+                        select_hint.addClass('active');
+                        var posTop = select_hint.position().top;
+                        var childrenHeight = hint_Active.height();
+                        var srcollTop = hint_wrap.scrollTop();
+                        posTop >= wrapHeight ? hint_wrap.scrollTop(srcollTop + posTop - wrapHeight + childrenHeight) : '';
+                        posTop <= 0 ? hint_wrap.scrollTop(srcollTop + posTop) : '';
+                    } else {
+                        if (direction === 'UP') {
+                            hint_List.last().addClass('active');
+                        } else if (direction === 'DOWN') {
+                            hint_List.first().addClass('active');
+                        }
+                    }
+                }
+
+
+            }]
+        };
+    });
+
+})(nameSpace.reg('graph'));

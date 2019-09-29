@@ -1,0 +1,67 @@
+(function(graph){
+
+	'use strict';
+	graph.app.controller('compressDetailCtrl', ['$uibModal','$scope', '$uibModalInstance', 'MonitoringService','Unit','serial','css','type','startTime','endTime','isWeihuPeriod',function($uibModal,$scope, $uibModalInstance,MonitoringService,Unit,serial,css,type,startTime,endTime,isWeihuPeriod) {
+		// TODO
+		// if(isWeihuPeriod == 3){
+		// 	$scope.isWeihuPeriod = true;
+		// }else{
+		// 	$scope.isWeihuPeriod = false;
+		// }
+		$scope.isWeihuPeriod = isWeihuPeriod === 3;
+		if(type == "SOURCEALERTKEY"){
+			$scope.extra_sql='SERIAL = DUPLICATESERIAL AND KPIID IS NULL AND FILTERTYPE IS NULL'
+		}else if(type=="SOURCECINAME"){
+			$scope.extra_sql='SERIAL = DUPLICATESERIAL AND CINAME IS NULL AND FILTERTYPE IS NULL'
+		}
+		$scope.type=type;
+		$scope.pageSize=16;
+		$scope.currentPage=1;
+		$scope.css=css;
+		$scope.paging = function (data) {
+			$scope.pageSize=data.pageSize;
+			$scope.currentPage=data.currentPage;
+			$scope.loadData();
+
+		}
+
+		$scope.loadData=function(){
+
+			MonitoringService.queryEventPage({
+				isHistory:true,
+				compressed:true,
+				startTime:startTime,
+				endTime:endTime,
+				pageNum:$scope.currentPage,
+				pageSize:$scope.pageSize,
+				isWeihuPeriod:$scope.isWeihuPeriod,
+				view_search:{
+					self_define_search:[
+						[{field:$scope.type,op:"=",value:serial}]
+					]
+				},
+				extra_sql:$scope.extra_sql
+
+			}).success(function(data) {
+				if (data.success) {
+					$scope.totalRows=data.data.totalRows;
+					$scope.compressDetailArry=data.data.data;
+					$.each($scope.compressDetailArry,function ( index,item ) {
+						item.background={
+							border:'solid 1px '+item.COLOR,
+							background: item.COLOR
+						}
+
+					})
+				}
+			});
+		}
+		$scope.loadData();
+
+
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+
+	}])
+})(nameSpace.reg('graph'));

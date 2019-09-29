@@ -1,0 +1,419 @@
+(function() {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxDataLabel', [function() {
+
+
+
+        /*************************************************************************/
+
+
+        /**
+         * 用于显示业务流数据信息的标签形状
+         *
+         * 在使用时应该给对应的cell节点赋予一个uDataLabel属性对象，
+         * 该对象中应该包含指标信息transData、展开状态collapseState、是否为故障根源rootError
+         * transData应该是一个数组，其每个元素内容为{item:'交易量', value:123, unit: '笔', normal: true}
+         * collapseState应该是以下值之一：
+         *     'title' - 表示只显示标题部分
+         *     'main' - 表示只显示最主要的4个指标
+         *     'all' - 展开显示所有指标
+         * rootError 是Boolean型
+         *
+         * 绘制形状时使用的样式名称：
+         *     titleColor - 标题的正常背景颜色
+         *     titleStartColor - 标题渐变开始颜色
+         *     titleEndColor - 标题渐变结束颜色
+         *     tileColor - 指标数据的正常背景颜色
+         *     tileFontFamily - 指标字体
+         *     tileFontSize - 指标字体大小
+         *     tileFontColor - 指标文字的颜色
+         *     tileUnitColor - 指标单位的颜色
+         *     alarmColor - 有指标告警时的背景颜色
+         *     errStartColor - 问题根源标题的渐变开始色
+         *     errEndColor - 问题根源标题的渐变结束色
+         *     shadowColor - 阴影颜色
+         *     errShadowColor - 根源节点的阴影颜色
+         *     shape=uDataLabel - 指定形状为DataLabel
+         *     verticalAlign=middle - label的位置
+         *
+         */
+        function DataLabel(bounds, fill, stroke, strokewidth) {
+            mxShape.call(this);
+            this.bounds = bounds;
+            this.fill = fill;
+            this.stroke = stroke;
+            this.strokewidth = null != strokewidth ? strokewidth : 1
+        }
+
+        mxUtils.extend(DataLabel, mxShape);
+
+        // 标题的高度
+        DataLabel.prototype.titleHeight = 52;
+        // 单元格高度
+        DataLabel.prototype.tileHeight = 52;
+
+        //paintVertexShape	Paints the vertex shape.
+        //paintBackground	Hook for subclassers.
+        //paintForeground	Hook for subclassers.
+
+        /**
+         * 获取标题颜色或渐变ID
+         */
+        DataLabel.prototype.getTitleColor = function(c) {
+            var state = this.state,
+                style = state.style;
+
+            if (this.isRootError()) {
+                if (style.errStartColor && style.errEndColor) {
+                    return 'url(#' +
+                        c.getSvgGradient(style.errStartColor, style.errEndColor, 1, 1, mxConstants.DIRECTION_EAST) +
+                        ')';
+                } else {
+                    return style.alarmColor;
+                }
+            } else {
+                if (style.titleStartColor && style.titleEndColor) {
+                    return 'url(#' +
+                        c.getSvgGradient(style.titleStartColor, style.titleEndColor, 1, 1, mxConstants.DIRECTION_EAST) +
+                        ')';
+                } else {
+                    return style.titleColor;
+                }
+            }
+        }
+
+        /**
+         * 获取阴影颜色
+         */
+        DataLabel.prototype.getShadowColor = function(c) {
+            var state = this.state,
+                style = state.style;
+
+            if (this.isRootError()) return style.errShadowColor;
+            else return style.shadowColor;
+        }
+
+
+        /**
+         * 绘制背景内容，默认会被paintVertexShape方法调用
+         *
+         * @param {mxSvgCanvas2D} c - 画布对象
+         * @param {Number} x - x坐标
+         * @param {Number} y - y坐标
+         * @param {Number} w - 节点的宽度
+         * @param {Number} h - 节点的高度
+         */
+        DataLabel.prototype.paintBackground = function(c, x, y, w, h) {
+            //    c.rect(x, y, w, h);
+            //    c.stroke();
+
+            var state = this.state,
+                cell = state.cell;
+
+            c.root.setAttribute("class", "uDataLabel");
+            c.root.setAttribute("data-cellid", cell.id);
+            c.save();
+
+            // 绘制阴影
+            //    c.setFillColor(this.getShadowColor(c));
+            //    c.roundrect(x, y + 10, w, h, 4, 4);
+            //    c.node.setAttribute('filter', 'url(#' + c.uGetGaussBlur(10) + ')');
+            //    c.fill();
+
+            // c.uDrawShadow(x, y + 10, w, h, 4, 4, 10, this.getShadowColor(c));
+
+            // 绘制背景
+            c.setFillColor('#ffffff');
+            c.rect(x, y, w, h);
+            c.fill();
+
+            c.setStrokeColor('#dfe7f6');
+            c.rect(x, y, w, h);
+            c.stroke();
+
+            // 开始绘制标题部分
+            c.setFillColor(state.style.titleColor);
+            c.rect(x, y, w, this.titleHeight);
+            c.fill();
+
+            if (state.style.image) {
+                var iw = 30; // this.titleHeight * 3 / 5,
+                ih = iw,
+                    ix = x + c.state.dx + (this.titleHeight - iw) / 2 + 130,
+                    iy = y + c.state.dy + (this.titleHeight - ih) / 2;
+                c.image(ix,
+                    iy,
+                    iw,
+                    ih,
+                    state.style.image);
+            }
+
+            c.root.lastChild.setAttribute('class', 'cell-icon pointer');
+
+            c.restore();
+        }
+
+        /**
+         * 绘制前景内容，默认会被paintVertexShape方法调用
+         *
+         * @param {mxSvgCanvas2D} c - 画布对象
+         * @param {Number} x - x坐标
+         * @param {Number} y - y坐标
+         * @param {Number} w - 节点的宽度
+         * @param {Number} h - 节点的高度
+         */
+        DataLabel.prototype.paintForeground = function(c, x, y, w, h) {
+                //    c.begin();
+                //
+                //    c.moveTo(x, y + h/2);
+                //    c.lineTo(x + w, y + h / 2);
+                //    c.moveTo(x + w / 2, y);
+                //    c.lineTo(x + w / 2, y + h);
+                //
+                //    c.stroke();
+                var state = this.state,
+                    cell = state.cell,
+                    data = cell.uDataLabel,
+                    item, count = 0,
+                    tileX, tileY, tileW, tileH;
+
+                if (!data) return;
+
+                c.save();
+
+                // 绘制指标数据
+                if (!cell.isCiTableMode) {
+                    // 开始绘制指标部分
+                    if (data.collapseState == 'main') {
+                        // 只显示前4个主要信息
+                        count = Math.min(4, data.transData.length);
+                    } else if (data.collapseState == 'all') {
+                        count = data.transData.length;
+                    }
+
+                    // 保证每行两个数据
+                    if (count % 2) count += 1;
+
+                    tileW = w / 2;
+                    tileH = (h - this.titleHeight) * 2 / count; // this.tileHeight;
+
+                    // 绘制分隔线
+                    c.setStrokeColor('#dfe7f6');
+                    c.setStrokeWidth(1);
+                    c.begin();
+                    for (var i = 2; i < count; i += 2) {
+                        tileY = y + this.titleHeight + Math.floor(i / 2) * tileH;
+                        c.moveTo(x, tileY);
+                        c.lineTo(x + w, tileY);
+                    }
+                    c.moveTo(x + tileW, y + this.titleHeight);
+                    c.lineTo(x + tileW, y + h);
+                    c.stroke();
+                    for (var i = 0; i < count; i++) {
+                        item = data.transData[i];
+
+                        tileX = (i % 2 == 0) ? x : x + tileW;
+                        tileY = y + this.titleHeight + Math.floor(i / 2) * tileH;
+
+                        this.drawTile(c, {
+                                x: tileX,
+                                y: tileY,
+                                width: tileW,
+                                height: tileH
+                            },
+                            item);
+                    }
+                } else {
+                    // 绘制配置数据
+                    // count = cell.ciInfo.length;
+                    count = 4;
+
+                    tileW = w / 2;
+                    tileH = (h - this.titleHeight) * 2 / count; // this.tileHeight;
+                    for (var i = 0; i < count; i++) {
+                        item = cell.ciInfo[i] || {
+                            key: '',
+                            value: '',
+                            normal: true
+                        };
+
+                        tileX = x - tileW / 2 + 12;
+                        tileY = y + this.titleHeight + i * (tileH - 10) / 2 - 5;
+
+                        this.drawTile(c, {
+                                x: tileX,
+                                y: tileY,
+                                width: tileW,
+                                height: tileH
+                            },
+                            item, 'left');
+                    }
+                }
+
+                var state = this.state,
+                    style = state.style;
+                data.transData.length > 4 && this.drawCollapseIcon(c, x, y, w, h);
+                //判断浏览器类型，颜色字母大小。为红色文字加上闪烁效果
+                //    if (!!window.ActiveXObject || "ActiveXObject" in window){
+                //       $(document).find('g[fill="'+style.alarmColor.toLowerCase()+'"]').each(function(index,ele){
+                //          $(this).addClass("blink");
+                //       })
+                //     }else{
+                //        $(document).find('g[fill="'+style.alarmColor.toUpperCase()+'"]').each(function(index,ele){
+                //          $(this).addClass("blink");
+                //        })
+                //     }
+                c.restore();
+
+            }
+            //DataLabel.prototype.paintVertexShape = function (c, x, y, w, h) {
+            //    console.log('paintVertexShape');
+            //    console.log(arguments);
+            //}
+
+        DataLabel.prototype.hasAlarm = function() {
+            var cell = this.state.cell;
+            if (!cell.uDataLabel) return false;
+
+            var datas = cell.uDataLabel.transData;
+            if (!datas) return false;
+
+            for (var i in datas) {
+                if (!datas[i].normal) return true;
+            }
+            return false;
+        }
+
+        /**
+         * 判断当前节点是否为故障根源
+         */
+        DataLabel.prototype.isRootError = function() {
+            var cell = this.state.cell;
+            if (!cell.uDataLabel) return false;
+
+            return !!cell.uDataLabel.isRootErr;
+        }
+
+        /**
+         * 绘制一个指标单元格
+         *
+         * @param {mxSvgCanvas2D} c - 画布对象
+         * @param {Object} geo - tile的位置及宽高
+         * @param {Object} item - 指标数据对象
+         */
+        DataLabel.prototype.drawTile = function(c, geo, item, align) {
+            var state = this.state,
+                unitScale = 0.8, // 大于该缩放比例时显示数据单位
+                posX, posY;
+
+
+            c.state.fillColor = state.style.tileColor;
+
+            var align = align || 'center';
+
+            // if (border) {
+            //     c.rect(geo.x, geo.y, geo.width, geo.height);
+            //     c.fillAndStroke();
+            // }
+            // 如果没有数据则直接返回
+            if (!item) return;
+
+            // 指标数据
+            c.setFontColor(item.normal ? state.style.tileFontColor : state.style.alarmColor);
+
+            if (!state.cell.isCiTableMode) {
+                c.setFontSize(18);
+                c.setFontFamily(state.style.tileFontFamily);
+
+                posY = geo.y + (state.view.scale > unitScale ? geo.height / 5 * 3 : geo.height / 2);
+            } else {
+                c.setFontSize(14);
+                c.setFontFamily(state.style.tileFontFamily);
+
+                posY = geo.y + (state.view.scale > unitScale ? geo.height / 5 * 3 : geo.height / 2) + 4;
+            }
+
+            var unit = item.unit || '';
+
+            c.text(geo.x + geo.width / 2,
+                posY - 4,
+                geo.width,
+                geo.height / 2,
+                item.value + ' ' + unit,
+                align,
+                state.view.scale > unitScale ? 'bottom' : 'middle');
+
+            // 绘制单位
+            // if (item.unit) {
+            //     c.setFontSize(12);
+            //     c.text(geo.x + geo.width - 15,
+            //         posY,
+            //         geo.width,
+            //         geo.height / 2,
+            //         item.unit,
+            //         'center',
+            //         state.view.scale > unitScale ? 'bottom' : 'middle');
+            // }
+
+            if (!state.cell.isCiTableMode) {
+                c.root.lastChild.lastChild.setAttribute('data-kpiid', item.kpiId);
+                c.root.lastChild.lastChild.setAttribute('data-kpiname', item.item);
+                c.root.lastChild.lastChild.setAttribute('data-ciid', item.ciId);
+                c.root.lastChild.lastChild.setAttribute('data-ciname', item.ciName);
+                c.root.lastChild.lastChild.setAttribute('class', 'pointer data-info');
+                c.root.lastChild.lastChild.setAttribute('data-kpiinfo', '');
+
+                if (state.view.scale > unitScale) {
+                    // 指标名称
+                    c.setFontColor(item.normal ? state.style.tileUnitColor : state.style.alarmColor);
+                    c.setFontSize(12);
+                    c.text(geo.x + geo.width / 2,
+                        geo.y + geo.height / 6 * 5 - 7,
+                        geo.width,
+                        geo.height / 3,
+                        item.item, 'center', 'middle');
+
+                    c.root.lastChild.lastChild.setAttribute('data-kpiid', item.kpiId);
+                    c.root.lastChild.lastChild.setAttribute('data-ciid', item.ciId);
+                }
+            }
+
+        }
+
+        /**
+         * 绘制展开与收起指标的按钮
+         */
+        DataLabel.prototype.drawCollapseIcon = function(c, x, y, w, h) {
+            var state = this.state,
+                cell = state.cell,
+                data = cell.uDataLabel;
+
+            var ix, iy, iw, ih, img;
+
+            iw = 22;
+            ih = 18;
+            ix = x + (w - iw) / 2;
+            iy = y + h;
+            img = ugvImagePath + (data.collapseState === 'all' ? '/collapse-icon-up.png' : '/collapse-icon-down.png');
+            c.image(ix, iy, iw, ih, img);
+
+            img = c.root.lastChild;
+            img.setAttribute('class', 'pointer collapse-icon');
+        }
+
+        DataLabel.prototype.getLabelBounds = function(bounds) {
+            bounds.height = this.titleHeight * this.state.view.scale;
+
+            return bounds;
+        }
+
+
+
+        // 注册形状
+        mxCellRenderer.registerShape('uDataLabel', DataLabel);
+
+
+        return DataLabel;
+    }]);
+})();

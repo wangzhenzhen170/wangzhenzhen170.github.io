@@ -1,0 +1,23 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxFgEffect', ['emxBgEffect', function (emxBgEffect) {
+
+        /**
+         *
+         * 前景效果，与背景相同，只是将效果放到cell元素的上层
+         */
+        return emxBgEffect.extend({
+            _placeNode: function (node, cell) {
+                this.toCellFront(node, cell);
+            },
+
+            _createEffect: function (cell, color, padding, r) {
+                var node = this._super(cell, color, padding, r);
+                this.attr(node, 'opacity', 0.3);
+            }
+        });
+
+
+    }]);
+})();

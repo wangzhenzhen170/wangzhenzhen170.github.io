@@ -1,0 +1,122 @@
+(function (graph, self) {
+    'use strict';
+
+    graph.app.controller('TestSceneInfo', ['$scope', '$state', 'SceneService', function ($scope, $state, SceneService) {
+         // just test
+        $scope.testSceneId = '577340d045ce06431cf63749'; // '5769fad9c95d0b3c0c0be782';
+        $scope.testViewId = '56667c42c7d22ad6ef85f4a3';
+        $scope.justtest = 'this is in list controller';
+        $scope.configDatas = {'some A': 123, 'some B': 456, ciId: '5B224C69676874696E67222C226C696768743035225D'};
+        $scope.ciId = {id: '5B22526F75746572537769746368222C2252533033225D', viewid: ''}
+
+        // KPI Chart
+        $scope.kpi = {
+            ciId: "55ff6339caa5992088ef704c",
+            kpiId: "5631715dd8e1fb4dcda8724d"
+        };
+
+        // action group id
+        $scope.actGroupId = '57833afeab09d8428433182d';
+
+        // 操作组数据
+        $scope.actGroups = [
+            ['57833afeab09d8428433182d', 'aaaaaaaaaaaaaaaaaaaaaaaa'],
+            ['57833909ab09d84284331829', 'aaa']
+        ];
+
+        $scope.sceneData = {
+            actionGroups: $scope.actGroups
+        }
+
+        // 图表数据
+        $scope.kpiDatas = {
+            title: '测试 - 123',
+            items: [
+                {
+                    value: 35,
+                    time: new Date(2016, 7 - 1, 15, 15, 1, 10)
+                },{
+                    value: 21,
+                    time: new Date(2016, 7 - 1, 15, 15, 2, 33)
+                },{
+                    value: 67,
+                    time: new Date(2016, 7 - 1, 15, 15, 4, 5)
+                },{
+                    value: 55,
+                    time: new Date(2016, 7 - 1, 15, 15, 5, 6)
+                },{
+                    value: 62,
+                    time: new Date(2016, 7 - 1, 15, 15, 6, 20)
+                },{
+                    value: 41,
+                    time: new Date(2016, 7 - 1, 15, 15, 7, 5)
+                },{
+                    value: 77,
+                    time: new Date(2016, 7 - 1, 15, 15, 7, 55)
+                }
+            ]
+        }
+
+        $scope.$on('sceneShowAlarm', function (e, d) {
+            console.log('show alarm: ' + d);
+        });
+        $scope.$on('sceneShowChart', function (e, d) {
+            console.log('show chart: ' + d);
+        });
+
+        $scope.$on('SCENE_RUNACT', function (e, d) {
+            console.log('accept run act:');
+            console.log(d);
+        });
+
+        $scope.refreshAlarm = function () {
+            $scope.$broadcast('SCENEDETAIL_REFRESH_ALARM');
+            console.log('button click refreshAlarm');
+        };
+
+        $scope.changeCI = function () {
+            if ($scope.ciId.id === '5B224C69676874696E67222C226C696768743035225D') {
+                $scope.ciId.id = '5B22526F75746572537769746368222C2252533033225D';
+            } else {
+                $scope.ciId.id = '5B224C69676874696E67222C226C696768743035225D';
+
+            }
+
+            console.log('button click changeCI');
+        };
+
+        $scope.kpiChart = function () {
+            $scope.$broadcast('SCENE_SHOW_KPICHART', $scope.kpi);
+        }
+
+        $scope.getActGroup= function (gid) {
+            SceneService.getActGroup(gid).then(function (ret) {
+                console.log('action group: ');
+                console.log(ret);
+                var data = ret.data.data;
+                var content = data.datas[0];
+                var app = content.apps[0];
+                var group = {
+                    groupId: content.id,
+                    groupName: content.groupName,
+                    cis: app.cis,
+                    scripts: app.scripts
+                };
+
+                $scope.actGroups[group.groupId] = group;
+
+            }, function (ret) {
+                console.error(ret);
+            });
+        };
+
+        $scope.getAllActGroup = function () {
+            SceneService.getAllActGroup().then(function (ret) {
+                console.log(ret);
+            }, function (ret) {
+                console.error(ret);
+            });
+        }
+//        $scope.activeTab = 'chart';
+    }]);
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

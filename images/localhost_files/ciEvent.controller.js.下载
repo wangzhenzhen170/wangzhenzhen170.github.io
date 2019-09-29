@@ -1,0 +1,16 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalCiEventCtrl', ['$scope', '$uibModalInstance', 'result', function($scope, $uibModalInstance, result){
+
+		$scope.$modal = $uibModalInstance;
+
+		$scope.heads = result.head;
+		$scope.rows = result.row;
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

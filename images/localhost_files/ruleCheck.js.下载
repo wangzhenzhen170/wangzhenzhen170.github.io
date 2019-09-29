@@ -1,0 +1,16 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.directive('ruleCheck', function($http) {
+		 return {
+            restrict: "AE",
+            replace: false,
+            scope:true,
+            link: function (scope, element, attr) {
+
+            }
+        };
+	});
+
+})(nameSpace.reg('graph'));

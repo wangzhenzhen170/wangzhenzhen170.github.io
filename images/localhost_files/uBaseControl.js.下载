@@ -1,0 +1,19 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('_emxBaseControl', [function () {
+
+
+        /********************************************************/
+
+        function uBaseControl(mxg) {
+            this.mxg = mxg;
+        }
+
+        uBaseControl.prototype = new mxEventSource;
+        uBaseControl.prototype.constructor = uBaseControl;
+
+        return uBaseControl;
+
+    }]);
+})();

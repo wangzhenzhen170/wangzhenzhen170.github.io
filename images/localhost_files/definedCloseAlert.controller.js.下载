@@ -1,0 +1,200 @@
+(function (graph) {
+
+	'use strict';
+
+	var controller = function ($scope, $uibModalInstance, Unit, $timeout, DefinedEventsService, MonitoringService, OScreenService, item, type, fn) {
+		console.log(item)
+		$scope.addParms = {};
+		$scope.isDutyFlag = item.isDutyFlag;
+		if ($scope.isDutyFlag) {
+			if (item.item) {/*全局进入时*/
+				$scope.addParms.lastoccurrence = item.item.LASTOCCURRENCE;
+				$scope.addParms.eventTitle = item.item.EVENTTITLE;
+				$scope.addParms.eventSummary = item.item.SUMMARY;
+				$scope.addParms.severity = Number(item.item.SEVERITY_CODE);
+			} else {/*右键或详情进入时*/
+				$scope.addParms.lastoccurrence = item.LASTOCCURRENCE;
+				$scope.addParms.eventTitle = item.EVENTTITLE;
+				$scope.addParms.eventSummary = item.SUMMARY;
+				$scope.addParms.severity = Number(item.SEVERITY_CODE);
+			}
+		}
+		$scope.cancel = function (e) {
+			$uibModalInstance.close();
+		};
+		$scope.isSelectFlag = false;
+		$scope.firstFun = function () {
+			$scope.isSelectFlag = !$scope.isSelectFlag
+		};
+		$scope.loadlist = function () {
+			MonitoringService.userList({team: true}).success(function (data) {
+				if (data.success) {
+					$scope.userList = data.data;
+				} else {
+
+				}
+			});
+			OScreenService.queryDict({
+				groupId: 19
+			})
+				.success(function (result) {
+					$scope.typeList = result.data;
+				}).error(function (err) {
+
+				});
+			OScreenService.queryDict({
+				groupId: 20
+			})
+				.success(function (result) {
+					$scope.connetList = result.data;
+				}).error(function (err) {
+
+				})
+		};
+		function isArray(o) {
+			return Object.prototype.toString.call(o) == '[object Array]';
+		}
+
+		$scope.isAdd = function () {
+			var parm = {
+				pageNum: 1,
+				pageSize: 1,
+			}
+			if (Object.prototype.toString.call(item.SERIAL) == '[object Array]' || Object.prototype.toString.call(item.serial) == '[object Array]') {
+				parm.serial = item.SERIAL[0] || item.serial[0]
+			} else {
+				parm.serial = item.SERIAL || item.serial;
+			}
+			MonitoringService.queryPageList(parm).success(function (data) {
+				if (data.success) {
+					if (data.data.data.length) {
+						$scope.logData = data.data.data[0];
+						$scope.isSelectFlag = true;
+						$scope.addParms.reportTime = $scope.logData.reportTime;
+						$scope.addParms.noticePerson = $scope.logData.noticePerson;
+						$scope.addParms.noticeMethod = $scope.logData.noticeMethod;
+						$scope.addParms.eventType = $scope.logData.eventType;
+
+					} else {
+						$scope.addParms.reportTime = Unit.getNowFormatDate('-', ':');
+						;
+						$scope.addParms.noticePerson = '';
+						if ($scope.connetList.length) {
+							$scope.addParms.noticeMethod = $scope.connetList[0].chineseName;
+
+						}
+						if ($scope.typeList) {
+							$scope.addParms.eventType = $scope.typeList[0].chineseName;
+
+						}
+					}
+				} else {
+					Unit.error(L.get('EMV_INTERFACE_CONNECTION_FAILED'))
+				}
+			});
+		}
+		if ($scope.isDutyFlag) {
+			$scope.loadlist();
+			$timeout(function () {
+				$scope.isAdd();
+			}, 10)
+
+		}
+		$scope.stopPropagation = function (e) {
+			var target = e.target || e.srcElement;
+			if ($(target).parents('.dropdown').length) {
+				return false
+			}
+			for (var x in $scope.obj) {
+				$scope.obj[x] = false;
+			}
+			e.stopPropagation();
+
+		};
+		$scope.stop = function (e) {
+			e.stopPropagation();
+		}
+		$scope.obj = {};
+		$scope.getListForce = function (e, status) {
+			e.stopPropagation();
+			for (var x in $scope.obj) {
+				$scope.obj[x] = false;
+			}
+			$scope.obj[status] = true;
+		}
+		$scope.deleteVal = function (e, status) {
+			e.stopPropagation();
+			$scope.addParms[status] = '';
+
+
+		}
+		$scope.selectLiVal = function (e, item, status) {
+			$scope.addParms[status] = item.chineseName || item.userName;
+			$scope.obj[status] = false;
+		}
+		$scope.onTimeSet2 = function (newDate) {
+			$scope.sendWarningObj.LastOccurrence = newDate;
+		}
+		$scope.ok = function () {
+			$scope.params = {
+				closeInfo: $scope.closeInfo,
+			};
+			if (Object.prototype.toString.call(item.SERIAL || item.serial) === '[object Array]') {
+				$scope.params.serials = item.SERIAL || item.serial;
+				$scope.addParms.eventSerial = item.SERIAL[0] || item.serial[0];
+			} else {
+				$scope.params.serials = [item.SERIAL || item.serial];
+				$scope.addParms.eventSerial = item.SERIAL || item.serial;
+			}
+
+			if ($scope.closeInfo && $scope.closeInfo.length > 200) {
+				Unit.error(L.get('EMV_DESCRIPTION_LIMIT_HINT'));
+				return;
+			}
+			$scope.addParms.closeSummary = $scope.closeInfo;
+			if ($scope.isDutyFlag && $scope.isSelectFlag) {/*写入值班日志*/
+				DefinedEventsService.addEventLog($scope.addParms).success(function (data) {
+					if (data.success) {
+						$scope.saveFn();
+					} else {
+
+					}
+				});
+			} else {
+				$scope.saveFn();
+			}
+
+		};
+		//获取开始时间字符串
+		$scope.onTimeSet1 = function (newDate) {
+			$scope.addParms.reportTime = newDate;
+			var date = new Date($scope.addParms.reportTime.substr(0, 4), parseInt($scope.addParms.reportTime.substr(5, 2)) - 1, $scope.addParms.reportTime.substr(8, 2), parseInt($scope.addParms.reportTime.substr(11, 2)), parseInt($scope.addParms.reportTime.substr(14, 2)));
+			$scope.dateStartCom = newDate.substr(0, 4).toString() + newDate.substr(5, 2).toString() + newDate.substr(8, 2).toString() + newDate.substr(11, 2).toString() + newDate.substr(14, 2).toString() + newDate.substr(17, 2).toString() + newDate.substr(20, 2).toString()
+
+			$scope.startTime = date.getTime();
+			if ($scope.dateStartCom > $scope.dateEndCom) {
+				Unit.error(L.get('EMV_START_TIME_CANNOT_BE_GREATER_THAN_END_TIME'));
+			}
+
+		}
+		$scope.saveFn = function () {
+			DefinedEventsService.closeEvent($scope.params).success(function (data) {
+				if (data.success) {
+					Unit.success(L.get('COMMON_CLOSED_SUCCESSFUL'));
+					$uibModalInstance.close();
+					fn();
+				} else {
+					Unit.error(data.message);
+				}
+			});
+		}
+
+		$scope.title = L.get('EMV_CLOSE_EVENT_TITLE');
+
+
+	};
+
+	graph.app.controller('ModalDefinedColseAlertCtrl', ['$scope', '$uibModalInstance', 'Unit', '$timeout', 'DefinedEventsService', 'MonitoringService', 'OScreenService', 'item', 'type', 'fn', controller]);
+
+
+})(nameSpace.reg('graph'));

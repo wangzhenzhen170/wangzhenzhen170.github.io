@@ -1,0 +1,1448 @@
+(function(graph, self) {
+
+    'use strict';
+
+    graph.app.controller('detailSceneCtrl', ['$scope', '$state', '$timeout', 'Unit', '$templateCache', 'emxEffects', 'emxExpandMxShape', 'ScenceService', 'MonitoringService', 'DiagramCIService', 'uControlPanel','$cookies',
+        function($scope, $state, $timeout, Unit, $templateCache, emxEffects, emxExpandMxShape, ScenceService, MonitoringService, DiagramCIService, uControlPanel, $cookies) {
+
+            $scope.isExpand = 'full screen';
+
+            //打开视图之前，清空各种效果
+            $scope.onWillOpenView = function(editor) {
+                self.clearControlPanel && self.clearControlPanel();
+                self.effect && self.effect.clear();
+                editor.state.isShowGrid = false;
+            };
+
+            //场景、故障ID
+            //视图ID
+            self.diagramId = $state.params.id;
+            // self.serialId = $state.params.serial;
+
+            //判断是单图场景还是组合视图场景
+            // if ($state.current.name == 'tarsier.scenes.diagramDetail') {
+            //     $scope.isDiagramAlarm = true;
+            // } else {
+            //     $scope.isDiagramAlarm = false;
+            // }
+
+            //预设告警颜色
+            self.color1 = '#ef463a';
+            self.color2 = '#fd855d';
+            self.color3 = '#FF7F00';
+            self.color4 = '#aaa';
+
+            //是否默认展示指标模式
+            $scope.isTableMode = false;
+
+            //默认显示告警
+            $scope.monitorSwitch = true;
+            $scope.showMonitorTab = true;
+
+            //默认是单图
+            $scope.isDiagramAlarm = true;
+
+            //视图列表、告警数量
+            $scope.diagramList = [];
+            // $scope.diagramCiInfoList = [];
+            $scope.sceneAlarmCount = 0;
+
+            //下钻视图导航
+            $scope.diagramPath = [];
+
+            //CMV跳转来的ciId
+            if ($state.params.ciid) {
+                self.cmvCiId = $state.params.ciid;
+            }
+
+            //画布配置
+            $scope.graphPanel = {
+                config: {
+                    // uEnableAnimate: true,
+                    uHideEdgeLabel: false,
+                    refreshCiName: false,
+                    tagsNumber: true
+                }
+            };
+
+            //组合视图场景
+            // if (!$scope.isDiagramAlarm) {
+            //查看历史时需额外传参
+            // var params = {
+            //     sceneId: self.diagramId,
+            //     isHistory: 0
+            // };
+
+            // if (self.serialId) {
+            //     params.incidentId = self.serialId;
+            //     params.isHistory = 1;
+            // }
+
+            // ScenceService.getSceneDiagramInfo(params).success(function(data) {
+            //     //默认展示第一张视图
+            //     var diagramInfo = data.data[0].sceneDiagramInfos;
+            //     self.xml = diagramInfo[0].vcDiagramInfo.xml;
+            //     self.monitor = diagramInfo[0].eventStatistics;
+
+            //     //是否关联告警
+            //     // self.isRelativeMonitor = parseInt(data.data[0].scene.isMonitor);
+
+            //     $scope.sceneName = data.data[0].scene.sceneName;
+            //     $scope.sceneDesc = data.data[0].scene.sceneDesc || '无';
+            //     self.sceneName = $scope.sceneName;
+            //     self.sceneDesc = $scope.sceneDesc;
+            //     $scope.diagramName = diagramInfo[0].vcDiagramInfo.diagram.name;
+            //     $scope.sceneLinks = data.data[0].sceneLinks;
+
+            //     $scope.diagramPath.push(diagramInfo[0]);
+
+            //     $scope.graphPanel.viewData = {
+            //         xml: self.xml
+            //     };
+
+            //     var ciArr = [];
+            //     var kpiData = [];
+            //     var ciData = [];
+
+            //     $.each(diagramInfo, function() {
+            //         $scope.diagramList.push(this);
+            //         $scope.diagramCiInfoList.push(this);
+
+            //         //计算场景总的告警量
+            //         if (this.eventStatistics) {
+            //             $.each(this.eventStatistics, function() {
+            //                 if (this.count > 0 && ciArr.indexOf(this.ciId) == -1) {
+            //                     $scope.sceneAlarmCount += this.count;
+            //                     ciArr.push(this.ciId);
+            //                 }
+            //                 //组装数据，传递给协作平台
+            //                 kpiData.push(this);
+            //             });
+
+            //             self.sceneAlarmCount = $scope.sceneAlarmCount;
+            //         }
+
+            //         if (this.ciInfos) {
+            //             $.each(this.ciInfos, function() {
+            //                 //组装数据，传递给协作平台
+            //                 ciData.push(this.ci);
+            //             });
+            //         }
+
+            //     });
+
+            //     $scope.$broadcast('getCiKpiData', {
+            //         ciInfo: ciData,
+            //         kpiInfo: kpiData
+            //     });
+
+            //     $scope.getFaultEventlist();
+
+            // });
+            // } else {
+            //单图场景
+
+            //视图详情
+            ScenceService.getDiagramDetail({
+                id: self.diagramId
+            }).success(function(data) {
+
+                //判断是否是组合视图
+                if (data.data.combDiagramSubInfos) {
+                    $scope.isDiagramAlarm = false;
+                    $.each(data.data.combDiagramSubInfos, function() {
+                        $scope.diagramList.push(this);
+                    });
+                } else {
+                    $scope.isDiagramAlarm = true;
+                }
+
+                var diagramInfo = data.data.diagramInfo;
+
+                self.xml = diagramInfo.xml;
+                self.monitor = data.data.eventStatistics;
+
+                $scope.combDiagramName = diagramInfo.diagram.name;
+
+                if ($scope.isDiagramAlarm) {
+                    $scope.diagram = diagramInfo.diagram;
+                    $scope.diagramName = diagramInfo.diagram.name;
+                    $scope.currentDiagramId = diagramInfo.diagram.id;
+                    $scope.diagramPath.push(data.data);
+                    //获取CI信息
+                    $scope.ciInfoList = data.data.ciInfos;
+                } else {
+                    self.xml = data.data.combDiagramSubInfos[0].diagramSubInfo.xml;
+                    $scope.diagram = data.data.combDiagramSubInfos[0].diagramSubInfo.diagram;
+                    $scope.diagramName = data.data.combDiagramSubInfos[0].diagramSubInfo.diagram.name;
+                    $scope.currentDiagramId = data.data.combDiagramSubInfos[0].diagramSubInfo.diagram.id;
+
+                    data.data.combDiagramSubInfos[0].diagramInfo = data.data.combDiagramSubInfos[0].diagramSubInfo;
+                    $scope.diagramPath.push(data.data.combDiagramSubInfos[0]);
+
+                    //获取CI信息
+                    $scope.ciInfoList = data.data.combDiagramSubInfos[0].ciInfos;
+                }
+
+                $scope.graphPanel.viewData = {
+                    xml: self.xml
+                };
+
+                // $scope.diagramCiInfoList.push(diagramInfo);
+
+                // var ciArr = [];
+
+                //计算视图中总的告警量
+                // if (self.monitor) {
+                //     $.each(self.monitor, function() {
+                //         if (this.count > 0 && ciArr.indexOf(this.ciId) == -1) {
+                //             $scope.sceneAlarmCount += this.count;
+                //             ciArr.push(this.ciId);
+                //         }
+                //     });
+                // }
+
+                //获取告警信息
+                $scope.getFaultEventlist();
+
+            });
+
+            // }
+
+            //显示隐藏切换视图窗口
+            $scope.showDiagram = function(e) {
+                $scope.isShowDiagram = true;
+                e.stopPropagation();
+            };
+
+            //点击空白关闭视图列表
+            $(document).on('click', function() {
+                $scope.isShowDiagram = false;
+                $scope.$apply();
+            });
+
+            //切换视图
+            $scope.switchDiagram = function(item, event) {
+
+                item.diagramInfo = item.diagramInfo || item.diagramSubInfo;
+
+                self.xml = item.diagramInfo.xml;
+                self.monitor = item.eventStatistics;
+
+                if (event) {
+                    var parent = $(event.target).parent();
+                    //点击导航切换视图
+                    if (parent.hasClass('path-item')) {
+                        $scope.diagramPath.splice(parent.index() + 1, $('.path-item').length);
+                        //如果是点击的第一个，则展示场景的告警
+                        // if (parent.index() == 0 && self.sceneName) {
+                        //     $scope.isDiagramAlarm = false;
+                        //     $scope.currentDiagramId = null;
+                        //     $scope.sceneName = self.sceneName;
+                        //     $scope.sceneAlarmCount = self.sceneAlarmCount;
+                        // } else {
+                        $scope.currentDiagramId = item.diagramInfo.diagram.id;
+                        $scope.diagramName = item.diagramInfo.diagram.name;
+                        $scope.ciInfoList = item.ciInfos;
+                        // var ciArr = [];
+                        // $scope.sceneAlarmCount = 0;
+                        // $scope.sceneName = item.diagram.name;
+
+                        //计算视图中总的告警量
+                        // if (self.monitor) {
+                        //     $.each(self.monitor, function() {
+                        //         if (this.count > 0 && ciArr.indexOf(this.ciId) == -1) {
+                        //             $scope.sceneAlarmCount += this.count;
+                        //             ciArr.push(this.ciId);
+                        //         }
+                        //     });
+                        // }
+                        // }
+                    }
+                    //点击视图切换
+                    else {
+                        $scope.diagramName = item.diagramInfo.diagram.name;
+                        $scope.currentDiagramId = item.diagramInfo.diagram.id;
+                        parent.addClass('active').siblings().removeClass('active');
+                        $scope.diagramPath = [];
+                        $scope.diagramPath.push(item);
+                        $scope.ciInfoList = item.ciInfos;
+                        // $scope.sceneName = self.sceneName;
+                        // $scope.sceneAlarmCount = self.sceneAlarmCount;
+                    }
+
+                    $scope.graphPanel.viewData = {
+                        xml: self.xml
+                    };
+
+                } else {
+                    //下钻视图添加动画效果
+                    $('.graph-panel-content').css({
+                        opacity: 0
+                    });
+
+                    $scope.graphPanel.viewData = {
+                        xml: self.xml
+                    };
+
+                    $('.graph-panel-content').stop().animate({
+                        opacity: 1
+                    }, 1000);
+
+                    // $scope.isDiagramAlarm = true;
+                    // $scope.diagramCiInfoList.push(item);
+                    $scope.currentDiagramId = item.diagramInfo.diagram.id;
+                    $scope.diagramName = item.diagramInfo.diagram.name;
+                    $scope.ciInfoList = item.ciInfos;
+
+                    // var ciArr = [];
+                    // $scope.sceneAlarmCount = 0;
+                    // $scope.sceneName = item.diagramInfo.diagram.name;
+
+                    //计算视图中总的告警量
+                    // if (self.monitor) {
+                    //     $.each(self.monitor, function() {
+                    //         if (this.count > 0 && ciArr.indexOf(this.ciId) == -1) {
+                    //             $scope.sceneAlarmCount += this.count;
+                    //             ciArr.push(this.ciId);
+                    //         }
+                    //     });
+                    // }
+                }
+
+                self.ciId = null;
+                $scope.ciInfo = {};
+                $scope.getFaultEventlist();
+                $scope.switchTableAndIcon(false);
+            };
+
+            //获取场景下的告警列表
+            $scope.getFaultEventlist = function(diagramId) {
+
+                // if (!$scope.isDiagramAlarm) {
+                //     var params = {
+                //         sceneId: $scope.currentDiagramId || self.diagramId
+                //     };
+
+                //     if (self.serialId) {
+                //         params.history = true;
+                //         params.sceneId = self.serialId;
+                //     }
+
+                //     MonitoringService.getFaultEventlist(params).success(function(data) {
+                //         $scope.faultEventList = data.data;
+                //     });
+                // } else {
+                var params = {
+                    ids: [$scope.currentDiagramId]
+                };
+
+                $scope.currentTime = new Date().getTime();
+
+                ScenceService.getDiagramEventlist(params).success(function(data) {
+                    $scope.faultEventList = data.data;
+                });
+                // }
+
+            };
+
+            $scope.showAlertTable = function() {
+                $scope.isShowBottom = !$scope.isShowBottom;
+            };
+
+            $scope.userIsShowRight = true;
+
+            $scope.showSceneAttr = function() {
+                $scope.isShowRight = !$scope.isShowRight;
+
+                if (!$scope.isShowRight) {
+                    $scope.userIsShowRight = false;
+                } else {
+                    $scope.userIsShowRight = true;
+                }
+            };
+
+            //点击告警数字
+            $('.diagram-detail-wrap').on('click', '.effect-script [data-cellid]', function(e) {
+                $scope.isShowBottom = true;
+
+                if ($scope.userIsShowRight) {
+                    $scope.isShowRight = true;
+                }
+
+                $scope.$apply();
+            });
+
+            //点击CI时，根据CI排序告警列表
+            $scope.onSelectCell = function() {
+                var ciId = self.graph.model.cells[arguments[0]].ciId;
+                var ciCode = self.graph.model.cells[arguments[0]].ciCode;
+                // if (ciId) {
+                self.ciId = ciId;
+
+                // if (!$scope.isDiagramAlarm) {
+                //     var params = {
+                //         sceneId: $scope.currentDiagramId || self.diagramId,
+                //         ciId: ciId
+                //     };
+
+                //     if (self.serialId) {
+                //         params.history = true;
+                //         params.sceneId = self.serialId;
+                //     }
+                //     MonitoringService.getFaultEventlist(params).success(function(data) {
+                //         $scope.faultEventList = data.data;
+                //     });
+                // } else {
+                // var params = {
+                //     ids: [$scope.currentDiagramId],
+                //     code: ciCode
+                // };
+
+                // ScenceService.getDiagramEventlist(params).success(function(data) {
+                //     $scope.faultEventList = data.data;
+                // });
+                // }
+
+                //匹配告警，高亮显示
+                if ($scope.faultEventList) {
+                    $scope.faultEventList.forEach(function(item) {
+                        if (item.ciName == ciCode) {
+                            item.isCurrent = true;
+                        } else {
+                            item.isCurrent = false;
+                        }
+                    });
+                }
+
+                //匹配CI，高亮显示
+                if ($scope.ciInfoList) {
+                    $scope.ciInfoList.forEach(function(item) {
+                        if (item.ci.ciCode == ciCode) {
+                            item.isCurrent = true;
+                        } else {
+                            item.isCurrent = false;
+                        }
+                    });
+                }
+
+                if (ciId) {
+                    $scope.isShowRight = true;
+                }
+
+                $scope.$apply();
+
+                // }
+                /*else {
+                   $scope.ciInfo = {};
+                   $scope.$apply();
+               }*/
+            };
+
+            $scope.onNoneSelect = function() {
+                $scope.ciInfo = {};
+                self.ciId = null;
+
+                if ($scope.faultEventList) {
+                    $scope.faultEventList.forEach(function(item) {
+                        item.isCurrent = false;
+                    });
+                }
+
+                if ($scope.ciInfoList) {
+                    $scope.ciInfoList.forEach(function(item) {
+                        item.isCurrent = false;
+                    });
+                }
+
+                $scope.isShowRight = false;
+                $scope.$apply();
+            };
+
+            //打开视图时
+            $scope.onOpenView = function(editor) {
+                self.editor = editor;
+                self.graph = editor.graph;
+                self.effect = editor.effects;
+
+                //标记删除CI
+                self.editor.cisel = true;
+
+                $scope.graphObj = self.graph;
+
+                //导出视图的名称
+                self.editor.state.view.name = $scope.diagramName;
+                self.editor.state.view.diagram = $scope.diagram;
+
+                /**
+                 * 在mx的beginUpdate与endUpdate中执行方法
+                 * 如果方法中需要使用this，需要用bind绑定对象
+                 * @param {function} fct    - 需要执行的方法
+                 * @param {Array}    params - 给执行方法的参数列表
+                 */
+                self.runWithinUpdate = function(fct, params) {
+                    self.editor.graph.model.beginUpdate();
+                    try {
+
+                        fct.apply(null, params);
+
+                    } finally {
+
+                        self.editor.graph.model.endUpdate();
+
+                    }
+                };
+
+                // 清空控制面板
+                self.clearControlPanel = function() {
+                    if (self.toolPanels) {
+                        $.each(self.toolPanels, function() {
+                            this.hide();
+                            $(this.el).remove();
+                        });
+                    }
+                    self.toolPanels = {}
+                };
+
+                //获取视图中的告警信息、配置信息
+                $.each(self.editor.graph.getDepCells(), function() {
+                    var cell = this;
+
+                    // CI id
+                    if ($(cell.value).attr('data-id') && $(cell.value).attr('data-id').indexOf('ci') != -1) {
+                        cell.ciId = $(cell.value).attr('data-id').replace('ci_', '');
+                    }
+                    //CI code
+                    // if (cell.utcode) {
+                    //     cell.ciCode = cell.utcode;
+                    // }
+                    // if (cell.ciId) {
+                    cell.name = typeof cell.value === 'object' ? cell.getAttribute('label') : cell.value;
+                    // }
+                    if (cell.ciId) {
+                        cell.ciCode = cell.utcode || cell.name;
+                    }
+                    // tagId
+                    if ($(cell.value).attr('data-id') && $(cell.value).attr('data-id').indexOf('tags') != -1) {
+                        cell.tagId = $(cell.value).attr('data-id').replace('tags_', '');
+                    }
+                    // 关联视图
+                    if ($(cell.value).attr('view')) {
+                        cell.relationViewId = $(cell.value).attr('view');
+                    }
+
+                    //选中跳转来的CI
+                    // if (cell.ciId == self.cmvCiId) {
+                    //     self.effect.markci.createEffect(cell);
+                    // }
+
+                    // 告警数据
+                    if (self.monitor) {
+                        $.each(self.monitor, function() {
+                            if (this.ciCode == cell.ciCode) {
+                                cell.severity = this.severity;
+
+                                var color = $scope.getLevelColor(cell);
+
+                                //KPI指标
+                                if (this.kpiList) {
+                                    cell.tableData = this.kpiList;
+                                    cell.uDataLabel = {
+                                        collapseState: 'main'
+                                    };
+                                    cell.uDataLabel.transData = cell.tableData.map(function(d) {
+                                        var val = d.performance.val;
+                                        var normal;
+                                        if (d.performance.unit == '%') {
+                                            val = parseInt(d.performance.val * 100);
+                                        }
+                                        if (d.count == 0) {
+                                            normal = true;
+                                        } else {
+                                            normal = false;
+                                        }
+                                        return {
+                                            item: d.performance.kpiName,
+                                            value: parseInt(val),
+                                            unit: d.performance.unit,
+                                            normal: normal,
+                                            kpiId: d.performance.kpiId,
+                                            ciId: d.performance.ciId,
+                                            ciName: d.performance.ciName
+                                        };
+                                    });
+                                }
+
+                                //为了初始化特效，先执行一下动画，再关闭
+                                this.count = this.count || -1;
+
+                                cell.count = this.count;
+
+                                if (this.count && this.count !== -1) {
+                                    self.effect.script.createEffect(cell, color, cell.count);
+                                    if (!$scope.monitorSwitch) {
+                                        self.effect.script.hide(cell);
+                                    }
+                                }
+
+                                $scope.addMarke(cell);
+                            }
+                        });
+                    }
+
+                    // 配置信息
+                    if (cell.ciId) {
+                        var ciInfoArr = [];
+                        $.each($scope.ciInfoList, function() {
+                            if (cell.ciId == this.ci.id) {
+                                $.each(this.attrs, function(key, val) {
+                                    ciInfoArr.push({
+                                        key: key,
+                                        value: val,
+                                        normal: true
+                                    });
+                                });
+                            }
+                            cell.ciInfo = ciInfoArr;
+                        });
+                    }
+                });
+
+                //缩略图
+                // var outline = document.getElementById('outlineContainer');
+                // $(outline).html('');
+                // var outln = new mxOutline(editor.graph, outline);
+
+                //给画布添加鼠标事件
+                self.editor.graph.addMouseListener({
+                    currentCell: null,
+                    mouseMove: function(sender, me) {
+                        if (this.currentCell && (!me.state || me.state.cell !== this.currentCell)) {
+                            if (typeof this.currentCell.mouseleave === 'function') {
+                                this.currentCell.mouseleave();
+                            }
+
+                            this.currentCell = null;
+                        }
+
+                        if (me.state && me.state.cell && me.state.cell !== this.currentCell) {
+                            this.currentCell = me.state.cell;
+                            if (typeof this.currentCell.mouseenter === 'function') {
+                                this.currentCell.mouseenter();
+                            }
+                        }
+                    },
+                    mouseUp: function(sender, me) {},
+                    mouseDown: function(sender, me) {}
+                });
+
+                $.each(self.editor.graph.getDepVertexs(), function() {
+                    var cell = this;
+
+                    cell.originSize = {
+                        x: cell.geometry.x,
+                        y: cell.geometry.y,
+                        w: cell.geometry.width,
+                        h: cell.geometry.height
+                    };
+
+                    // cell.relationViewId = viewid;
+                    cell.name = typeof cell.value === 'object' ? cell.getAttribute('label') : cell.value;
+                    cell.originStyle = cell.style;
+                    cell.originWidth = cell.geometry.width;
+                    cell.originHeight = cell.geometry.height;
+
+                    if (typeof cell.style === 'string' && cell.style.indexOf('swimlane') >= 0 && self.editor.graph.model.isCollapsed(cell)) {
+                        cell.minStyle = self.editor.graph.getCellAttr(cell, 'minstyle');
+                    }
+
+                    cell.mouseenter = function() {
+                        var _this = this;
+
+                        //既不是CI也不是tag，也没有下钻
+                        if (!cell.ciId && !cell.tagId && !cell.relationViewId) {
+                            return;
+                        }
+
+                        var ciId = Unit.getCiIdByCell(cell);
+
+                        cell.switchModeHandle = function() {
+                            if (!cell.isTableMode) {
+                                // self.editor.graph.orderCells(false, [cell]);
+                                // self.editor.graph.orderCells(false, [cell.toolCell]);
+                                $scope.switchTableMode(cell);
+                            } else {
+                                $scope.switchIconMode(cell);
+                            }
+                        };
+
+                        cell.openRelationHandle = function() {
+                            //下钻视图
+                            ScenceService.getDiagramDetail({
+                                id: cell.relationViewId
+                            }).success(function(data) {
+                                if (data.success) {
+                                    $scope.switchDiagram(data.data);
+                                    $scope.diagramPath.push(data.data);
+                                } else {
+                                    Unit.error('下钻的视图不存在');
+                                }
+                            });
+                        };
+
+                        // 控制面板
+                        if (cell.ciId) {
+                            self.toolPanels || (self.toolPanels = {});
+                            if (!self.toolPanels[cell.id]) {
+                                var actions = [];
+
+                                // if (cell.ciId) {
+                                //     actions.push({
+                                //         title: graph.translate('切换模式'),
+                                //         callBack: cell.switchModeHandle
+                                //     });
+                                // }
+
+                                if (cell.relationViewId) {
+                                    actions.push({
+                                        title: graph.translate('下钻'),
+                                        callBack: cell.openRelationHandle
+                                    });
+                                }
+
+                                if (actions.length) {
+                                    self.toolPanels[cell.id] = new uControlPanel([{
+                                        sceneId: 'test',
+                                        actions: actions
+                                    }], cell, self.editor.graph);
+
+                                    self.toolPanels[cell.id].appendTo(self.editor.graph.container);
+                                }
+                            }
+
+                            self.toolPanels[cell.id] && self.toolPanels[cell.id].show();
+                        }
+
+                        if (self.ciTimer) {
+                            $timeout.cancel(self.ciTimer);
+                        }
+
+                        if (self.tagTimer) {
+                            $timeout.cancel(self.tagTimer);
+                        }
+
+                        if (self.leaveTimer) {
+                            $timeout.cancel(self.leaveTimer);
+                        }
+
+                        //移上3秒展示CI配置
+                        // if (cell.ciId) {
+                        //     self.ciTimer = $timeout(function() {
+                        //         $scope.showCiInfo(_this);
+                        //     }, 3000);
+                        // }
+
+                        //移上0.5秒展示tag
+                        if (cell.tagId) {
+                            self.tagTimer = $timeout(function() {
+                                $scope.showTagInfo(_this);
+                            }, 500);
+                        }
+                    };
+                    cell.mouseleave = function() {
+
+                        if (self.toolPanels && self.toolPanels[cell.id]) {
+                            self.toolPanels[cell.id].hide();
+                        }
+
+                        //隐藏趋势图和CI配置
+                        $scope.showKpiChart = false;
+
+                        if (self.leaveTimer) {
+                            $timeout.cancel(self.leaveTimer);
+                        }
+
+                        self.leaveTimer = $timeout(function() {
+                            $scope.isShowCiInfo = false;
+                            $scope.isShowTagInfo = false;
+                            $timeout.cancel(self.ciTimer);
+                            $timeout.cancel(self.tagTimer);
+                            $scope.$apply();
+                        }, 300);
+                    };
+                });
+
+                // $scope.updateTheme();
+                self.editor.graph.refresh();
+
+                //KPI趋势图
+                Highcharts.setOptions({
+                    global: {
+                        useUTC: false
+                    }
+                });
+                $(document).on('mouseenter', '[data-kpiinfo]', function() {
+                    var _this = $(this);
+
+                    $scope.isShowCiInfo = false;
+
+                    if (self.ciTimer) {
+                        $timeout.cancel(self.ciTimer);
+                    }
+
+                    $scope.$apply();
+
+                    //获取kpi指数趋势图
+                    var params = {
+                        // ciId: $(this).attr('data-ciid'),
+                        ciName: $(this).attr('data-ciname'),
+                        kpiName: $(this).attr('data-kpiname')
+                    };
+
+                    MonitoringService.getKpiDiagram(params).success(function(data) {
+                        var dd = data.data;
+                        var diagramData = [];
+                        var isPercent = false;
+
+                        if (dd) {
+                            $.each(dd, function() {
+                                var item = [];
+                                item.push(this.time);
+
+                                //处理百分比
+                                if (this.unit === '%') {
+                                    item.push(parseInt(this.val * 100));
+                                    isPercent = true;
+                                } else {
+                                    item.push(parseFloat(this.val));
+                                    isPercent = false;
+                                }
+
+                                diagramData.push(item);
+                            });
+
+                            if (diagramData.length) {
+                                $scope.showKpiChart = true;
+                                $scope.kpiChAartX = parseInt(_this.attr('x')) + 30 + 'px';
+                                $scope.kpiChAartY = parseInt(_this.attr('y')) + 50 + 'px';
+                                $scope.showKpiDiagram(diagramData, isPercent, _this.attr('data-kpiname'));
+                            }
+                        }
+                    });
+
+                });
+
+                // $(document).on('mouseleave', '[data-kpiinfo]', function() {
+                //     $scope.showKpiChart = false;
+                //     $scope.$apply();
+                // });
+
+                $(document).on('mouseenter', '[ci-info-wrap]', function() {
+                    if (self.leaveTimer) {
+                        $timeout.cancel(self.leaveTimer);
+                    }
+                    $scope.isShowCiInfo = true;
+                    $scope.$apply();
+                });
+
+                $(document).on('mouseenter', '[tag-info-wrap]', function() {
+                    if (self.leaveTimer) {
+                        $timeout.cancel(self.leaveTimer);
+                    }
+                    $scope.isShowTagInfo = true;
+                    $scope.$apply();
+                });
+
+                $(document).on('mouseleave', '.ci-info-wrap', function() {
+                    $scope.isShowCiInfo = false;
+                    $scope.isShowTagInfo = false;
+                    $('.ci-info-wrap .scroll-content').scrollTop(0);
+                    $scope.$apply();
+                });
+
+                $(document).on('mouseenter', '.control-panel-wrapper', function() {
+                    $timeout.cancel(self.ciTimer);
+                    $timeout.cancel(self.tagTimer);
+                    $scope.$apply();
+                });
+            };
+
+            $scope.showKpiDiagram = function(data, isPercent, title) {
+
+                var yAxisConf = {
+                    title: null
+                };
+
+                if (isPercent) {
+                    yAxisConf.labels = {
+                        formatter: function() {
+                            return this.value + '%';
+                        }
+                    }
+                }
+
+                $('.kpi-linechart-wrap').highcharts({
+                    chart: {
+                        type: 'spline'
+                    },
+                    title: {
+                        text: title,
+                        style: {
+                            fontSize: '16px',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    subtitle: null,
+                    xAxis: {
+                        type: 'datetime',
+                        dateTimeLabelFormats: {
+                            millisecond: '%H:%M:%S.%L',
+                            second: '%H:%M:%S',
+                            minute: '%H:%M',
+                            hour: '%H:%M',
+                            day: '%m-%d',
+                            week: '%m-%d',
+                            month: '%Y-%m',
+                            year: '%Y'
+                        }
+                    },
+                    yAxis: yAxisConf,
+                    tooltip: {
+                        valueSuffix: isPercent ? '%' : ''
+                    },
+                    legend: {
+                        enabled: false
+                    },
+                    credits: {
+                        enabled: false
+                    },
+                    series: [{
+                        data: data
+                    }]
+                });
+            };
+
+            //展示CI配置
+            $scope.showCiInfo = function(oThis) {
+                $scope.ciInfoX = $scope.getCellPos(oThis).x + 18 + oThis.geometry.width - 10 + 'px';
+                $scope.ciInfoY = $scope.getCellPos(oThis).y + 50 + oThis.geometry.height / 2 + 'px';
+
+                DiagramCIService.queryById(oThis.ciId).success(function(data) {
+                    $scope.ciInfo = data.data.attrs;
+                    $scope.isShowCiInfo = true;
+                });
+            };
+
+            //展示tag信息
+            $scope.showTagInfo = function(oThis) {
+                $scope.tagPage = 1;
+                $scope.tagInfo = [];
+                self.tagId = oThis.tagId;
+                $scope.ciInfoX = $scope.getCellPos(oThis).x + 18 + oThis.geometry.width - 10 + 'px';
+                $scope.ciInfoY = $scope.getCellPos(oThis).y + 50 + oThis.geometry.height / 2 + 'px';
+
+                $scope.loadTagCi();
+            };
+
+            $scope.loadTagCi = function() {
+                var params = {
+                    ciCdt: {},
+                    tagIds: [self.tagId],
+                    pageNum: $scope.tagPage,
+                    pageSize: 50
+                };
+
+                DiagramCIService.queryPageByTags(params).success(function(data) {
+                    var dd = data.data.data;
+                    $scope.totalPages = data.data.totalPages;
+                    $scope.totalRows = data.data.totalRows;
+
+                    if ($scope.tagPage < $scope.totalPages) {
+                        $scope.isMoreCi = true;
+                    } else {
+                        $scope.isMoreCi = false;
+                    }
+
+                    $.each(dd, function() {
+                        var ciClass = $scope.getClassByClassId(this.ci.classId);
+                        this.className = ciClass.ciClass.className;
+                        $scope.tagInfo.push(this);
+                    });
+
+                    if ($scope.tagInfo.length) {
+                        $scope.isShowTagInfo = true;
+                    } else {
+                        $scope.isShowTagInfo = false;
+                    }
+                });
+            };
+
+            $scope.loadMore = function() {
+                $scope.tagPage++;
+                $scope.loadTagCi();
+            };
+
+            /**
+             * 通过分类id获取分类
+             * @param id {String|Number} 分类id
+             * @returns {Object} 分类
+             */
+            $scope.getClassByClassId = function(id) {
+                var i, len = $scope.ciClassList.length,
+                    res;
+                for (i = 0; i < len; i++) {
+                    if ($scope.ciClassList[i].ciClass.id === id) {
+                        res = $scope.ciClassList[i];
+                        break;
+                    }
+                }
+                return res;
+            };
+
+            DiagramCIService.queryPageByIndex({
+                pageNum: 1,
+                pageSize: 1,
+                cdt: {
+                    like: '',
+                    queryClass: 1
+                }
+            }).success(function(result) {
+                $scope.ciClassList = result.data.classInfos;
+
+                if (!angular.isArray($scope.ciClassList)) {
+                    $scope.ciClassList = [];
+                }
+                // $scope.loadCi(tagId, parent);
+            });
+
+            //获取画布中某个元素的绝对坐标
+            $scope.getCellPos = function(cell) {
+                var pos = self.editor.graph.localPosToWorldPos(cell, {
+                    x: 0,
+                    y: 0
+                });
+                var mxv = self.graph.view;
+                var p = new mxPoint((pos.x + mxv.translate.x) * mxv.scale, (pos.y + mxv.translate.y) * mxv.scale);
+                return p;
+            };
+
+            //切换模式
+            $scope.switchTableAndIcon = function(isTable) {
+
+                $scope.isTableMode = isTable;
+                isTable ? $scope.switchTableMode() : $scope.switchIconMode();
+
+            };
+
+            $scope.addMarke = function(cell) {
+
+                if (cell.count !== -1) {
+                    var color = $scope.getLevelColor(cell);
+                } else {
+                    var color = '#f4f4f4';
+                }
+
+                self.effect.background.clear(cell);
+                self.effect.alarm.clear(cell);
+
+                if (cell.isTableMode) {
+                    self.effect.background.createEffect(cell, color);
+                    self.effect.background.runAnimate();
+                } else {
+                    self.effect.alarm.createEffect(cell, color);
+                    self.effect.alarm.runAnimate();
+                }
+
+                if (cell.count === -1) {
+                    self.effect.background.clear(cell);
+                    self.effect.alarm.clear(cell);
+                }
+
+                if (!$scope.monitorSwitch) {
+                    self.effect.background.hide(cell);
+                    self.effect.alarm.hide(cell);
+                }
+
+                cell.needMarker = true;
+
+            };
+
+            $scope.getLevelColor = function(cell) {
+                var severity = cell.severity;
+                var color;
+                switch (severity) {
+                    case 1:
+                        color = self.color1;
+                        break;
+                    case 2:
+                        color = self.color2;
+                        break;
+                    case 3:
+                        color = self.color3;
+                        break;
+                    default:
+                        color = self.color4;
+                }
+                return color;
+            };
+
+            // 切换成配置模式
+            $scope.switchCiTableMode = function(cell) {
+
+                $scope.isCiTableMode = true;
+
+                if (cell) {
+                    cell.isCiTableMode = true;
+                } else {
+                    self.editor.graph.getCiCells().forEach(function(cell) {
+                        cell.isCiTableMode = true;
+                    });
+                }
+
+                self.runWithinUpdate(function() {
+
+                    $('.graph-panel-content').css({
+                        opacity: 0
+                    });
+
+                    self.editor.action.switchTable(cell);
+
+                    if (!cell) {
+                        self.editor.graph.zoomToCenter();
+                    }
+
+                    $('.graph-panel-content').stop().animate({
+                        opacity: 1
+                    }, 600);
+                });
+
+                $scope.refreshMarker();
+
+                if (!$scope.monitorSwitch) {
+                    self.effect.script.hide(cell);
+                    self.effect.background.hide(cell);
+                    self.effect.alarm.hide(cell);
+                }
+            };
+
+            // 切换成指标模式
+            $scope.switchTableMode = function(cell) {
+
+                $scope.isCiTableMode = false;
+
+                if (cell) {
+                    cell.isCiTableMode = false;
+                } else {
+                    self.editor.graph.getCiCells().forEach(function(cell) {
+                        cell.isCiTableMode = false;
+                    });
+                }
+
+                self.runWithinUpdate(function() {
+
+                    $('.graph-panel-content').css({
+                        opacity: 0
+                    });
+
+                    self.editor.action.switchTable(cell);
+
+                    if (!cell) {
+                        self.editor.graph.zoomToCenter();
+                    }
+
+                    $('.graph-panel-content').stop().animate({
+                        opacity: 1
+                    }, 600);
+                });
+
+                $scope.refreshMarker();
+
+                if (!$scope.monitorSwitch) {
+                    self.effect.script.hide(cell);
+                    self.effect.background.hide(cell);
+                    self.effect.alarm.hide(cell);
+                }
+            };
+
+            // 切换成图标模式
+            $scope.switchIconMode = function(cell) {
+
+                $scope.isCiTableMode = false;
+
+                if (cell) {
+                    cell.isCiTableMode = false;
+                } else {
+                    self.editor.graph.getCiCells().forEach(function(cell) {
+                        cell.isCiTableMode = false;
+                    });
+                }
+
+                self.runWithinUpdate(function() {
+
+                    $('.graph-panel-content').css({
+                        opacity: 0
+                    });
+
+                    if (cell) {
+                        self.editor.action.switchClassic(cell);
+                    } else {
+                        $scope.graphPanel.viewData = {
+                            xml: self.xml
+                        }
+                    }
+
+                    $('.graph-panel-content').stop().animate({
+                        opacity: 1
+                    }, 600);
+
+                });
+
+                $scope.refreshMarker();
+
+                if (!$scope.monitorSwitch) {
+                    self.effect.script.hide(cell);
+                    self.effect.background.hide(cell);
+                    self.effect.alarm.hide(cell);
+                }
+
+                //隐藏趋势图
+                $scope.showKpiChart = false;
+            };
+
+            $scope.refreshMarker = function(cell) {
+                var cells = cell ? [cell] : self.editor.graph.getDepCells();
+                cells.forEach(function(cell) {
+                    if (cell.needMarker) {
+                        $scope.addMarke(cell);
+                    }
+                });
+            };
+
+            //关闭所有告警
+            $scope.closeAllAlarm = function() {
+                var cells = self.editor.graph.getDepCells();
+                cells.forEach(function(cell) {
+                    self.effect.background.clear(cell);
+                    self.effect.alarm.clear(cell);
+                    self.effect.script.hide(cell);
+                });
+            };
+
+            $scope.$on('closeAlarm', function() {
+                $scope.closeAllAlarm();
+                $scope.sceneAlarmCount = 0;
+            });
+
+            $scope.panelFull = function() {
+                $('.tarsier-all-wrapper').toggleClass('full-screen');
+                $scope.isFull = !$scope.isFull;
+                $scope.viewMax = !$scope.viewMax;
+                if ($scope.viewMax) {
+                    // var docElm = document.documentElement;
+                    // if (docElm.requestFullscreen) {
+                    //     docElm.requestFullscreen();
+                    // } else if (docElm.mozRequestFullScreen) {
+                    //     docElm.mozRequestFullScreen();
+                    // } else if (docElm.webkitRequestFullScreen) {
+                    //     docElm.webkitRequestFullScreen();
+                    // } else if (docElm.msRequestFullscreen) {
+                    //     docElm.msRequestFullscreen();
+                    // }
+                    $('.tarsier-all-wrapper').addClass('full-screen');
+                } else {
+                    // if (document.exitFullscreen) {
+                    //     document.exitFullscreen();
+                    // } else if (document.mozCancelFullScreen) {
+                    //     document.mozCancelFullScreen();
+                    // } else if (document.webkitCancelFullScreen) {
+                    //     document.webkitCancelFullScreen();
+                    // } else if (document.msExitFullscreen) {
+                    //     document.msExitFullscreen();
+                    // }
+                    $('.tarsier-all-wrapper').removeClass('full-screen');
+                }
+            };
+
+            $scope.panelLarge = function() {
+                self.graph.zoomIn();
+            };
+
+            $scope.panelSmall = function() {
+                self.graph.zoomOut();
+            };
+
+            //CI朋友圈
+            $scope.showCiRelation = function(code) {
+                if (self.ciId) {
+                    var param = encodeURIComponent('ciId=' + self.ciId);
+                    var url = '/monitor-web/cmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&param=' + param;
+                    window.open(url);
+                } else {
+                    Unit.error('未选中CI');
+                }
+            };
+
+            // 工具导航
+            // $scope.gotoEdit = function() {
+            //     if ($scope.$state.params.type === 'history') {
+            //         return;
+            //     }
+            //     $state.go('canvas.edit.id', {
+            //         id: $scope.currentDiagramId
+            //     });
+            // };
+
+            $scope.openScreenMax = function() {
+                $scope.viewMax = !$scope.viewMax;
+                if ($scope.viewMax) {
+                    var docElm = document.documentElement;
+                    if (docElm.requestFullscreen) {
+                        docElm.requestFullscreen();
+                    } else if (docElm.mozRequestFullScreen) {
+                        docElm.mozRequestFullScreen();
+                    } else if (docElm.webkitRequestFullScreen) {
+                        docElm.webkitRequestFullScreen();
+                    } else if (docElm.msRequestFullscreen) {
+                        docElm.msRequestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen();
+                    } else if (document.webkitCancelFullScreen) {
+                        document.webkitCancelFullScreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                }
+
+            };
+
+            $scope.showHistory = function() {
+
+            };
+
+            $scope.exSvg = function() {
+                if (self.editor) {
+                    self.editor.action.exportSvg();
+                }
+            };
+
+            $scope.exPng = function() {
+                if (self.editor) {
+                    self.editor.action.exportPng();
+                }
+            };
+
+            $scope.exJson = function() {
+                if (self.editor) {
+                    self.editor.action.exportJson();
+                }
+            };
+
+            $scope.exXml = function() {
+                if (self.editor) {
+                    self.editor.action.exportXml();
+                }
+            };
+
+            //搜索CI
+            $scope.searchCi = function() {
+                var ciName = $scope.searchCiData;
+                self.effect.markci.clear();
+
+                $.each(self.editor.graph.getDepVertexs(), function() {
+                    var cell = this;
+                    if (cell.name && ciName && cell.name.indexOf(ciName) != -1) {
+                        self.effect.markci.createEffect(cell);
+                    }
+                });
+            };
+
+            //告警开关
+            $scope.switchMonitor = function() {
+
+                var cells = self.editor.graph.getDepCells();
+                if ($scope.monitorSwitch) {
+                    cells.forEach(function(cell) {
+                        self.effect.background.hide(cell);
+                        self.effect.alarm.hide(cell);
+                        self.effect.script.hide(cell);
+                    });
+                } else {
+                    cells.forEach(function(cell) {
+                        self.effect.background.show(cell);
+                        self.effect.alarm.show(cell);
+                        self.effect.script.show(cell);
+                    });
+                }
+
+                $scope.monitorSwitch = !$scope.monitorSwitch;
+            };
+
+            //右侧面板切换tab
+            $scope.switchMonitorTab = function(isMonitor) {
+                $scope.showMonitorTab = isMonitor;
+            };
+
+            //展示更多信息
+            $scope.showMore = function(item) {
+                if (item.isShowMore) {
+                    item.isShowMore = false;
+                } else {
+                    if ($scope.ciInfoList) {
+                        $scope.ciInfoList.forEach(function(item) {
+                            item.isShowMore = false;
+                        });
+                    }
+                    if ($scope.faultEventList) {
+                        $scope.faultEventList.forEach(function(item) {
+                            item.isShowMore = false;
+                        });
+                    }
+                    item.isShowMore = true;
+                }
+            };
+
+            // 批量挂CI
+            $scope.setCi = function() {
+
+                var words = [];
+
+                $.each(self.editor.graph.getDepVertexs(), function() {
+                    var cell = this;
+                    if (!cell.ciId && !cell.ciCode) {
+                        cell.name && words.push(cell.name);
+                    }
+                });
+
+                ScenceService.queryCiByLabels({
+                    pageNum: 1,
+                    pageSize: 20,
+                    cdt: {
+                        words: words,
+                        isMore: 0
+                    }
+                }).success(function(data) {
+                    // console.log(data);
+                });
+            };
+
+        }
+    ]);
+
+    //时间差计算
+  /*  graph.app.filter('getTimeLong', function() {
+        return function(time, current) {
+            var time1 = new Date(current).getTime() - new Date(time).getTime();
+            var hours = Math.floor(time1 / 1000 / 60 / 60);
+            var leave = time1 % (1000 * 60 * 60);
+            var minutes = Math.floor(leave / 1000 / 60);
+            if (hours < 0) hours = 0;
+            if (minutes < 0) minutes = 0;
+            return (hours + 'h' + minutes + 'm');
+        }
+    });*/
+
+})(nameSpace.reg('graph'), nameSpace.reg('scenes.detail'));

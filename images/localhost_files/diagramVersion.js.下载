@@ -1,0 +1,23 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('DiagramDiagramVersionService', ['$http', 'Unit', function($http, Unit){
+        var o = {};
+
+        o.saveDiagramVersion = function(params) {
+            return $http.post(Unit.diagramApi('/diagramVersion/saveDiagramVersion'), params);
+        };
+
+        o.queryDiagramVersionById = function(params){
+            return $http.post(Unit.diagramApi('/diagramVersion/queryDiagramVersionById'), params);
+        };
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

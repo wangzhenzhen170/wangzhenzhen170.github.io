@@ -1,0 +1,741 @@
+(function (graph, self) {
+
+    'use strict';
+
+    graph.app.controller('effectAnalysisCtrl', ['$scope', '$cookies', '$state', 'OScreenService', 'uDialog', 'Unit', '$timeout', '$uibModal', '$stateParams', function ($scope, $cookies, $state, OScreenService, uDialog, Unit, $timeout, $uibModal, $stateParams) {
+        $scope.showCiDetailFlag = false;
+        $scope.showCiDetailCode = null;
+        $scope.haveEventFlag = true;
+        $scope.lineColor = '#CCCCCC';
+        $scope.startCiCode = '578c928ae4b098d9958c7d18';
+        $scope.warnEventList = [
+            {
+                ciCode: 'c2',
+                color: 'red',
+                count: 2,
+                severity: 1
+            },
+            {
+                ciCode: 'a1',
+                color: 'red',
+                count: 1,
+                severity: 1
+            },
+        ]
+        console.log($state.params);
+        console.log($stateParams)
+        $scope.modalType = {
+            relation: true,
+            graph: false,
+            ciDetai: true
+        };
+        $scope.changeFn = function (type) {
+            $scope.modalType[type] = !$scope.modalType[type];
+            if (type === 'relation') {
+                $scope.isShowRelation();
+            }
+        };
+        //获取节点数据
+        $scope.getNodesData = function () {
+            OScreenService.getImpactAnalysis({
+                ciId: $state.params.ciCodes,
+                depth:2
+            }).success(function (res) {
+                $scope.resultData=res.data;
+                $scope.dataHanding();
+                console.log($scope.resultData)
+                $scope.creatEffectChart();
+
+                }).error(function (err) {
+                    console.log(err);
+                });
+        }
+        $scope.getNodesData();
+        //几个分类中有ci数据
+        $scope.allLevelData = [];
+        $scope.ciLength = [];
+
+        //数据整理
+        $scope.dataHanding = function () {
+            //几个分类
+            $scope.levelCodeObj = {}
+            $scope.ciLength = [];
+            $scope.allLevelData = [];
+            $scope.copyAllLevelData = [];
+            $scope.lineNamekeyval = {}
+            $scope.resultData.ciClassInfos.forEach(function (item, index) {
+                item.ciLists = [];
+                $scope.levelCodeObj[index] = [];
+                $scope.lineNamekeyval[item.ciClass.id] = item.ciClass;
+                //将每个node作为起始点，找到这个node的所有的target
+                $scope.resultData.ciNodes.forEach(function (value, i) {
+                    if (value.ciClass.classCode === item.ciClass.classCode) {
+                        value.targetAry = [];
+                        $scope.resultData.ciRltLines.forEach(function (val, t) {
+                            if (value.ciCode === val.sourceCiCode) {
+                                value.targetAry.push(val.targetCiCode);
+                            }
+
+                        });
+                        item.ciLists.push(value);
+                    }
+                });
+                if (item.ciLists.length) {
+                    $scope.copyAllLevelData.push(item);
+                    $scope.allLevelData.push({
+                        attrDefs: item.attrDefs,
+                        ciClass: item.ciClass,
+                        fixMapping: item.fixMapping,
+                        ciLists: []
+                    });
+                    $scope.ciLength.push(item.ciLists.length);
+                }
+
+            });
+            if ($scope.copyAllLevelData.length) {
+                $scope.sortNodeCode(0);
+            }
+        }
+        //避免连线特别混乱，将节点进行排序
+        $scope.sortNodeCode = function (i) {
+            //i 代表第几层
+            if (i === 0) {
+                //循环第一层
+                $scope.copyAllLevelData[i].ciLists.forEach(function (item) {
+                    if ($scope.levelCodeObj[i].indexOf(item.ciCode) === -1) {
+                        $scope.levelCodeObj[i].push(item.ciCode);
+                        $scope.allLevelData[i].ciLists.push(item);
+                    }
+                    $scope.copyAllLevelData.forEach(function (val, x) {
+                        val.ciLists.forEach(function (v, t) {
+                            if ($scope.levelCodeObj[x].indexOf(v.ciCode) === -1 && item.targetAry.indexOf(v.ciCode) > -1) {
+                                $scope.levelCodeObj[x].push(v.ciCode);
+                                $scope.allLevelData[x].ciLists.push(v)
+                            }
+                        })
+
+
+
+                    })
+
+                });
+
+            } else {
+
+                $scope.allLevelData[i].ciLists.forEach(function (item) {
+                    $scope.copyAllLevelData.forEach(function (it, k) {
+                        it.ciLists.forEach(function (mo, p) {
+                            if ($scope.levelCodeObj[k].indexOf(mo.ciCode) === -1 && item.targetAry.indexOf(mo.ciCode) > -1) {
+                                $scope.levelCodeObj[k].push(mo.ciCode);
+                                $scope.allLevelData[k].ciLists.push(mo);
+                            }
+
+                        })
+
+
+                    })
+
+                });
+
+            }
+            if ($scope.copyAllLevelData.length > i + 1) {
+                var num = Number(i + 1);
+                $scope.sortNodeCode(num);
+            }
+        }
+        //单个节点的定宽/定高
+        $scope.oneCiWidth = 100;
+        $scope.oneCiHeight = 150;
+        //确定每个ci的位置及线
+        $scope.setCiPosition = function () {
+            var codePositionX = {};
+            var codePositionY = {};
+            $scope.svgLevel = $scope.allLevelData.length;
+            var top = ($scope.svgHeight - $scope.oneCiHeight * $scope.svgLevel) / 2
+            var maxNum = Math.max.apply(Math, $scope.ciLength);
+            var maxWidth = $scope.oneCiWidth * maxNum;
+            var left = ($scope.svgWidth - maxWidth) / 2;
+            $scope.allLevelData.forEach(function (item, index) {
+                item.y = top + $scope.oneCiHeight * index;
+                item.ciLists.forEach(function (v, i) {
+                    //ci的y值与层的y值一样，（容器总高-层数*每层高度($scope.oneCiHeight)） 的一半 加上第几层*层高
+                    v.isStartCi = $scope.startCiCode === v.ciCode;
+                    v.y = item.y;
+                    if (item.ciLists.length === maxNum) {
+                        //ci数量最多的一层时 ci的x值是（容器总宽度-单个ci宽度(110)*层中ci的最大数量） 的一半 加上所在层中的index*100
+                        v.x = left + $scope.oneCiWidth * i;
+                    } else {
+                        //ci数量不是最多的一层时 ci的x值是（容器总宽度-单个ci宽度(100)*层中ci的最大数量） 的一半 加上所在层中的index*(ci数量最多的层的宽度/所在层级的ci数)
+                        v.x = left + (maxWidth / (item.ciLists.length + 1)) * (i + 1);
+
+                    }
+                    codePositionX[v.ciCode] = v.x;
+                    codePositionY[v.ciCode] = v.y;
+                });
+                $scope.drawOneLevelCi(item.ciLists);
+            })
+            //线
+            $scope.relationObj = {};
+            var str = '';
+            var str1 = '';
+            $scope.resultData.ciRltLines.forEach(function (item, index) {
+                str = item.sourceCiCode + '&' + item.targetCiCode;
+                str1 = item.targetCiCode + '&' + item.sourceCiCode;
+                if ($scope.relationObj[str]) {
+                    $scope.relationObj[str].num += 1;
+                    //有多条相同的联系(source到target都相同，或者source到target和target到source相同，num_links是第几根相同的)
+                    item.num_links = $scope.relationObj[str].num;
+
+                } else if ($scope.relationObj[str1]) {
+                    $scope.relationObj[str1].num += 1;
+                    item.num_links = $scope.relationObj[str1].num;
+                } else {
+                    $scope.relationObj[str] = {
+                        num: 1
+                    };
+                    item.num_links = 1;
+
+                }
+                item.x = codePositionX[item.targetCiCode];
+                item.y = codePositionY[item.targetCiCode];
+
+                item.target_x = codePositionX[item.targetCiCode];
+                item.target_y = codePositionY[item.targetCiCode];
+                item.source_x = codePositionX[item.sourceCiCode];
+                item.source_y = codePositionY[item.sourceCiCode]
+            });
+            //console.log($scope.relationObj);
+            //console.log($scope.resultData.ciRltLines);
+        }
+        //绘制一层ci
+        $scope.drawOneLevelCi = function (data) {
+            var ciBox = $scope.svgMiddle.append('g').attr('class', 'ciBox');
+
+            var oneCi = ciBox.selectAll('g.cirContenter')
+                .data(data)
+                .enter()
+                .append('g')
+                .classed('cirContenter', true)
+                .attr('transform', function (d) {
+                    return "translate(" + d.x + "," + d.y + ")"
+                })
+                .on('mouseenter', function (d) {
+                    $scope.ciMouseenter(d.ciCode)
+                })
+                .on('mouseleave', function (d) {
+                    $scope.ciMouseleave()
+                })
+            var dragEvent = $scope.dragNodeEvent();
+            oneCi.call(dragEvent);
+            $scope.addNodes(oneCi);
+            $scope.svg.call(d3.zoom()
+                .on('zoom', function () {
+                    $scope.svgMiddle.attr('transform', d3.event.transform)
+                }))
+        }
+        $scope.circleR = 30
+        //绘制单个ci节点
+        $scope.addNodes = function (oneCi) {
+            // oneCi.append('circle')
+            // .attr('r',5)
+            // .style('fill','red')
+            // .attr('stroke','black')
+            // .attr('cx',-30)
+            // .attr('cy',-30)
+            oneCi.append('rect')
+                .attr('class', 'force_circle')
+                .attr('x', function (d) {
+                    d.r = $scope.circleR
+                    d.w = -d.r * Math.sqrt(0.5)
+                    return d.w - 4
+                })
+            oneCi.append('rect')
+                .attr('class', 'force_circle')
+                .attr('x', function (d) {
+                    d.r = $scope.circleR
+                    d.w = -d.r * Math.sqrt(0.5)
+                    return d.w - 4
+                })
+                .attr('y', function (d) {
+                    return d.w - 4
+                })
+                .attr('height', function (d) {
+                    return -2 * d.w + 8
+                })
+                .attr('width', function (d) {
+                    return -2 * d.w + 8
+                })
+                .attr('fill', '#e3f2ff')
+                .attr('fill', '#e3f2ff')
+                .attr('opacity', 0)
+                .attr('stroke', 'rgb(51, 161, 255)')
+                .attr('stroke-dasharray', '4, 3.7')
+            oneCi.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('alignment-baseline', 'middle')
+                .attr('font-size', 12)
+                .attr('fill', '#000')
+                .text((d) => {
+                    let text = d.ciCode
+                    if (d.ciCode === null || d.ciCode === undefined || d.ciCode === ' ') {
+                        text = d.ciLable
+                    }
+                    return text
+                })
+                .attr('y', function (d) {
+                    return -2 * d.w
+                })
+            oneCi.append('image')
+                .attr('width', function (d) {
+                    return -2 * d.w
+                })
+                .attr('height', function (d) {
+                    return -2 * d.w
+                })
+                .attr('xlink:href', d => d.ciClass.icon)
+                .attr('x', -20)
+                .attr('y', -20)
+                .style('cursor', 'pointer')
+            oneCi.append('image')
+                .style('display', function (d) {
+                    return d.isStartCi ? 'block' : 'none'
+                })
+                .attr('width', 30)
+                .attr('height', 30)
+                .attr('xlink:href', '../assets/images/tarsier/startFlag.png')
+                .attr('x', -15)
+                .attr('y', -50)
+
+
+
+        }
+        //鼠标经过ci
+        $scope.ciMouseenter = function (code) {
+            var relation = [code];
+            $scope.resultData.ciRltLines.forEach(function (item, i) {
+                if (item.targetCiCode === code) {
+                    relation.push(item.sourceCiCode);
+                } else if (item.sourceCiCode === code) {
+                    relation.push(item.targetCiCode);
+                }
+            })
+
+            $scope.Height(relation);
+        }
+        //鼠标离开ci
+        $scope.ciMouseleave = function () {
+            d3.selectAll('g.cirContenter').style('opacity', 1)
+            d3.selectAll('g.linkContenter').style('opacity', 1);
+            d3.selectAll('path.edge').attr('stroke-width', 2).classed('displayLine', false)
+        }
+        //高亮 节点悬浮效果
+        $scope.Height = function (ary) {
+            d3.selectAll('g.cirContenter').each(function (value) {
+                if (ary.indexOf(value.ciCode) > -1) {
+                    d3.select(this).style('opacity', 1)
+                } else {
+                    d3.select(this).style('opacity', 0.2)
+                }
+            })
+            d3.selectAll('g.linkContenter').each(function (value) {
+                if (ary.indexOf(value.sourceCiCode) > -1 && ary.indexOf(value.targetCiCode) > -1) {
+                    d3.select(this).selectAll('path.edge').attr('stroke-width', 4).classed('displayLine', true);
+                    d3.select(this).style('opacity', 1)
+                } else {
+                    d3.select(this).attr('stroke-width', 2).classed('displayLine', false).style('opacity', 0.2)
+                }
+
+            })
+
+        }
+        //绘制箭头
+        $scope.appendArrow = function (svg, c) {
+            var arrow = svg.select('.middle')
+                .append('marker')
+                .attr('id', 'arrow')
+                .attr('markerUnits', 'strokeWidth')
+                .attr('markerWidth', 12)
+                .attr('markerHeight', 12)
+                .attr('viewBox', '0 0 12 12')
+                .attr('refX', 3)
+                .attr('refY', 3)
+                .attr('orient', 'auto')
+
+            var path = 'M0,0 L3,3 L0,6 Z'
+            arrow
+                .append('path')
+                .attr('d', path)
+                .attr('fill', c)
+
+            return 'arrow'
+        }
+        //添加连线
+        $scope.addLine = function () {
+            var link = $scope.svgMiddle
+                .append('g')
+                .attr('class', 'linkNBox');
+            var linkG = link.selectAll('g')
+                .data($scope.resultData.ciRltLines)
+                .enter()
+                .append('g')
+                .attr('class', 'linkContenter');
+            linkG.append('path')
+                .attr('class', 'edge')
+                .attr('marker-end', 'url(#arrow)')
+                .style('stroke', '#ccc')
+                .style('stroke-width', 3)
+            linkG.append('text')
+                .attr('class', 'linkText')
+                .attr('opacity', $scope.modalType.relation ? 1 : 0)
+                .attr('font-size', 12)
+                .attr('fill', '#000')
+                .attr('text-anchor', 'middle')
+                .attr('alignment-baseline', 'middle')
+                .text(function (d) {
+                    return $scope.lineNamekeyval[d.ciRlt.classId].classCode
+                })
+
+        }
+        //添加计算点的位置关系
+        $scope.addLineLink = function () {
+            $scope.svgMiddle.selectAll('.edge')
+                .style('fill', 'none')
+                .attr('d', function (d) {
+                    var pathData;
+                    if (d.sourceCiCode === d.targetCiCode) {
+                        //console.log(d)
+                        //自关联
+                        var r = 25;
+                        var deltaR = 40;
+                        var startX = d.x - r;
+                        var startY = d.y + 7;
+                        var endX = d.x + r;
+                        var endY = d.y + 7;
+                        var ctrl1X = startX - (d.num_links - 1) * deltaR;
+                        var ctrl1Y = d.y - r - (d.num_links - 1) * deltaR;
+                        var ctrl2X = endX + (d.num_links - 1) * deltaR;
+                        var ctrl2Y = d.y - r - (d.num_links - 1) * deltaR;
+                        d.controll_x = ctrl1X + r;
+                        d.controll_y = ctrl1Y;
+                        pathData = 'M' + startX + ' ' + startY + ' ' + 'C' + ' ' + ctrl1X + ' ' + ctrl1Y + ' ' + ctrl2X + ' ' + ctrl2Y + ' ' + endX + ' ' + endY;
+                    } else {
+                        //目标点x,y
+                        //console.log(d);
+                        var w_x, w_y;
+                        var dx = d.target_x - d.source_x;
+                        var dy = d.target_y - d.source_y;
+                        var dr = Math.sqrt(dx * dx + dy * dy);
+                        w_x = (dx * $scope.circleR) / dr
+                        w_y = Math.sqrt($scope.circleR * $scope.circleR - w_x * w_x);
+                        var targetX = d.target_x - w_x;
+                        var targetY;
+                        if (dy > 0) {
+                            targetY = d.target_y - w_y;
+                        } else {
+                            targetY = d.target_y + w_y;
+                        }
+                        d.targetX = targetX;
+                        d.targetY = targetY;
+                        //起始点x,y
+                        //dy/dr=s_y/$scope.circleR
+                        var s_y = (dy * $scope.circleR) / dr;
+                        var s_x = Math.sqrt($scope.circleR * $scope.circleR - s_y * s_y);
+                        var sourceX;
+                        if (dx > 0) {
+                            sourceX = d.source_x + s_x
+                        } else {
+                            sourceX = d.source_x - s_x
+                        }
+
+                        var sourceY = d.source_y + s_y;
+                        d.sourceX = sourceX;
+                        d.sourceY = sourceY;
+                        //贝塞尔曲线的控制点
+                        var L_num;
+                        var radia;
+                        var totalNumObj = $scope.relationObj[d.sourceCiCode + '&' + d.targetCiCode] || $scope.relationObj[d.targetCiCode + '&' + d.sourceCiCode];
+                        var totalNum = totalNumObj.num;
+                        if ((d.num_links - 1) % 2 === 0) {
+                            //当前条数偶数
+                            if (totalNum % 2 == 0) {
+                                //总数是偶数
+                                L_num = (d.num_links - 1) / 2 + 1;
+                            } else {
+                                //总数是奇数
+                                L_num = (d.num_links - 1) / 2;
+                            }
+                            radia = Math.PI * 0.5;
+                        } else {
+                            //当前条数奇数
+                            L_num = Math.ceil((d.num_links - 1) / 2);
+                            radia = Math.PI * 1.5;
+                        }
+                        var dista_b = Math.sqrt((sourceX - targetX) * (sourceX - targetX) + (sourceY - targetY) * (sourceY - targetY))
+                        var distants = L_num * 0.2 * dista_b;
+                        var cos_data = Math.atan2(targetY - sourceY, targetX - sourceX);
+                        var middle_x = (sourceX + targetX) * 0.5;
+                        var minddle_y = (sourceY + targetY) * 0.5;
+                        var bsrX = distants * Math.cos(cos_data + radia) + middle_x;
+                        var bsrY = distants * Math.sin(cos_data + radia) + minddle_y;
+                        d.controll_x = bsrX;
+                        d.controll_y = bsrY;
+                        var pathData = 'M' + sourceX + ' ' + sourceY + ' ' + 'Q' + ' ' + bsrX + ' ' + bsrY + ' ' + targetX + ' ' + targetY;
+                    }
+                    return pathData;
+                });
+            $scope.svgMiddle.selectAll('.linkText')
+                .attr('transform', function (d) {
+                    //将文字放在贝塞尔曲线的控制点上
+                    return "translate(" + d.controll_x + ',' + d.controll_y + ')'
+                })
+        }
+        //用于展示多条线的数据处理
+        $scope.linksCountFn = function () {
+
+        }
+        //拖拽ci节点
+        $scope.dragNodeEvent = function () {
+            var startTime = 0;
+            var dragEvent = d3.drag()
+                .on('start', function (d) {
+                    d3.select(this);
+                    startTime = new Date().getTime();
+                    d.x = d3.event.x;
+                    d.y = d3.event.y;
+
+                })
+                .on('drag', function (d) {
+                    d.x = d3.event.x;
+                    d.y = d3.event.y;
+
+                    d3.select(this).attr('transform', function () {
+                        return "translate(" + d.x + "," + d.y + ")";
+                    });
+                    //重新计算相关关系线的开始坐标和结束坐标
+                    $scope.resultData.ciRltLines.forEach(function (item, index) {
+                        if (item.targetCiCode === item.sourceCiCode && item.targetCiCode === d.ciCode) {
+                            item.x = d3.event.x;
+                            item.y = d3.event.y
+                        } else {
+                            if (item.targetCiCode === d.ciCode) {
+                                item.target_x = d3.event.x;
+                                item.target_y = d3.event.y;
+
+                            } else if (item.sourceCiCode === d.ciCode || item.targetCiCode === item.sourceCiCode) {
+                                item.source_x = d3.event.x;
+                                item.source_y = d3.event.y
+                            }
+                        }
+                    })
+                    $scope.addLineLink();
+
+                })
+                .on('end', function (d) {
+                    startTime = new Date().getTime() - startTime;
+                    //小于300毫秒便是点击事件
+                    if (startTime < 300) {
+                        //点击的ci已经显示着详情
+                        if (d.ciCode === $scope.showCiDetailCode && $scope.showCiDetailFlag) {
+                            $scope.showCiDetailCode = null;
+                            $scope.showCiDetailFlag = false;
+                            $scope.cancelSelectH();
+                            console.log($scope.showCiDetailFlag);
+                        } else {
+                            $scope.showCiDetailCode = d.ciCode;
+                            $scope.getCiDetail(d);
+                            $scope.selectCiHight(d3.select(this));
+                            console.log($scope.showCiDetailFlag);
+                        }
+
+
+                    }
+                })
+            return dragEvent
+        }
+        //点击ci显示ci详情
+        $scope.getCiDetail = function (ci) {
+            //console.log(ci);
+            //TODO 详情接口数据
+            $scope.showCiDetailFlag = true;
+        }
+        //ci选中效果
+        $scope.selectCiHight = function (ci) {
+            d3.selectAll('.force_circle')
+                .attr('fill', '#fff')
+                .attr('opacity', 0)
+                .attr('stroke', '#fff')
+                .attr('stroke-dasharray', '4, 3.7');
+            ci.select('.force_circle')
+                .attr('fill', '#e3f2ff')
+                .attr('opacity', 1)
+                .attr('stroke', 'rgb(51, 161, 255)')
+                .attr('stroke-dasharray', '4, 3.7')
+        }
+        //取消选中效果
+        $scope.cancelSelectH = function () {
+            d3.selectAll('.force_circle')
+                .attr('fill', '#fff')
+                .attr('opacity', 0)
+                .attr('stroke', '#fff')
+                .attr('stroke-dasharray', '4, 3.7')
+        }
+        //关系是否展示
+        $scope.isShowRelation = function () {
+            if ($scope.modalType.relation) {
+                d3.selectAll('.linkText').attr('opacity', 1)
+            } else {
+                d3.selectAll('.linkText').attr('opacity', 0)
+            }
+
+        }
+        //ci有告警时显示告警数量并背景高亮显示
+        $scope.toAddWarn = function (ci, warnObj) {
+            var cr = String(warnObj.count).length + 10;
+            var g = d3.select(ci).insert('g', 'rect').classed('alert-bg', true);
+            g.append('circle')
+                .attr('cx', function (d) {
+                    return -2 * d.w
+                })
+                .attr('cy', function (d) {
+                    return d.w
+                })
+                .attr('r', cr)
+                .attr('fill', function () {
+                    return warnObj.color || 'red'
+                })
+            g.append('text')
+                .text(warnObj.count)
+                .style('text-anchor', 'middle')
+                .attr('strokeWidth', 14)
+                .attr('fill', 'white')
+                .attr('x', function (d) {
+                    return -2 * d.w
+                })
+                .attr('y', function (d) {
+                    return d.w + 4
+                })
+            g.append('circle')
+                .classed('alert-color-bg', true)
+                .attr('r', function (d) {
+                    d.bdR = Math.abs(d.w);
+                    d.isAdd = true
+                    return d.bdR;
+                })
+                .attr('fill', warnObj.color || 'red')
+                //使背景圆模糊的滤镜 filterBd
+                .attr('filter', "url('#filterBd')")
+            $scope.upDateAlertBg();
+
+
+        }
+
+        //有告警时闪烁效果
+        $scope.upDateAlertBg = function () {
+            var num = d3.selectAll('.alert-bg').size();
+
+            if ($scope.eventId && num === 0) {
+                cancelAnimationFrame($scope.eventId)
+                $scope.eventId = null
+            } else {
+                cancelAnimationFrame($scope.eventId);
+                $scope.eventId = requestAnimationFrame(function () {
+                    //console.log(d3.selectAll('.alert-color-bd').size())
+                    d3.selectAll('.alert-color-bg')
+                        .attr('r', function (d) {
+                            if (d.isAdd) {
+                                d.bdR += 0.5
+                            } else {
+                                d.bdR -= 0.5
+                            }
+                            if (d.bdR < Math.abs(d.w) / 2) {
+                                d.isAdd = true
+                            } else if (d.bdR > Math.abs(d.w) + 5) {
+                                d.isAdd = false
+                            }
+                            return d.bdR
+                        })
+                    $scope.upDateAlertBg();
+                })
+
+            }
+        }
+
+        //根据告警的数组加入告警
+        $scope.changeAlertBd = function () {
+            //TODO 先清除以前滤镜
+            $scope.svg.selectAll('defs').remove();
+            //闪烁时模糊效果滤镜
+            $scope.svg.append('defs')
+                .append('filter')
+                .attr('filterUnits', 'userSpaceOnUse').attr('id', 'filterBd')
+                .append('feGaussianBlur')
+                .attr('stdDeviation', 10)
+            if (Array.isArray($scope.warnEventList) && $scope.warnEventList.length) {
+                var listObj = {};
+                $scope.warnEventList.forEach(function (item) {
+                    listObj[item.ciCode] = item;
+                });
+                d3.selectAll('.ciBox').selectAll('.cirContenter').each(function (d) {
+                    if (listObj[d.ciCode]) {
+                        $scope.toAddWarn(this, listObj[d.ciCode]);
+                    }
+                })
+            }
+        }
+        //影响分析入口
+        $scope.creatEffectChart = function () {
+            $("#effectChart").empty();
+            if (Array.isArray($scope.resultData.ciClassInfos) && $scope.resultData.ciClassInfos.length) {
+                $scope.svg = d3.select("#effectChart");
+                $scope.svgWidth = $('#effectChart').width();
+                $scope.svgHeight = $('#effectChart').height();
+                $scope.svgMiddle = $scope.svg.append('g').attr('class', 'middle').attr('transform', 'translate(0,0)');
+                $scope.appendArrow($scope.svg, $scope.lineColor);
+                $scope.setCiPosition();
+                $scope.addLine();
+                $scope.addLineLink()
+                $scope.changeAlertBd();
+
+            }
+        }
+
+
+
+
+
+        //分层排序
+        $scope.sortCiClass = function () {
+            if ($scope.allLevelData.length) {
+                $uibModal.open({
+                    size: 'sortClassWrap',
+                    animation: true,
+                    backdrop: 'static',
+                    templateUrl: 'app/modal/manageAlert/sortCiClassLayer.html',
+                    controller: 'sortCiClassLayerCtrl',
+                    resolve: {
+                        classAryList: function () {
+                            return $scope.allLevelData;
+                        },
+                        fn: function () {
+                            return function (list) {
+                                $scope.allLevelData = list;
+                                $scope.creatEffectChart();
+                            };
+                        }
+                    }
+                });
+            }
+
+
+        }
+        $(document).on('click', function (e) {
+            if (e.target.nodeName === 'svg') {
+                $scope.showCiDetailFlag = false;
+                console.log($scope.showCiDetailFlag);
+                $scope.cancelSelectH();
+            }
+        })
+
+    }]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('monitor.current'));

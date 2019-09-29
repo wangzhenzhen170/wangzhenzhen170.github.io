@@ -1,0 +1,76 @@
+(function(graph){
+
+	'use strict';
+	graph.app.controller('topChooseCtrl', ['$uibModal','$scope','fn','$uibModalInstance','$timeout', 'DefinedEventsService','item',function($uibModal,$scope,fn,$uibModalInstance,$timeout,DefinedEventsService,item) {
+           //console.log(item);
+		$scope.type=item.type;/*1 第一个top 2第二个top*/
+		$scope.showContent=item.showContent;
+		$scope.showKey=item.showContent;
+		//数据加载
+		$scope.dataLoad = function(){
+			DefinedEventsService.getTongJiEventModel({})
+				.success(function(result){
+					//console.log(result)
+					$scope.items = result.data;
+					//console.log($scope.items);
+					$.each($scope.items,function(){
+						if(this.en==$scope.showKey){
+							$scope.showKeyName=this.chn;
+						}
+					})
+				})
+				.error(function(err){console.error(err)})
+		}
+		$scope.dataLoad();
+		$scope.showSortDetail=false;
+
+		$scope.getEventModel=function(e){
+			e.stopPropagation();
+			$scope.showSortDetail=true;
+			$scope.searchTitle='';
+		}
+		$scope.fnGetValue=function(item,e){
+			e.stopPropagation();
+			$scope.showSortDetail=false;
+			$scope.showKeyName=item.chn;
+			$scope.showKey=item.en;
+
+		}
+       $scope.ok=function(){
+		   var parm={};
+		   parm.showKey=$scope.showKey;
+		   parm.showKeyName=$scope.showKeyName
+		   fn(parm);
+		   $uibModalInstance.close({ok: false});
+	   }
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+		$scope.bodyEvent=function(e){
+			if(!$(e.target).parents('.ne-drop-down').length){
+				$scope.showSortDetail=false;
+				$scope.searchTitle='';
+			}
+		}
+	}])
+	//自定义过滤
+	graph.app.filter('topSearch', function() {
+		return function(item, sourceIdVal) {
+			//console.log(item);
+			//console.log(sourceIdVal)
+			if (!sourceIdVal) {
+				return item;
+			}
+			var result = [];
+			$.each(item, function() {
+				if (this.chn && this.chn.toUpperCase().indexOf(sourceIdVal) != -1) {
+					result.push(this);
+				}
+				if (this.en && this.en.toUpperCase().indexOf(sourceIdVal) != -1) {
+					result.push(this);
+				}
+			});
+			return result;
+		}
+	});
+})(nameSpace.reg('graph'));

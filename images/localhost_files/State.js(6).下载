@@ -1,0 +1,508 @@
+(function (graph) {
+
+    'use strict';
+
+    var url = graph.stateUrl;
+
+    graph.app.config(function ($stateProvider) {
+        $stateProvider
+            .state('tarsier', {
+                url: '/tarsier?:code',
+                templateUrl: url('/tarsier/tarsier.html'),
+                controller: 'tarsierCtrl'
+            })
+            .state('tarsier.monitoring', {
+                url: '/monitoring',
+                templateUrl: url('/tarsier/monitoring/monitoring.html'),
+                controller: 'monitoringCtrl'
+            })
+            .state('tarsier.monitoring.events', {
+                url: '/events?viewId',
+                data: {
+                    title: L.get('EMV_ALL_FAILURES') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                    type: 0
+                },
+                views: {
+                    '': {
+                        templateUrl: url('/tarsier/monitoring/events/currentEvents.html'),
+                        controller: 'currentEventsCtrl',
+                    },
+                    'testview@tarsier.monitoring.events': {
+                        templateUrl: url('/tarsier/scenes/sceneManage/fastStructure.html'),
+                        controller: 'fastStructureCtrl',
+                    }
+                },
+                code: '0601'
+            })
+            .state('tarsier.monitoring.confirmedEvents', {
+                url: '/confirmedEvents',
+                data: {
+                    title: L.get('EMV_CONFIRMED_EVENT') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                    type: 1
+                },
+                views: {
+                    '': {
+                        templateUrl: url('/tarsier/monitoring/events/currentEvents.html'),
+                        controller: 'currentEventsCtrl',
+                    },
+                    'testview@tarsier.monitoring.confirmedEvents': {
+                        templateUrl: url('/tarsier/scenes/sceneManage/fastStructure.html'),
+                        controller: 'fastStructureCtrl',
+                    }
+                },
+                code: '0601'
+            })
+            .state('tarsier.monitoring.historicalEvents', {
+                url: '/historicalEvents',
+                templateUrl: url('/tarsier/monitoring/events/currentEvents.html'),
+                controller: 'currentEventsCtrl',
+                data: {
+                    title: L.get('EMV_CLOSED_EVENT') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                    type: 2
+                },
+                code: '0601'
+            })
+            .state('tarsier.monitoring.discardEvents', {
+                url: '/discardEvents/:id',
+                templateUrl: url('/tarsier/monitoring/events/currentEvents.html'),
+                controller: 'currentEventsCtrl',
+                data: {
+                    title: L.get('EMV_MAINTENANCE_PERIOD_EVENT') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                    type: 3
+                },
+                code: '060411'
+            })
+            .state('tarsier.monitoring.compressionRule', {
+                url: '/compressionRule/:id?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/nonGraphicalScenes.html'),
+                controller: 'nonGraphicalScenesCtrl',
+                params: { 'name': L.get('EMV_COMPRESSION_RULE_SETTINGS'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_COMPRESSION_RULE') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+
+                },
+                code: '060716'
+            })
+            .state('tarsier.monitoring.filter', {
+                url: '/filter/:id?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/filter.html'),
+                controller: 'filterCtrl',
+                params: { 'name': L.get('EMV_FILTER_RULE_SETTINGS'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_FILTERING_RULES') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060715'
+            })
+            .state('tarsier.monitoring.Maintenance', {
+                url: '/Maintenance?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/Maintenance.html'),
+                controller: 'MaintenanceCtrl',
+                params: { 'name': L.get('EMV_MAINTENANCE_PERIOD_RULE_SETTING'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_MAINTENANCE_PERIOD_RULE_SETTING') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060412'
+            })
+            .state('tarsier.monitoring.queryEvent', {
+                url: '/queryEvent',
+                templateUrl: url('/tarsier/monitoring/events/queryEvent.html'),
+                controller: 'queryEventCtrl',
+                params: { 'name': L.get('EMV_EVENT_QUERY') },
+                data: {
+                    title: L.get('EMV_EVENT_QUERY') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060611'
+            })
+            .state('tarsier.monitoring.eventStatistics', {
+                url: '/eventStatistics',
+                templateUrl: url('/tarsier/monitoring/events/eventStatistics.html'),
+                controller: 'eventStatisticsCtrl',
+                params: { 'name': L.get('EMV_EVENT_STATISTICS') },
+                data: {
+                    title: L.get('EMV_EVENT_STATISTICS') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060612'
+            })
+            .state('tarsier.monitoring.notice', {
+                url: '/notice/:id?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/notice.html'),
+                controller: 'noticeCtrl',
+                params: { 'name': L.get('EMV_NOTIFICATION_RULE_SETTINGS'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_NOTIFICATION_RULE') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060717'
+            })
+            .state('tarsier.monitoring.derive', {
+                url: '/derive/:id?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/derive.html'),
+                controller: 'deriveCtrl',
+                params: { 'name': L.get('EMV_DERIVED_RULE_SETTING'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_DERIVATION_RULE') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060721'
+            })
+            .state('tarsier.monitoring.associatStatistics', {
+                url: '/associatStatistics/:id',
+                templateUrl: url('/tarsier/monitoring/personalization/associatStatistics.html'),
+                controller: 'associatStatisticsCtrl',
+                params: { 'name': L.get('EMV_UNENRICHED_ALARM_STATISTICS') },
+                data: {
+                    title: L.get('EMV_UNENRICHED_ALARM_STATISTICS') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060614'
+            })
+            .state('tarsier.monitoring.sourceStatistics', {
+                url: '/sourceStatistics/:id',
+                templateUrl: url('/tarsier/monitoring/events/sourceStatistics.html'),
+                controller: 'sourceStatisticsCtrl',
+                params: { 'name': L.get('EMV_UNENRICHED_ALARM_STATISTICS') },
+                data: {
+                    title: L.get('EMV_MONITOR_SOURCE_STATUS') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+
+                },
+                code: '060613'
+            })
+            .state('tarsier.monitoring.timedCleanup', {
+                url: '/timedCleanup?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/timedCleanup.html'),
+                controller: 'timedCleanupCtrl',
+                params: { 'name': L.get('EMV_TIMING_CLEANUP_RULE_SETTINGS'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_TIMING_CLEANUP_RULES') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060719'
+            })
+            .state('tarsier.monitoring.enrich', {
+                url: '/enrich?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/enrich.html'),
+                controller: 'enrichCtrl',
+                params: { 'name': L.get('EMV_RICH_RULE_SETTINGS'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_RICH_RULES') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060712'
+            })
+            .state('tarsier.monitoring.automaticDispatch', {
+                url: '/automaticDispatch?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/automaticDispatch.html'),
+                controller: 'automaticDispatchCtrl',
+                params: { 'name': L.get('EMV_WORK_ORDER_RULE_SETTING'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_WORK_ORDER_RULE') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060720'
+            })
+
+            .state('tarsier.monitoring.teamList', {
+                url: '/teamList',
+                templateUrl: url('/tarsier/monitoring/events/teamList.html'),
+                controller: 'teamListCtrl',
+                params: { 'name': L.get('EMV_TEAM_MANAGEMENT') },
+                data: {
+                    title: L.get('EMV_TEAM_MANAGEMENT') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060815'
+            })
+            .state('tarsier.monitoring.teamCreate', {
+                url: '/teamList/:title/:id',
+                templateUrl: url('/tarsier/monitoring/events/teamCreate.html'),
+                controller: 'teamCreatCtrl',
+                //params:{'name':'新建团队'},
+                data: {
+                    title: L.get('EMV_NEW_TEAM') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '06051'
+            })
+            .state('tarsier.monitoring.timeOut', {
+                url: '/timeOut?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/timeOut.html'),
+                controller: 'timeOutCtrl',
+                params: { 'name': L.get('EMV_TIMEOUT_ESCALATION_RULE_SETTINGS'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_TIMEOUT_ESCALATION_RULE') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060718'
+            })
+            .state('tarsier.monitoring.monitorDuty', {
+                url: '/monitorDuty/:viewId/:acknowLedged/:isWeihuPeriod',
+                templateUrl: url('/tarsier/monitoring/oScreen/monitorDuty.html'),
+                controller: 'monitorDutyCtrl',
+                data: {
+                    title: L.get('EMV_DUTY_LOG') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '4'
+            })
+            .state('tarsier.monitoring.oScreen', {
+                url: '/oScreen/:viewId/:acknowLedged/:isWeihuPeriod',
+                templateUrl: url('/tarsier/monitoring/oScreen/oScreenList.html'),
+                controller: 'oScreenListCtrl',
+                data: {
+                    title: L.get('EMV_LARGE_SCREEN_DATA') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '2'
+            })
+            .state('tarsier.monitoring.effectAnalysis', {
+                url: '/effectAnalysis/:type?ciCodes',
+                params: { type: '', ciCodes: '' },
+                templateUrl: url('/tarsier/monitoring/oScreen/effectAnalysis.html'),
+                controller: 'effectAnalysisCtrl',
+                data: {
+                    title: L.get('COMMON_IMPACT_ANALYSIS') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '2'
+            })
+            /*历史大屏*//*isHisOrW 1历史 2维护期*/
+            .state('tarsier.monitoring.historyOscreen', {
+                url: '/historyOscreen/:isHisOrW/:viewId',
+                templateUrl: url('/tarsier/monitoring/oScreen/historyOscreen.html'),
+                controller: 'historyOscreenListCtrl',
+                data: {
+                    title: L.get('EMV_BIG_SCREEN_HISTORICAL_DATA') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '3'
+            })
+            /*noChangePage 1新建 2复制 3 编辑*/
+            .state('tarsier.monitoring.newEvents', {
+                url: '/newEvents/:viewId/:viewName/:isCopy/:status/:noChangePage',
+                templateUrl: url('/tarsier/monitoring/definedEvents/newEvents.html'),
+                controller: 'newEventsCtrl',
+                data: {
+                    title: L.get('EMV_LAST_MONITOR_MENU_ADD_EVENT_VIEW') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '0602'
+            })
+            .state('tarsier.monitoring.ruleVisualizationsettings', {
+                url: '/ruleVisualizationsettings',
+                templateUrl: url('/tarsier/monitoring/events/ruleVisualizationsettings.html'),
+                controller: 'ruleVisualizationsettingsCtrl',
+                data: {
+                    title: L.get('EMV_RULE_VISUALIZATION_SETTINGS') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '06042'
+            })
+            // .state('tarsier.monitoring.newEvents', {
+            // 	url: '/editEvents/:viewId/:viewName',
+            // 	templateUrl: url('/tarsier/monitoring/definedEvents/newEvents.html'),
+            // 	controller: 'newEventsCtrl',
+            // 	data: {
+            // 		title: '监控-新建事件'
+            // 	}
+            // })
+            .state('tarsier.monitoring.standardization', {
+                url: '/standardization/:id?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/standardization.html'),
+                controller: 'standardizationCtrl',
+                params: { 'name': L.get('EMV_STANDARDIZED_RULE_SETTINGS'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_STANDARDIZATION_RULES') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060713'
+            })
+            .state('tarsier.monitoring.weightGrading', {
+                url: '/weightGrading/:id?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/weightGrading.html'),
+                controller: 'weightGradingCtrl',
+                params: { 'name': L.get('EMV_REGRADING_RULE_SETTINGS'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_RECLASSIFICATION_RULE') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060714'
+            })
+            .state('tarsier.monitoring.dictionary', {
+                url: '/dictionary',
+                templateUrl: url('/tarsier/monitoring/events/dictionary.html'),
+                controller: 'dictionaryCtrl',
+                data: {
+                    title: L.get('EMV_CONFIGURATION_DICTIONARY') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060813'
+            })
+            .state('tarsier.monitoring.definedEvents', {
+                /*type:1（未确认）、2（已确认）、3（历史、已关闭）、4（维护期）*/
+                // url: '/definedEvents/:viewName/:viewId/:status/:type/:count/:isCopy/:noChangePage',
+                url: '/definedEvents/:viewName?viewId&status&type&count&isCopy&noChangePage',
+                data: {
+                    title: L.get('EMV_CUSTOM_EVENT_TABLE') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                views: {
+                    '': {
+                        templateUrl: url('/tarsier/monitoring/definedEvents/definedEvents.html'),
+                        controller: 'definedEventsCtrl',
+                    },
+                    'testview@tarsier.monitoring.definedEvents': {
+                        templateUrl: url('/tarsier/scenes/sceneManage/fastStructure.html'),
+                        controller: 'fastStructureCtrl',
+                    }
+                },
+                code: '0602'
+            })
+			/*.state('tarsier.monitoring.visual', {
+			 url: '/visual',
+			 templateUrl: url('/tarsier/monitoring/visual/visual.html'),
+			 controller: 'visualCtrl',
+			 data: {
+			 title: '可视化流程-事件智能管理'
+			 },
+			 code:'06041'
+			 })*/
+            .state('tarsier.monitoring.visual', {
+                url: '/visual',
+                templateUrl: url('/tarsier/monitoring/visual/visualBoard.html'),
+                controller: 'visualBoardCtrl',
+                data: {
+                    title: L.get('EMV_REGULAR_KABAN') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT'),
+                },
+                code: '060711'
+            })
+
+            .state('tarsier.monitoring.analogAlarm', {
+                url: '/analogAlarm',
+                templateUrl: url('/tarsier/monitoring/personalization/analogAlarm.html'),
+                controller: 'analogAlarmCtrl',
+                data: {
+                    title: L.get('COMMON_ANALOG_ALARM') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060811'
+            })
+            .state('tarsier.monitoring.configManage', {
+                url: '/configManage',
+                templateUrl: url('/tarsier/monitoring/personalization/configManage.html'),
+                controller: 'configManageCtrl',
+                data: {
+                    title: L.get('EMV_CONFIGURATION_MANAGEMENT') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060812'
+            })
+            .state('tarsier.monitoring.sharePage', {
+                url: '/sharePage',
+                templateUrl: url('/tarsier/monitoring/events/sharePage.html'),
+                controller: 'sharePageCtrl',
+                data: {
+                    title: L.get('EMV_ALARM_STATISTICS_REPORT') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                //code:'06082'
+            })
+
+            .state('tarsier.monitoring.experienceBase', {
+                url: '/experienceBase',
+                templateUrl: url('/tarsier/monitoring/events/experienceBase.html'),
+                controller: 'experienceBaseCtrl',
+                params: { 'name': L.get('EMV_EXPERIENCE_MANAGEMENT') },
+                data: {
+                    title: L.get('EMV_EXPERIENCE_MANAGEMENT') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060816'
+            })
+            .state('tarsier.monitoring.appliedData', {
+                url: '/appliedData',
+                templateUrl: url('/tarsier/monitoring/events/appliedData.html'),
+                controller: 'appliedDataCtrl',
+                params: { 'item': {} },
+                data: {
+                    title: L.get('EMV_APPLICATION_OVERVIEW_DETAILS') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: ''
+            })
+            .state('tarsier.monitoring.eventSurveyNew', {
+                url: '/eventSurveyNew',
+                templateUrl: url('/tarsier/monitoring/events/eventSurveyNew.html'),
+                controller: 'eventSurveyNewCtrl',
+                data: {
+                    title: L.get('EMV_EVENT_OVERVIEW') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '06032'
+            })
+            .state('tarsier.monitoring.eventSurvey', {
+                url: '/eventSurvey',
+                templateUrl: url('/tarsier/monitoring/events/eventSurvey.html'),
+                controller: 'eventSurveyCtrl',
+                data: {
+                    title: L.get('EMV_APPLICATION_OVERVIEW') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060311'
+            })
+            .state('tarsier.monitoring.eventAnalysis', {
+                url: '/eventAnalysis',
+                templateUrl: url('/tarsier/monitoring/events/eventAnalysis.html'),
+                controller: 'eventAnalysisCtrl',
+                data: {
+                    title: L.get('EMV_HOMOLOGY_ANALYSIS') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060313'
+            })
+            .state('tarsier.monitoring.alarmWall', {
+                url: '/alarmWall',
+                templateUrl: url('/tarsier/monitoring/events/alarmWall.html'),
+                controller: 'alarmWallCtrl',
+                data: {
+                    title: L.get('EMV_APPLICATION_ALARM_WALL') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060312'
+            })
+
+            .state('tarsier.monitoring.displayInformationSettings', {
+                url: '/displayInformationSettings',
+                templateUrl: url('/tarsier/monitoring/personalization/displayInformationSettings.html'),
+                controller: 'displayInformationSettingsCtrl',
+                data: {
+                    title: L.get('EMV_DISPLAY_INFORMATION_SETTINGS') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060814'
+            })
+
+            .state('tarsier.monitoring.notionalPooling', {
+                url: '/notionalPooling/:id?name&ruleType&ruleName&ruleID',
+                templateUrl: url('/tarsier/monitoring/events/notionalPooling.html'),
+                controller: 'notionalPoolingCtrl',
+                params: { 'name': L.get('EMV_COLLECTION_RULE_SETTING'), 'ruleType': '', 'ruleName': '', 'ruleID': '' },
+                data: {
+                    title: L.get('EMV_COLLECTION_RULE') + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060722'
+            })
+
+            .state('tarsier.monitoring.inspectionManagement', {
+                url: '/inspectionManagement',
+                templateUrl: url('/tarsier/monitoring/personalization/inspectionManagement.html'),
+                controller: 'inspectionManagementCtrl',
+                data: {
+                    title: '巡检管理' + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060817'
+            })
+            .state('tarsier.monitoring.printReport', {
+                url: '/printReport/:reportId/:onDutyDuration',
+                templateUrl: url('/tarsier/monitoring/personalization/printReport.html'),
+                controller: 'printReportCtrl',
+                data: {
+                    title: '打印预览' + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                // params: {
+                //     reportId:'',
+                //     onDutyDuration: ''
+                // }
+            })
+            .state('tarsier.monitoring.onDutyInspection', {
+                url: '/onDutyInspection',
+                templateUrl: url('/tarsier/monitoring/personalization/onDutyInspection.html'),
+                controller: 'onDutyInspectionCtrl',
+                data: {
+                    title: '交接班管理' + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                },
+                code: '060818'
+            })
+            .state('tarsier.monitoring.printOnDutyReport', {
+                url: '/printOnDutyReport/:reportId',
+                templateUrl: url('/tarsier/monitoring/personalization/printOnDutyReport.html'),
+                controller: 'printOnDutyReportCtrl',
+                data: {
+                    title: '打印预览' + '-' + L.get('EMV_EVENT_INTELLIGENT_MANAGEMENT')
+                }
+            });
+
+    });
+
+
+})(nameSpace.reg('graph'));

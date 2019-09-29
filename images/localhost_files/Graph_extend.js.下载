@@ -1,0 +1,814 @@
+(function(Graph) {
+
+
+	"use strict";
+
+
+	/**
+	 * 居中
+	 * @param {Object} margin
+	 */
+	//Graph.prototype.zoomToCentre = function(margin){
+	//	var bounds = null;
+	//	var count = 0;
+	//
+	//	if(this.getChildCells().length >= 1){
+	//		this.refresh();
+	//		this.zoomActual();
+	//
+	//		bounds = this.getGraphBounds();
+	//		margin = margin || 0;
+	//
+	//		this.view.setTranslate(
+	//				-bounds.x -(bounds.width - this.container.clientWidth)/ 2,
+	//				-bounds.y - (bounds.height - this.container.clientHeight) / 2
+	//		);
+	//
+	//		while( ((bounds.width + margin * 2) > this.container.clientWidth
+	//			|| (bounds.height + margin * 2) > this.container.clientHeight )
+	//			&& ++count < 50){
+	//			this.zoomOut();
+	//			bounds = this.getGraphBounds();
+	//		}
+	//	}
+	//};
+
+	/**
+	 * 缩放至居中位置
+	 *
+	 * @param {int} margin - 边距
+	 * @param {int} max - 被放大的最大倍数
+	 *     如果图中元素较少，被放大太多后会比较难看，
+	 *     所以可以通过指定max的值限制放大的最大倍数，
+	 *     默认值为1，为0时表示不限制
+	 * @param {int} [clientWidth] - 指定容器宽度
+	 * @param {int} [clientHeight] - 指定容器高度
+	 */
+	Graph.prototype.zoomToCenter = function(margin, max, clientWidth, clientHeight) {
+		var g = this,
+			bound,
+			zoomTo;
+		margin = margin == null ? 30 : margin;
+		max = typeof max == 'number' && max >= 0 ? max : 1;
+
+		clientWidth = +clientWidth || g.container.clientWidth;
+		clientHeight = +clientHeight || g.container.clientHeight;
+
+		g.zoomActual();
+		bound = g.getGraphBounds();
+		// 居中
+		g.view.setTranslate((clientWidth - bound.width) / 2 - bound.x, (clientHeight - bound.height) / 2 - bound.y);
+
+		zoomTo = Math.min((clientWidth - margin) / bound.width, (clientHeight - margin) / bound.height);
+		// 限制放大的倍数
+		zoomTo = max && zoomTo > max ? max : zoomTo;
+		g.zoom(zoomTo);
+	};
+
+	/**
+	 * Sets the link for the given cell.
+	 */
+	Graph.prototype.setViewForCell = function(cell, view) {
+		var value = null;
+
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			value = cell.value.cloneNode(true);
+		} else
+
+		{
+			var doc = mxUtils.createXmlDocument();
+
+			value = doc.createElement('UserObject');
+			value.setAttribute('label', cell.value);
+		}
+
+		if (view != null && view.length > 0) {
+			value.setAttribute('view', view);
+		} else {
+			value.removeAttribute('view');
+		}
+
+		this.model.setValue(cell, value);
+	};
+
+	/**
+	 * Returns the link for the given cell.
+	 */
+	Graph.prototype.getViewForCell = function(cell) {
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			return cell.value.getAttribute('view');
+		}
+
+		return null;
+	};
+
+
+
+	/**
+	 * Sets the queryid for the given cell.
+	 */
+	Graph.prototype.setQueryIdForCell = function(cell, queryid) {
+		var value = null;
+
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			value = cell.value.cloneNode(true);
+		} else {
+			var doc = mxUtils.createXmlDocument();
+
+			value = doc.createElement('UserObject');
+			value.setAttribute('label', cell.value);
+		}
+
+		if (queryid != null && queryid.length > 0) {
+			value.setAttribute('queryid', queryid);
+		} else {
+			value.removeAttribute('queryid');
+		}
+
+		this.model.setValue(cell, value);
+	};
+
+	/**
+	 * Returns the queryid for the given cell.
+	 */
+	Graph.prototype.getQueryIdForCell = function(cell) {
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			return cell.value.getAttribute('queryid');
+		}
+
+		return null;
+	};
+
+	Graph.prototype.getCellById = function(id) {
+		var cells, i, ret = null;
+
+		cells = this.getDepCells();
+
+		for (i = 0; i < cells.length; i++) {
+			if (cells[i].id === id) {
+				ret = cells[i];
+				break;
+			}
+		}
+
+		return ret;
+	};
+
+	Graph.prototype.getCellByDataId = function(id) {
+		var cells, i, ret = null;
+
+		cells = this.getDepCells();
+		for (i = 0; i < cells.length; i++) {
+			if (this.getCellAttr(cells[i], 'data-id') === id) {
+				ret = cells[i];
+				break;
+			}
+		}
+
+		return ret;
+	};
+
+	Graph.prototype.getCiCells = function() {
+		var list = [];
+		var cells = this.getDepVertexs();
+		$.each(cells, function() {
+			var cell = this;
+			// if (typeof cell === 'object' && typeof cell.id === 'string' && cell.id.indexOf('ci_') === 0) {
+			// 	list.push(cell);
+			// }
+			if (typeof cell === 'object' && cell.ciId) {
+				list.push(cell);
+			}
+		});
+
+		return list;
+	};
+
+
+	/**
+	 * Sets the link for the given cell.
+	 */
+	Graph.prototype.setOriStyle = function(cell, style) {
+		var value = null;
+
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			value = cell.value.cloneNode(true);
+		} else {
+			var doc = mxUtils.createXmlDocument();
+
+			value = doc.createElement('UserObject');
+			value.setAttribute('label', cell.value);
+		}
+
+		if (style != null && style.length > 0) {
+			value.setAttribute('oristyle', style);
+		} else {
+			value.removeAttribute('oristyle');
+		}
+
+		this.model.setValue(cell, value);
+	};
+
+	/**
+	 * Returns the link for the given cell.
+	 */
+	Graph.prototype.getOriStyle = function(cell) {
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			return cell.value.getAttribute('oristyle');
+		}
+
+		return null;
+	};
+
+
+
+	Graph.prototype.setCellAttr = function(cell, key, val) {
+		var value = null;
+
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			value = cell.value.cloneNode(true);
+		} else {
+			var doc = mxUtils.createXmlDocument();
+
+			value = doc.createElement('UserObject');
+			value.setAttribute('label', cell.value);
+		}
+
+		if (val != null && val.length > 0) {
+			value.setAttribute(key, val);
+		} else {
+			value.removeAttribute(key);
+		}
+
+		this.model.setValue(cell, value);
+	};
+
+
+	Graph.prototype.getCellAttr = function(cell, key) {
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			return cell.value.getAttribute(key);
+		}
+
+		return null;
+	};
+
+	/**
+	 * Sets the link for the given cell.
+	 */
+	Graph.prototype.setLightEdge = function(cell, v) {
+		var value = null;
+
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			value = cell.value.cloneNode(true);
+		} else {
+			var doc = mxUtils.createXmlDocument();
+
+			value = doc.createElement('UserObject');
+			value.setAttribute('label', cell.value);
+		}
+
+		if (v != null && v.length > 0) {
+			value.setAttribute('light', v);
+		} else {
+			value.removeAttribute('light');
+		}
+
+		this.model.setValue(cell, value);
+	};
+
+	/**
+	 * Returns the link for the given cell.
+	 */
+	Graph.prototype.getLightEdge = function(cell) {
+		if (cell.value != null && typeof(cell.value) == 'object') {
+			return cell.value.getAttribute('light');
+		}
+
+		return null;
+	};
+
+	Graph.prototype.getDepVertexs = function(parent) {
+		var cells, loop, _this = this,
+			ret = [];
+
+		cells = _this.getChildVertices(parent);
+
+		loop = function(list) {
+			var i, child = null;
+			for (i = 0; i < list.length; i++) {
+				ret.push(list[i]);
+				child = _this.getChildVertices(list[i]);
+				if (child && child.length >= 1) {
+					loop(child);
+				}
+			}
+		};
+
+		loop(cells);
+
+		return ret;
+	};
+
+
+	Graph.prototype.getDepEdges = function(parent) {
+		var cells, loop, _this = this,
+			ret = [];
+
+		cells = _this.getDepVertexs(parent);
+		cells.push(parent ? parent: _this.getDefaultParent());
+
+		loop = function(list) {
+			var i,
+				ii = 0,
+				child = null;
+			for (i = 0; i < list.length; i++) {
+				child = _this.getChildEdges(list[i]);
+				for (ii = 0; ii < child.length; ii++) {
+					ret.push(child[ii]);
+				}
+			}
+		};
+
+		loop(cells);
+
+		return ret;
+	};
+
+	Graph.prototype.getDepCells = function(parent) {
+		var vertexs, edges, _this = this,
+			i, ret = [];
+
+		vertexs = _this.getDepVertexs(parent);
+		for (i = 0; i < vertexs.length; i++) {
+			ret.push(vertexs[i]);
+		}
+
+		edges = _this.getDepEdges(parent);
+		for (i = 0; i < edges.length; i++) {
+			ret.push(edges[i]);
+		}
+
+		return ret;
+	};
+
+	Graph.prototype.addLight = function(cell, color, width) {
+		color = color ? color : '#FFD700';
+		width = width ? width : 2;
+		var highlight = new mxCellHighlight(this, color, width);
+		highlight.highlight(this.view.getState(cell));
+
+		this.lights.push(highlight);
+
+		return highlight;
+	};
+
+	Graph.prototype.removeLight = function(cells) {
+		var _this = this;
+
+		var hide = function(cell) {
+			var i;
+
+			for (i = 0; i < _this.lights.length; i++) {
+				if (_this.lights[i].state.cell.id === cell.id) {
+					_this.lights[i].destroy();
+					_this.lights.splice(i, 1);
+					break;
+				}
+			}
+		};
+
+		if (cells) {
+			if (Array.isArray(cells)) {
+				$.each(cells, function() {
+					hide(this);
+				});
+			} else if (typeof cells === 'object') {
+				hide(cells);
+			}
+		} else {
+			$.each(_this.lights, function() {
+				this.destroy();
+			});
+
+			_this.lights = [];
+		}
+	};
+
+
+	Graph.prototype.getCellAt = function(x, y, parent, vertices, edges) {
+		vertices = (vertices != null) ? vertices : true;
+		edges = (edges != null) ? edges : true;
+		parent = (parent != null) ? parent : this.getDefaultParent();
+
+		if (parent != null) {
+			var childCount = this.model.getChildCount(parent);
+
+			for (var i = childCount - 1; i >= 0; i--) {
+				var cell = this.model.getChildAt(parent, i);
+				if (cell.id.indexOf("light_") >= 0 || cell.id.indexOf("in_") >= 0) {
+					continue;
+				}
+
+				var result = this.getCellAt(x, y, cell, vertices, edges);
+
+				if (result != null) {
+					return result;
+				} else if (this.isCellVisible(cell) && (edges && this.model.isEdge(cell) ||
+						vertices && this.model.isVertex(cell))) {
+					var state = this.view.getState(cell);
+
+					if (this.intersects(state, x, y)) {
+						return cell;
+					}
+				}
+			}
+		}
+
+		return null;
+	};
+
+	Graph.prototype.getSelectionEdges = function() {
+		var arr,
+			cells = [];
+
+		arr = this.getSelectionCells();
+		$.each(arr, function() {
+			if (this.edge) {
+				cells.push(this);
+			}
+		});
+
+		return cells;
+	};
+
+
+	Graph.prototype.getJson = function() {
+		var _this = this,
+			cells, map, getItem, o, getImage, pre, getLevel, svg = [],
+			svgMap = {};
+
+
+		var getCellValue = function(cell) {
+			if (cell) {
+				return typeof cell.value === 'object' ? _this.getCellAttr(cell, 'label') : cell.value;
+			} else {
+				return '';
+			}
+		};
+
+		pre = function(name) {
+			return name;
+		};
+
+		getImage = function(cell) {
+			var o = _this.getCellStyle(cell);
+			if (o.image) {
+				return o.image;
+			} else {
+
+				if (o.shape === 'label') {
+					if (o.rounded) {
+						return pre('rounded');
+					} else {
+						return pre(o.shape);
+					}
+				} else if (o.shape === 'ellipse') {
+					return pre(o.shape);
+				} else if (o.shape === 'doubleEllipse') {
+					return pre(o.shape);
+				} else if (o.shape === 'triangle') {
+					return pre(o.shape);
+				} else if (o.shape === 'rhombus') {
+					return pre(o.shape);
+				} else if (o.shape === 'hexagon') {
+					return pre(o.shape);
+				} else if (o.shape === 'actor') {
+					return pre(o.shape);
+				} else if (o.shape === 'cloud') {
+					return pre(o.shape);
+				} else if (o.shape === 'cylinder') {
+					return pre(o.shape);
+				} else if (o.shape === 'xor') {
+					return pre(o.shape);
+				} else if (o.shape === 'or') {
+					return pre(o.shape);
+				} else if (o.shape === 'step') {
+					return pre(o.shape);
+				} else if (o.shape === 'tape') {
+					return pre(o.shape);
+				} else if (o.shape === 'cube') {
+					return pre(o.shape);
+				} else if (o.shape === 'note') {
+					return pre(o.shape);
+				} else if (o.shape === 'folder') {
+					return pre(o.shape);
+				} else if (o.shape === 'card') {
+					return pre(o.shape);
+				} else if (o.shape === 'plus') {
+					return pre(o.shape);
+				} else if (o.shape === 'arrow') {
+					return pre(o.shape);
+				}
+			}
+
+		};
+
+		o = {
+			graphWidth: $(_this.container).width(),
+			graphHeight: $(_this.container).height(),
+			nodes: [],
+			containers: [],
+			edges: []
+		};
+
+		// 根据设置的画板设置宽度
+		var paintPanel = this.uSetting && this.uSetting.paintPanel;
+		if (paintPanel && paintPanel.enabled) {
+			o.graphWidth = paintPanel.width;
+			o.graphHeight = paintPanel.height;
+		}
+
+		getLevel = function(cell) {
+			var level = 0;
+
+			while (cell.getParent().id !== "1") {
+				cell = cell.getParent();
+				level++;
+			}
+
+			return level;
+		};
+
+		getItem = function(id) {
+			var obj, i;
+
+			for (i in map) {
+				if (map[i].cell.id === id) {
+					obj = map[i];
+					break;
+				}
+			}
+
+			return obj;
+		};
+
+		var mView = _this.getView();
+		map = _this.getView().getStates().map;
+		cells = _this.getDepCells();
+		var scale = _this.getView().getScale();
+		var translate = _this.getView().getTranslate();
+
+		$.each(cells, function() {
+			var item = getItem(this.id),
+				level,
+				view,
+				node,
+				tmp = {};
+
+			var state = mView.getState(this);
+
+			if (item) {
+				if ((this.vertex && !_this.isContainer(this) && _this.getCellStyle(this).shape !== 'line') || _this.getCellStyle(this).shape === 'arrow') {
+					var img = getImage(this);
+					node = {
+						img: img,
+						name: getCellValue(this),
+						id: this.id,
+						width: this.geometry.width,
+						height: this.geometry.height,
+						x: state.origin.x,
+						y: state.origin.y
+					};
+
+					view = _this.getCellAttr(this, 'view');
+
+					if (view) {
+						node.relation = {
+							viewId: view,
+							direction: _this.getCellAttr(this, 'direction')
+						}
+					}
+
+					o.nodes.push(node);
+
+					if (!svgMap[img]) {
+						svgMap[img] = true;
+						svg.push(img);
+					}
+				}
+
+				if (_this.isContainer(this)) {
+					level = getLevel(this);
+
+					view = _this.getCellAttr(this, 'view');
+
+					node = {
+						name: getCellValue(this),
+						id: this.id,
+						width: this.geometry.width,
+						height: this.geometry.height,
+						level: level,
+						x: state.origin.x,
+						y: state.origin.y
+					};
+
+					if (view) {
+						node.relation = {
+							viewId: view,
+							direction: _this.getCellAttr(this, 'direction')
+						}
+					}
+
+					o.containers.push(node);
+				}
+
+				if (this.edge && _this.getCellStyle(this).shape !== 'arrow') {
+					tmp.sourceName = getCellValue(_this, this.source);
+					tmp.sourceId = this.source ? this.source.id : null;
+					tmp.targetName = getCellValue(_this, this.target);
+					tmp.targetId = this.target ? this.target.id : null;
+					tmp.points = [];
+
+					$.each(item.absolutePoints, function() {
+						var _this = this;
+
+						tmp.points.push({
+							x: _this.x / scale - translate.x,
+							y: _this.y / scale - translate.y
+						});
+					});
+
+					o.edges.push(tmp);
+				}
+
+			}
+
+		});
+
+		return o;
+	};
+
+	Graph.prototype.isCellFoldable = function(cell) {
+		return cell.isCollapsed() || this.isSwimlane(cell);
+	};
+
+
+	Graph.prototype.setSwimlaneMinStyle = function(attr, value, cells, isToggle) {
+
+		var _this = this;
+
+		$.each(cells, function() {
+			var cell = this;
+			var style = _this.getCellAttr(cell, 'minstyle');
+
+			style = style ? style : 'shape=image;image=../static/resource/default.png;verticalLabelPosition=bottom;verticalAlign=top;';
+
+			if (typeof style === 'string') {
+
+				if (style.indexOf(attr) >= 0) {
+					var styles = style.split(';');
+					for (var i = 0; i < styles.length; i++) {
+						if (styles[i].indexOf(attr + '=') >= 0) {
+							if (isToggle) {
+								var arr = styles[i].split('=');
+
+								if (attr === mxConstants.STYLE_FONTSTYLE) {
+
+									if ((value === 1 && Number(arr[1]) % 2) || (value === 2 && [2, 3, 6, 7].indexOf(arr[1]) >= 0) || (value === 4 && arr[1] >= 4)) {
+										styles[i] = arr[0] + '=' + (arr[1] - value);
+									} else {
+										styles[i] = arr[0] + '=' + (arr[1] + value);
+									}
+								}
+							} else {
+								styles[i] = attr + '=' + value;
+							}
+
+							style = styles.join(';');
+							break;
+						}
+					}
+				} else {
+					if (style[style.length - 1] === ';') {
+						style += attr + '=' + value;
+					} else {
+						style += ';' + attr + '=' + value;
+					}
+				}
+
+			} else {
+				style = attr + '=' + value;
+			}
+
+			_this.setCellAttr(cell, 'minstyle', style);
+
+		});
+	};
+
+	/**
+	 * 设置当前样式
+	 * @param {string} name - 样式名
+	 * @param {string|number} value - 样式值
+	 */
+	Graph.prototype.setCurStyle = function(name, value) {
+		this.uCurStyles || (this.uCurStyles = {});
+		this.uCurStyles[name] = value;
+	};
+
+	/**
+	 * 获取当前样式
+	 */
+	Graph.prototype.getCurStyle = function(name) {
+		return this.uCurStyles && this.uCurStyles[name];
+	}
+
+	/**
+	 * cell本地坐标转换到世界坐标
+	 * @param {mxCell} cell
+	 * @param {object} pos - 坐标.如{x: 1, y:1}
+	 *
+	 * @return {object} 世界坐标
+	 */
+	Graph.prototype.localPosToWorldPos = function(cell, pos) {
+		var root = this.getDefaultParent();
+		var geo = cell.geometry || {
+			x: 0,
+			y: 0
+		};
+		var x = pos.x + geo.x,
+			y = pos.y + geo.y;
+
+		var parent = cell.parent;
+		// 循环直到最顶层父对象
+		while (parent && parent !== root) {
+			geo = parent.geometry || {
+				x: 0,
+				y: 0
+			};
+			x = x + geo.x;
+			y = y + geo.y;
+
+			parent = parent.parent;
+		}
+
+		return {
+			x: x,
+			y: y
+		};
+	}
+
+	/**
+	 * 世界坐标转换到cell本地坐标
+	 * @param {mxCell} cell
+	 * @param {object} pos - 世界坐标.如{x: 1, y:1}
+	 *
+	 * @return {object} 本地坐标
+	 */
+	Graph.prototype.worldPosToLocalPos = function(cell, pos) {
+		var root = this.getDefaultParent();
+		var geo = cell.geometry || {
+			x: 0,
+			y: 0
+		};
+		var x = pos.x - geo.x,
+			y = pos.y - geo.y;
+
+		var parent = cell.parent;
+		// 循环直到最顶层父对象
+		while (parent && parent !== root) {
+			geo = parent.geometry || {
+				x: 0,
+				y: 0
+			};
+			x = x - geo.x;
+			y = y - geo.y;
+
+			parent = parent.parent;
+		}
+
+		return {
+			x: x,
+			y: y
+		};
+	}
+
+	/**
+	 * 设置元素大中小尺寸
+	 * @param {mxCell} cell - 需要设置尺寸的元素
+	 * @param {number} width - 中尺寸宽度
+	 * @param {number} height - 中尺寸高度
+	 * @param {number} ml - 大尺寸比例
+	 * @param {number} mx - 中尺寸比例
+	 * @param {number} ms - 小尺寸比例
+	 */
+	Graph.prototype.setCellSizer = function(cell, width, height, ml, mx, ms) {
+		cell.setUtAttr('size-ms', [width / mx * ms, height / mx * ms].join(','));
+		cell.setUtAttr('size-mx', [width / mx * mx, height / mx * mx].join(','));
+		cell.setUtAttr('size-ml', [width / mx * ml, height / mx * ml].join(','));
+
+		this.setCellAttr(cell, 'size-ms', [width / mx * ms, height / mx * ms].join(','));
+		this.setCellAttr(cell, 'size-mx', [width / mx * mx, height / mx * mx].join(','));
+		this.setCellAttr(cell, 'size-ml', [width / mx * ml, height / mx * ml].join(','));
+	}
+
+})(Graph);

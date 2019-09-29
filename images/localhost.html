@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<!-- saved from url=(0090)http://localhost:3000/#/tarsier/monitoring/effectAnalysis/relation?ciCodes=100000000007169 -->
+<html ng-app="graph" lang="en" class="no-js ng-scope"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style type="text/css">[uib-typeahead-popup].dropdown-menu{display:block;}</style><style type="text/css">.uib-time input{width:50px;}</style><style type="text/css">[uib-tooltip-popup].tooltip.top-left > .tooltip-arrow,[uib-tooltip-popup].tooltip.top-right > .tooltip-arrow,[uib-tooltip-popup].tooltip.bottom-left > .tooltip-arrow,[uib-tooltip-popup].tooltip.bottom-right > .tooltip-arrow,[uib-tooltip-popup].tooltip.left-top > .tooltip-arrow,[uib-tooltip-popup].tooltip.left-bottom > .tooltip-arrow,[uib-tooltip-popup].tooltip.right-top > .tooltip-arrow,[uib-tooltip-popup].tooltip.right-bottom > .tooltip-arrow,[uib-tooltip-html-popup].tooltip.top-left > .tooltip-arrow,[uib-tooltip-html-popup].tooltip.top-right > .tooltip-arrow,[uib-tooltip-html-popup].tooltip.bottom-left > .tooltip-arrow,[uib-tooltip-html-popup].tooltip.bottom-right > .tooltip-arrow,[uib-tooltip-html-popup].tooltip.left-top > .tooltip-arrow,[uib-tooltip-html-popup].tooltip.left-bottom > .tooltip-arrow,[uib-tooltip-html-popup].tooltip.right-top > .tooltip-arrow,[uib-tooltip-html-popup].tooltip.right-bottom > .tooltip-arrow,[uib-tooltip-template-popup].tooltip.top-left > .tooltip-arrow,[uib-tooltip-template-popup].tooltip.top-right > .tooltip-arrow,[uib-tooltip-template-popup].tooltip.bottom-left > .tooltip-arrow,[uib-tooltip-template-popup].tooltip.bottom-right > .tooltip-arrow,[uib-tooltip-template-popup].tooltip.left-top > .tooltip-arrow,[uib-tooltip-template-popup].tooltip.left-bottom > .tooltip-arrow,[uib-tooltip-template-popup].tooltip.right-top > .tooltip-arrow,[uib-tooltip-template-popup].tooltip.right-bottom > .tooltip-arrow,[uib-popover-popup].popover.top-left > .arrow,[uib-popover-popup].popover.top-right > .arrow,[uib-popover-popup].popover.bottom-left > .arrow,[uib-popover-popup].popover.bottom-right > .arrow,[uib-popover-popup].popover.left-top > .arrow,[uib-popover-popup].popover.left-bottom > .arrow,[uib-popover-popup].popover.right-top > .arrow,[uib-popover-popup].popover.right-bottom > .arrow,[uib-popover-html-popup].popover.top-left > .arrow,[uib-popover-html-popup].popover.top-right > .arrow,[uib-popover-html-popup].popover.bottom-left > .arrow,[uib-popover-html-popup].popover.bottom-right > .arrow,[uib-popover-html-popup].popover.left-top > .arrow,[uib-popover-html-popup].popover.left-bottom > .arrow,[uib-popover-html-popup].popover.right-top > .arrow,[uib-popover-html-popup].popover.right-bottom > .arrow,[uib-popover-template-popup].popover.top-left > .arrow,[uib-popover-template-popup].popover.top-right > .arrow,[uib-popover-template-popup].popover.bottom-left > .arrow,[uib-popover-template-popup].popover.bottom-right > .arrow,[uib-popover-template-popup].popover.left-top > .arrow,[uib-popover-template-popup].popover.left-bottom > .arrow,[uib-popover-template-popup].popover.right-top > .arrow,[uib-popover-template-popup].popover.right-bottom > .arrow{top:auto;bottom:auto;left:auto;right:auto;margin:0;}[uib-popover-popup].popover,[uib-popover-html-popup].popover,[uib-popover-template-popup].popover{display:block !important;}</style><style type="text/css">.uib-datepicker-popup.dropdown-menu{display:block;float:none;margin:0;}.uib-button-bar{padding:10px 9px 2px;}</style><style type="text/css">.uib-position-measure{display:block !important;visibility:hidden !important;position:absolute !important;top:-9999px !important;left:-9999px !important;}.uib-position-scrollbar-measure{position:absolute !important;top:-9999px !important;width:50px !important;height:50px !important;overflow:scroll !important;}.uib-position-body-scrollbar-measure{overflow:scroll !important;}</style><style type="text/css">.uib-datepicker .uib-title{width:100%;}.uib-day button,.uib-month button,.uib-year button{min-width:100%;}.uib-left,.uib-right{width:100%}</style><style type="text/css">.ng-animate.item:not(.left):not(.right){-webkit-transition:0s ease-in-out left;transition:0s ease-in-out left}</style><style type="text/css">@charset "UTF-8";[ng\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>
+	
+	<title ng-bind="_TITLE" class="ng-binding"></title>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta content="width=device-width, initial-scale=1.0" name="viewport">
+	<meta content="ITA Graph project" name="description">
+	<meta content="uinnova" name="author">
+	<meta name="MobileOptimized" content="320">
+	<link rel="shortcut icon" href="http://192.168.1.234/vmdb-sso/rsm/cli/read/122/logos/favicon.png">
+
+	<!-- build:css css/vendor.css -->
+	<link rel="stylesheet" type="text/css" href="./localhost_files/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="./localhost_files/font-awesome.css">
+	<link href="./localhost_files/select2.min.css" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" href="./localhost_files/datetimepicker.css">
+
+
+	<link rel="stylesheet" type="text/css" href="./localhost_files/iconfont.css">
+	<link rel="stylesheet" type="text/css" href="./localhost_files/tarsier.min.css">
+	<link rel="stylesheet" type="text/css" href="./localhost_files/toastr.min.css">
+	<link rel="stylesheet" type="text/css" href="./localhost_files/main.css">
+	<!--<link rel="stylesheet" type="text/css" href="assets/plugins/table-resize.min.css">-->
+	<!-- endbuild -->
+
+<link rel="stylesheet" href="./localhost_files/common.css" charset="ISO-8859-1" type="text/css"></head>
+<body><script id="__bs_script__">//<![CDATA[
+    document.write("<script async src='/browser-sync/browser-sync-client.2.13.0.js'><\/script>".replace("HOST", location.hostname));
+//]]></script><script async="" src="./localhost_files/browser-sync-client.2.13.0.js.下载"></script>
+
+
+
+<script>
+	(function(){
+		var currentLanguage = window.localStorage.getItem('language') ? window.localStorage.getItem('language') : window.navigator.language;
+		var element = document.querySelector('#waiting');
+		if(currentLanguage.indexOf('zh') === 0){
+			element.innerHTML = '页面资源下载中..., 请不要关闭或刷新浏览器!';
+		}else{
+			element.innerHTML = "Page resources on loading..., Please do not close or refresh browser!";
+		}
+	})();
+</script>
+
+<!-- loading bar -->
+<div class="loadingbar">
+	<div class="loadingbar-process"></div>
+</div>
+<!-- loading bar end -->
+
+<!-- body content -->
+<!-- uiView: --><div ui-view="" class="h100 ng-scope"></div>
+<!-- body content end-->
+
+<!--内容-->
+<script type="text/ng-template" id="trainning-content.html">
+	<div class="step-content">
+		<div>
+			<span class="clickThis">点击这里</span>
+			<span class="warnText">{{ stepPanel.texts[stepPanel.currentStep - 1]}}</span>
+		</div>
+		<div class="next-step">
+			<ul class="step-progressing">
+				<li data-ng-repeat="item in stepPanel.trainnings.length | range"
+					data-ng-class="{active: stepPanel.currentStep == item}">
+				</li>
+			</ul>
+			<span class="stepBtn next " id="nextBtn" ng-show="stepPanel.trainnings.length!=(stepPanel.currentStep)"  ng-click="stepPanel.trainningInstance.nextStep({$event:$event, step:step});">下一步</span>
+			<span class="stepBtn next "  ng-click="stepPanel.trainningInstance.cancel({$event:$event, step:step});"  ng-show="stepPanel.trainnings.length==stepPanel.currentStep">完成</span>
+			<span class="stepBtn pre" ng-show="stepPanel.currentStep!=1"  ng-click="stepPanel.trainningInstance.preStep({$event:$event, step:step});">上一步</span>
+			<span class="stepBtn pre noNext" id="preBtn" ng-show="stepPanel.currentStep==1" >上一步</span>
+			<span class="stepBtn jump" id="jumpBtn" ng-click="stepPanel.trainningInstance.cancel({$event:$event, step:step});" ng-show="stepPanel.trainnings.length!=stepPanel.currentStep">跳过</span>
+		</div>
+	</div>
+
+</script>
+
+
+
+<!-- build:js js/plugins.js -->
+<script src="./localhost_files/define.js.下载"></script>
+
+ <!-- nodeModules:js -->
+ <script src="./localhost_files/jquery.js.下载"></script>
+ <script src="./localhost_files/jquery-ui.min.js.下载"></script>
+ <script src="./localhost_files/jquery.mousewheel.js.下载"></script>
+ <script src="./localhost_files/bootbox.js.下载"></script>
+ <script src="./localhost_files/bootstrap.js.下载"></script>
+ <script src="./localhost_files/angular.js.下载"></script>
+ <script src="./localhost_files/angular-animate.js.下载"></script>
+ <script src="./localhost_files/angular-md5.js.下载"></script>
+ <script src="./localhost_files/angular-sanitize.js.下载"></script>
+ <script src="./localhost_files/ui-bootstrap-tpls.js.下载"></script>
+ <script src="./localhost_files/angular-ui-router.js.下载"></script>
+ <script src="./localhost_files/sortable.min.js.下载"></script>
+ <script src="./localhost_files/bootstrap-colorpicker-module.js.下载"></script>
+ <script src="./localhost_files/slider.js.下载"></script>
+ <script src="./localhost_files/angular-bootstrap-switch.js.下载"></script>
+ <script src="./localhost_files/datetime.js.下载"></script>
+ <script src="./localhost_files/context-menu.js.下载"></script>
+ <script src="./localhost_files/angular-tree-control.js.下载"></script>
+ <script src="./localhost_files/rzslider.js.下载"></script>
+ <script src="./localhost_files/angular-translate.js.下载"></script>
+ <script src="./localhost_files/angular-translate-storage-local.js.下载"></script>
+ <script src="./localhost_files/angular-mocks.js.下载"></script>
+ <script src="./localhost_files/angular-cookies.js.下载"></script>
+ <script src="./localhost_files/loading-bar.js.下载"></script>
+ <script src="./localhost_files/moment.js.下载"></script>
+ <script src="./localhost_files/datetimepicker.js.下载"></script>
+ <script src="./localhost_files/datetimepicker.templates.js.下载"></script>
+ <script src="./localhost_files/ng-file-upload.js.下载"></script>
+ <script src="./localhost_files/ng-joyride.js.下载"></script>
+ <script src="./localhost_files/ng-table.js.下载"></script>
+ <script src="./localhost_files/ng-tags-input.js.下载"></script>
+ <script src="./localhost_files/d3.js.下载"></script>
+ <script src="./localhost_files/echarts.common.min.js.下载"></script>
+ <script src="./localhost_files/highcharts.js.下载"></script>
+ <script src="./localhost_files/select2.full.js.下载"></script>
+ <script src="./localhost_files/toastr.js.下载"></script>
+ <!-- endinject -->
+
+<script src="./localhost_files/bluebird.min.js.下载"></script>
+
+<!--tale-->
+
+<script src="./localhost_files/FileSaver.js.下载"></script>
+
+<!-- classExtend:js -->
+<script src="./localhost_files/classextend.js.下载"></script>
+<!-- endinject -->
+
+<script src="./localhost_files/bootstrap-datetimepicker.min.js.下载"></script>
+<script src="./localhost_files/bootstrap-datetimepicker.fr.js.下载"></script>
+<!--<script src="assets/plugins/angular-table-resize.min.js" charset="utf-8"></script>-->
+<!-- graphJs:js -->
+<script src="./localhost_files/md5.js.下载"></script>
+<script src="./localhost_files/canvasjs.min.js.下载"></script>
+<script src="./localhost_files/mxClient.js.下载"></script>
+<script src="./localhost_files/Sidebar.js.下载"></script>
+<script src="./localhost_files/Editor.js.下载"></script>
+<script src="./localhost_files/Graph.js.下载"></script>
+<script src="./localhost_files/Graph_extend.js.下载"></script>
+<script src="./localhost_files/Actions.js.下载"></script>
+<script src="./localhost_files/Shapes.js.下载"></script>
+<script src="./localhost_files/sanitizer.min.js.下载"></script>
+<script src="./localhost_files/tarsier.js.下载"></script>
+<script src="./localhost_files/index.js.下载"></script>
+<script src="./localhost_files/mxCell_extend.js.下载"></script>
+<script src="./localhost_files/mxShape_extend.js.下载"></script>
+<script src="./localhost_files/uExtandMx.js.下载"></script>
+<script src="./localhost_files/uPaintPanel.js.下载"></script>
+<!-- endinject -->
+
+<!-- endbuild -->
+
+
+<!-- build:js js/assets.js -->
+
+<!-- tmpJs:js -->
+<!-- endinject -->
+
+<!-- srcJs:js -->
+<!-- endinject -->
+
+<!-- endbuild -->
+
+
+<!-- build:js js/app.js -->
+
+<!-- extandMx:js -->
+<script src="./localhost_files/ExtandMx.js.下载"></script>
+<script src="./localhost_files/ng-infinite-scroll.js.下载"></script>
+<script src="./localhost_files/alarm.rain.js.下载"></script>
+<script src="./localhost_files/background.js.下载"></script>
+<script src="./localhost_files/base.js.下载"></script>
+<script src="./localhost_files/baseline.js.下载"></script>
+<script src="./localhost_files/basesvg.js.下载"></script>
+<script src="./localhost_files/cellImageColor.js.下载"></script>
+<script src="./localhost_files/effectObjs.js.下载"></script>
+<script src="./localhost_files/Effects.js.下载"></script>
+<script src="./localhost_files/emxDeleteCIEffect.js.下载"></script>
+<script src="./localhost_files/emxMarkCIEffect.js.下载"></script>
+<script src="./localhost_files/emxReqeatEffect.js.下载"></script>
+<script src="./localhost_files/emxSearchEffect.js.下载"></script>
+<script src="./localhost_files/emxSelEffect.js.下载"></script>
+<script src="./localhost_files/emxSelRainEffect.js.下载"></script>
+<script src="./localhost_files/frontground.js.下载"></script>
+<script src="./localhost_files/linelight.js.下载"></script>
+<script src="./localhost_files/superscript.js.下载"></script>
+<script src="./localhost_files/superscriptbydata.js.下载"></script>
+<script src="./localhost_files/controlPanel.js.下载"></script>
+<script src="./localhost_files/DataLabel.js.下载"></script>
+<script src="./localhost_files/extandMxShape.js.下载"></script>
+<script src="./localhost_files/extandMxSvgCanvas.js.下载"></script>
+<script src="./localhost_files/shapeUtils.js.下载"></script>
+<script src="./localhost_files/uBaseControl.js.下载"></script>
+<script src="./localhost_files/uBaseShape.js.下载"></script>
+<script src="./localhost_files/uContainer.js.下载"></script>
+<script src="./localhost_files/uContainerControl.js.下载"></script>
+<script src="./localhost_files/uExtandShap.js.下载"></script>
+<!-- endinject -->
+
+<!-- appJs:js -->
+<script src="./localhost_files/app.js.下载"></script>
+<script src="./localhost_files/Action.js.下载"></script>
+<script src="./localhost_files/CIData.js.下载"></script>
+<script src="./localhost_files/Const.js.下载"></script>
+<script src="./localhost_files/ContextLibs.js.下载"></script>
+<script src="./localhost_files/ContextMenu.js.下载"></script>
+<script src="./localhost_files/DataDraw.js.下载"></script>
+<script src="./localhost_files/Dialog.js.下载"></script>
+<script src="./localhost_files/Editor.js(1).下载"></script>
+<script src="./localhost_files/Event.js.下载"></script>
+<script src="./localhost_files/foldingShape.js.下载"></script>
+<script src="./localhost_files/GeoLayout.js.下载"></script>
+<script src="./localhost_files/getObjectURL.js.下载"></script>
+<script src="./localhost_files/GraphContextMenu.js.下载"></script>
+<script src="./localhost_files/GraphMonitor.js.下载"></script>
+<script src="./localhost_files/GraphUtils.js.下载"></script>
+<script src="./localhost_files/History.js.下载"></script>
+<script src="./localhost_files/HttpInterceptor.js.下载"></script>
+<script src="./localhost_files/InfiniteScroll.js.下载"></script>
+<script src="./localhost_files/KeyCode.js.下载"></script>
+<script src="./localhost_files/keymap.js.下载"></script>
+<script src="./localhost_files/KeyTable.js.下载"></script>
+<script src="./localhost_files/MockPromise.js.下载"></script>
+<script src="./localhost_files/Model.js.下载"></script>
+<script src="./localhost_files/Monitor.js.下载"></script>
+<script src="./localhost_files/MxEditor.js.下载"></script>
+<script src="./localhost_files/newGuide.js.下载"></script>
+<script src="./localhost_files/publicfactory.js.下载"></script>
+<script src="./localhost_files/RequestMap.js.下载"></script>
+<script src="./localhost_files/State.js.下载"></script>
+<script src="./localhost_files/uDialog.js.下载"></script>
+<script src="./localhost_files/Unit.js.下载"></script>
+<script src="./localhost_files/UserAuth.js.下载"></script>
+<script src="./localhost_files/UserInfo.js.下载"></script>
+<script src="./localhost_files/auth.service.js.下载"></script>
+<script src="./localhost_files/ci.category.service.js.下载"></script>
+<script src="./localhost_files/ci.monitor.service.js.下载"></script>
+<script src="./localhost_files/ci.relation.service.js.下载"></script>
+<script src="./localhost_files/ci.service.js.下载"></script>
+<script src="./localhost_files/export.service.js.下载"></script>
+<script src="./localhost_files/group.service.js.下载"></script>
+<script src="./localhost_files/icon.service.js.下载"></script>
+<script src="./localhost_files/image.service.js.下载"></script>
+<script src="./localhost_files/kpi.category.service.js.下载"></script>
+<script src="./localhost_files/mapping.service.js.下载"></script>
+<script src="./localhost_files/mine.service.js.下载"></script>
+<script src="./localhost_files/other.service.js.下载"></script>
+<script src="./localhost_files/performance.service.js.下载"></script>
+<script src="./localhost_files/public.service.js.下载"></script>
+<script src="./localhost_files/scene.service.js.下载"></script>
+<script src="./localhost_files/search.service.js.下载"></script>
+<script src="./localhost_files/test.service.js.下载"></script>
+<script src="./localhost_files/trash.service.js.下载"></script>
+<script src="./localhost_files/user.service.js.下载"></script>
+<script src="./localhost_files/view.cate.service.js.下载"></script>
+<script src="./localhost_files/view.service.js.下载"></script>
+<script src="./localhost_files/allConfirmClose.controller.js.下载"></script>
+<script src="./localhost_files/appTimeLine.js.下载"></script>
+<script src="./localhost_files/backToTop.js.下载"></script>
+<script src="./localhost_files/checkImage.js.下载"></script>
+<script src="./localhost_files/colorPicker.controller.js.下载"></script>
+<script src="./localhost_files/colResizer.controller.js.下载"></script>
+<script src="./localhost_files/confirmClose.controller.js.下载"></script>
+<script src="./localhost_files/ContextMenu.js(1).下载"></script>
+<script src="./localhost_files/lineChart.js.下载"></script>
+<script src="./localhost_files/cleanCreat.js.下载"></script>
+<script src="./localhost_files/compressCreat.js.下载"></script>
+<script src="./localhost_files/enrichCreat.js.下载"></script>
+<script src="./localhost_files/filterCreat.js.下载"></script>
+<script src="./localhost_files/noticeCreat.js.下载"></script>
+<script src="./localhost_files/regradingCreat.js.下载"></script>
+<script src="./localhost_files/standaCreat.js.下载"></script>
+<script src="./localhost_files/timeOutCreat.js.下载"></script>
+<script src="./localhost_files/worklistCreat.js.下载"></script>
+<script src="./localhost_files/definedFunc.js.下载"></script>
+<script src="./localhost_files/diagramCombo.js.下载"></script>
+<script src="./localhost_files/dropDownBox.js.下载"></script>
+<script src="./localhost_files/colorPicker.controller.js(1).下载"></script>
+<script src="./localhost_files/eventSource.js.下载"></script>
+<script src="./localhost_files/History.js(1).下载"></script>
+<script src="./localhost_files/copyMove.js.下载"></script>
+<script src="./localhost_files/ngFocusMe.js.下载"></script>
+<script src="./localhost_files/getValue.js.下载"></script>
+<script src="./localhost_files/graphPanel.js.下载"></script>
+<script src="./localhost_files/graphPanel.js(1).下载"></script>
+<script src="./localhost_files/graphTable.js.下载"></script>
+<script src="./localhost_files/info.js.下载"></script>
+<script src="./localhost_files/inspectionReport.js.下载"></script>
+<script src="./localhost_files/ljwColor.controller.js.下载"></script>
+<script src="./localhost_files/saveTags.controller.js.下载"></script>
+<script src="./localhost_files/toolbar.js.下载"></script>
+<script src="./localhost_files/toolbarAction.js.下载"></script>
+<script src="./localhost_files/membSearchC.js.下载"></script>
+<script src="./localhost_files/membSearchE.js.下载"></script>
+<script src="./localhost_files/mine.js.下载"></script>
+<script src="./localhost_files/myDetails.js.下载"></script>
+<script src="./localhost_files/myWatchClass.js.下载"></script>
+<script src="./localhost_files/newInspectionReport.controller.js.下载"></script>
+<script src="./localhost_files/guide.js.下载"></script>
+<script src="./localhost_files/ngDirectiveDone.js.下载"></script>
+<script src="./localhost_files/ngenter.js.下载"></script>
+<script src="./localhost_files/ngPagination.js.下载"></script>
+<script src="./localhost_files/ngRepeatDone.js.下载"></script>
+<script src="./localhost_files/publicDirective.js.下载"></script>
+<script src="./localhost_files/queryTime.controller.js.下载"></script>
+<script src="./localhost_files/release.js.下载"></script>
+<script src="./localhost_files/resizeable.controller.js.下载"></script>
+<script src="./localhost_files/ruleCheck.js.下载"></script>
+<script src="./localhost_files/automaticSet.js.下载"></script>
+<script src="./localhost_files/enrichSet.js.下载"></script>
+<script src="./localhost_files/ruleCompressSet.js.下载"></script>
+<script src="./localhost_files/ruleFilterEvent.js.下载"></script>
+<script src="./localhost_files/ruleFilterEventDerive.js.下载"></script>
+<script src="./localhost_files/ruleFilterEventSet.js.下载"></script>
+<script src="./localhost_files/ruleMaintenanceSet.js.下载"></script>
+<script src="./localhost_files/ruleNoticeSet.js.下载"></script>
+<script src="./localhost_files/rulestandaSet.js.下载"></script>
+<script src="./localhost_files/ruleTimeCleanSet.js.下载"></script>
+<script src="./localhost_files/ruleTimeSet.js.下载"></script>
+<script src="./localhost_files/ruleLeftlist.js.下载"></script>
+<script src="./localhost_files/actionTable.js.下载"></script>
+<script src="./localhost_files/sceneInfo.js.下载"></script>
+<script src="./localhost_files/sceneInfoDetail.js.下载"></script>
+<script src="./localhost_files/ngScroll.js.下载"></script>
+<script src="./localhost_files/selectContact.js.下载"></script>
+<script src="./localhost_files/sequential.js.下载"></script>
+<script src="./localhost_files/sequentialByD3.js.下载"></script>
+<script src="./localhost_files/setStyle.js.下载"></script>
+<script src="./localhost_files/sglclick.js.下载"></script>
+<script src="./localhost_files/surveyTimeline.js.下载"></script>
+<script src="./localhost_files/teamDirective.js.下载"></script>
+<script src="./localhost_files/timepicker.js.下载"></script>
+<script src="./localhost_files/ruleRightListTitle.js.下载"></script>
+<script src="./localhost_files/timeSelect.js.下载"></script>
+<script src="./localhost_files/toolbar.js(1).下载"></script>
+<script src="./localhost_files/opTree.js.下载"></script>
+<script src="./localhost_files/viewtree.js.下载"></script>
+<script src="./localhost_files/newWarningDetail.js.下载"></script>
+<script src="./localhost_files/warningDetail.js.下载"></script>
+<script src="./localhost_files/zoomGraph.js.下载"></script>
+<script src="./localhost_files/actionGroupsChoose.js.下载"></script>
+<script src="./localhost_files/autoInspectionTimeSetting.js.下载"></script>
+<script src="./localhost_files/chooseRelation.js.下载"></script>
+<script src="./localhost_files/ciEach.controller.js.下载"></script>
+<script src="./localhost_files/ciEvent.controller.js.下载"></script>
+<script src="./localhost_files/ciMonitor.controller.js.下载"></script>
+<script src="./localhost_files/ciPerf.controller.js.下载"></script>
+<script src="./localhost_files/ciTable.controller.js.下载"></script>
+<script src="./localhost_files/color.controller.js.下载"></script>
+<script src="./localhost_files/createCi.controller.js.下载"></script>
+<script src="./localhost_files/createTags.controller.js.下载"></script>
+<script src="./localhost_files/definedIpt.controller.js.下载"></script>
+<script src="./localhost_files/diagramInfo.js.下载"></script>
+<script src="./localhost_files/expand.js.下载"></script>
+<script src="./localhost_files/font.controller.js.下载"></script>
+<script src="./localhost_files/History.js(2).下载"></script>
+<script src="./localhost_files/iconSize.controller.js.下载"></script>
+<script src="./localhost_files/image.controller.js.下载"></script>
+<script src="./localhost_files/ljwImage.controller.js.下载"></script>
+<script src="./localhost_files/keymap.controller.js.下载"></script>
+<script src="./localhost_files/kpiChoose.controller.js.下载"></script>
+<script src="./localhost_files/kpiUnusual.controller.js.下载"></script>
+<script src="./localhost_files/addApps.controller.js.下载"></script>
+<script src="./localhost_files/addEventObj.controller.js.下载"></script>
+<script src="./localhost_files/addRule.controller.js.下载"></script>
+<script src="./localhost_files/closeAlert.controller.js.下载"></script>
+<script src="./localhost_files/compressDetail.js.下载"></script>
+<script src="./localhost_files/compressDetailTwo.js.下载"></script>
+<script src="./localhost_files/confirmAlert.controller.js.下载"></script>
+<script src="./localhost_files/createCI.js.下载"></script>
+<script src="./localhost_files/createKpi.js.下载"></script>
+<script src="./localhost_files/definedCloseAlert.controller.js.下载"></script>
+<script src="./localhost_files/definedConfirmAlert.controller.js.下载"></script>
+<script src="./localhost_files/definedMai.controller.js.下载"></script>
+<script src="./localhost_files/detailMore.controller.js.下载"></script>
+<script src="./localhost_files/fastShield.controller.js.下载"></script>
+<script src="./localhost_files/goRecord.controller.js.下载"></script>
+<script src="./localhost_files/mail.controller.js.下载"></script>
+<script src="./localhost_files/markFlag.controller.js.下载"></script>
+<script src="./localhost_files/OscreenEventTime.controller.js.下载"></script>
+<script src="./localhost_files/OscreenEventWall.controller.js.下载"></script>
+<script src="./localhost_files/oScrenMail.controller.js.下载"></script>
+<script src="./localhost_files/oSreenCreatRule.controller.js.下载"></script>
+<script src="./localhost_files/phoneNotice.controller.js.下载"></script>
+<script src="./localhost_files/previewList.controller.js.下载"></script>
+<script src="./localhost_files/rulesetvision.js.下载"></script>
+<script src="./localhost_files/sendOrder.controller.js.下载"></script>
+<script src="./localhost_files/shareReport.controller.js.下载"></script>
+<script src="./localhost_files/sortCiClassLayer.controller.js.下载"></script>
+<script src="./localhost_files/sureShield.controller.js.下载"></script>
+<script src="./localhost_files/topChoose.controller.js.下载"></script>
+<script src="./localhost_files/topDetail.controller.js.下载"></script>
+<script src="./localhost_files/myMonitor.controller.js.下载"></script>
+<script src="./localhost_files/number.controller.js.下载"></script>
+<script src="./localhost_files/paintPanel.controller.js.下载"></script>
+<script src="./localhost_files/pubExit.controller.js.下载"></script>
+<script src="./localhost_files/pubTag.controller.js.下载"></script>
+<script src="./localhost_files/pubTeam.controller.js.下载"></script>
+<script src="./localhost_files/open.controller.js.下载"></script>
+<script src="./localhost_files/set.controller.js.下载"></script>
+<script src="./localhost_files/releaseURL.controller.js.下载"></script>
+<script src="./localhost_files/set.controller.js(1).下载"></script>
+<script src="./localhost_files/roleChoose.js.下载"></script>
+<script src="./localhost_files/saveScence.controller.js.下载"></script>
+<script src="./localhost_files/searchNode.controller.js.下载"></script>
+<script src="./localhost_files/searchPath.controller.js.下载"></script>
+<script src="./localhost_files/setAttrShow.js.下载"></script>
+<script src="./localhost_files/keymap.controller.js(1).下载"></script>
+<script src="./localhost_files/selectIcon.controller.js.下载"></script>
+<script src="./localhost_files/threshold.controller.js.下载"></script>
+<script src="./localhost_files/createFile.controller.js.下载"></script>
+<script src="./localhost_files/createNew.controller.js.下载"></script>
+<script src="./localhost_files/ljwSave.controller.js.下载"></script>
+<script src="./localhost_files/open.controller.js(1).下载"></script>
+<script src="./localhost_files/openFile.controller.js.下载"></script>
+<script src="./localhost_files/publish.controller.js.下载"></script>
+<script src="./localhost_files/save.controller.js.下载"></script>
+<script src="./localhost_files/groupView.controller.js.下载"></script>
+<script src="./localhost_files/State.js(1).下载"></script>
+<script src="./localhost_files/main.controller.js.下载"></script>
+<script src="./localhost_files/tarsier.controller.js.下载"></script>
+<script src="./localhost_files/chooseRelation.js(1).下载"></script>
+<script src="./localhost_files/viewRelationSet.js.下载"></script>
+<script src="./localhost_files/ci.js.下载"></script>
+<script src="./localhost_files/ciClass.js.下载"></script>
+<script src="./localhost_files/ciRlt.js.下载"></script>
+<script src="./localhost_files/ciRltClass.js.下载"></script>
+<script src="./localhost_files/diagram.js.下载"></script>
+<script src="./localhost_files/diagramVersion.js.下载"></script>
+<script src="./localhost_files/group.js.下载"></script>
+<script src="./localhost_files/image.service.js(1).下载"></script>
+<script src="./localhost_files/tagRule.js.下载"></script>
+<script src="./localhost_files/visio.js.下载"></script>
+<script src="./localhost_files/defined.service.js.下载"></script>
+<script src="./localhost_files/monitoring.service.js.下载"></script>
+<script src="./localhost_files/oScreen.service.js.下载"></script>
+<script src="./localhost_files/public.service.js(1).下载"></script>
+<script src="./localhost_files/scene.service.js(1).下载"></script>
+<script src="./localhost_files/team.service.js.下载"></script>
+<script src="./localhost_files/myEvent.controller.js.下载"></script>
+<script src="./localhost_files/citree.controller.js.下载"></script>
+<script src="./localhost_files/State.js(2).下载"></script>
+<script src="./localhost_files/group.controller.js.下载"></script>
+<script src="./localhost_files/State.js(3).下载"></script>
+<script src="./localhost_files/edit.controller.js.下载"></script>
+<script src="./localhost_files/State.js(4).下载"></script>
+<script src="./localhost_files/State.js(5).下载"></script>
+<script src="./localhost_files/view.controller.js.下载"></script>
+<script src="./localhost_files/monitoring.controller.js.下载"></script>
+<script src="./localhost_files/State.js(6).下载"></script>
+<script src="./localhost_files/scenes.controller.js.下载"></script>
+<script src="./localhost_files/State.js(7).下载"></script>
+<script src="./localhost_files/create.controller.js.下载"></script>
+<script src="./localhost_files/edit.controller.js(1).下载"></script>
+<script src="./localhost_files/list.controller.js.下载"></script>
+<script src="./localhost_files/testsceneinfo.controller.js.下载"></script>
+<script src="./localhost_files/definedEvents.controller.js.下载"></script>
+<script src="./localhost_files/newEvents.controller.js.下载"></script>
+<script src="./localhost_files/alarmWall.js.下载"></script>
+<script src="./localhost_files/appliedData.controller.js.下载"></script>
+<script src="./localhost_files/automaticDispatch.js.下载"></script>
+<script src="./localhost_files/currentEvents.controller.js.下载"></script>
+<script src="./localhost_files/derive.js.下载"></script>
+<script src="./localhost_files/dictionary.js.下载"></script>
+<script src="./localhost_files/enrich.js.下载"></script>
+<script src="./localhost_files/eventAnalysis.controller.js.下载"></script>
+<script src="./localhost_files/eventStatistics.controller.js.下载"></script>
+<script src="./localhost_files/eventSurvey.js.下载"></script>
+<script src="./localhost_files/eventSurveyNew.controller.js.下载"></script>
+<script src="./localhost_files/experienceBase.controller.js.下载"></script>
+<script src="./localhost_files/filter.js.下载"></script>
+<script src="./localhost_files/Maintenance.controller.js.下载"></script>
+<script src="./localhost_files/nonGraphicalScenes.controller.js.下载"></script>
+<script src="./localhost_files/notice.js.下载"></script>
+<script src="./localhost_files/notionalPooling.js.下载"></script>
+<script src="./localhost_files/queryEvent.conreoller.js.下载"></script>
+<script src="./localhost_files/ruleVisualizationsettings.js.下载"></script>
+<script src="./localhost_files/sharePage.controller.js.下载"></script>
+<script src="./localhost_files/sourceStatistics.controller.js.下载"></script>
+<script src="./localhost_files/standardization.js.下载"></script>
+<script src="./localhost_files/teamCreate.js.下载"></script>
+<script src="./localhost_files/teamList.js.下载"></script>
+<script src="./localhost_files/timedCleanup.js.下载"></script>
+<script src="./localhost_files/timeOut.js.下载"></script>
+<script src="./localhost_files/weightGrading.js.下载"></script>
+<script src="./localhost_files/definedSideNav.js.下载"></script>
+<script src="./localhost_files/severityColor.js.下载"></script>
+<script src="./localhost_files/timeFilter.js.下载"></script>
+<script src="./localhost_files/effectAnalysis.js.下载"></script>
+<script src="./localhost_files/historyOscreen.controller.js.下载"></script>
+<script src="./localhost_files/monitorDuty.controller.js.下载"></script>
+<script src="./localhost_files/oScreen.const.js.下载"></script>
+<script src="./localhost_files/oScreen.global.js.下载"></script>
+<script src="./localhost_files/oScreenList.controller.js.下载"></script>
+<script src="./localhost_files/analogAlarm.js.下载"></script>
+<script src="./localhost_files/associatStatistics.js.下载"></script>
+<script src="./localhost_files/configManage.controller.js.下载"></script>
+<script src="./localhost_files/displayInformationSettings.js.下载"></script>
+<script src="./localhost_files/inspectionManagement.js.下载"></script>
+<script src="./localhost_files/onDutyInspection.js.下载"></script>
+<script src="./localhost_files/printOnDutyReport.js.下载"></script>
+<script src="./localhost_files/printReport.js.下载"></script>
+<script src="./localhost_files/visualBoard.controller.js.下载"></script>
+<script src="./localhost_files/addEdit.controller.js.下载"></script>
+<script src="./localhost_files/chat.controller.js.下载"></script>
+<script src="./localhost_files/detail.controller.js.下载"></script>
+<script src="./localhost_files/fastStructure.controller.js.下载"></script>
+<script src="./localhost_files/myDiagram.controller.js.下载"></script>
+<script src="./localhost_files/myScene.controller.js.下载"></script>
+<!-- endinject -->
+<!-- endbuild -->
+
+<!-- injectTemplate -->
+<script type="text/ng-template" id="ngtable/checkbox">
+	<input type="checkbox" ng-model="checkboxes.checked" name="filter-checkbox" value="" />
+</script>
+
+<script type="text/ng-template" id="ngtable/pager">
+	<div class="psrl">
+
+		<ul class="pager ng-cloak">
+			<li ng-repeat="page in pages"
+				ng-class="{'disabled': !page.active, 'previous': page.type == 'prev', 'next': page.type == 'next'}"
+				ng-show="page.type == 'prev' || page.type == 'next'" ng-switch="page.type">
+
+				<a ng-switch-when="prev" ng-click="params.page(page.number)" href="">&laquo; {{ 'PREVIOUS' | translate }}</a>
+				<a ng-switch-when="next" ng-click="params.page(page.number)" href="">{{ 'NEXT' | translate }} &raquo;</a>
+
+			</li>
+		</ul>
+
+
+		<span style="position: absolute; top: 5px; left: 0; right: 0; margin: auto; display: block; width: 50px; text-align: center;">
+			{{ params.page() }} / {{ params.getPages() }}
+		</span>
+	</div>
+
+</script>
+
+<script type="text/ng-template" id="ug-scene-tabset.html">
+	<div>
+		<ul class="nav nav-{{type || 'tabs'}}" ng-class="{'nav-stacked': vertical, 'nav-justified': justified}" ng-transclude></ul>
+		<div class="tab-content" ng-scroll="">
+			<div class="tab-pane" ng-repeat="tab in tabs" ng-class="{active: tab.active}" uib-tab-content-transclude="tab">
+			</div>
+		</div>
+	</div>
+</script>
+
+<script type="text/ng-template" id="cell/monitor1">
+<div class="cell_box {{cellBoxDanger}} {{cellBoxActive}}" id="{{id}}">
+	<div data-toggle="tooltip" title="{{name}}" class="cell_box_header {{cellBoxAutoSlide}}">
+		<div class="cell_box_header_title">{{name}}</div>
+	</div>
+	<div class="cell_box_body">
+		<span class="cell_box_body_monitor_number {{fontColor}}">{{kpiUnusual}}</span>/{{kpiCount}}
+	</div>
+
+	<div class="cell_box_foot">
+		<div title="监控事件" class="cell_box_sq cell_box_sq1 {{color1}}">{{monitorEvent}}</div>
+		<div title="事件工单" class="cell_box_sq cell_box_sq2 {{color2}}">{{eventTicket}}</div>
+		<div title="变更工单" class="cell_box_sq cell_box_sq3 {{color3}}">{{changeTicket}}</div>
+	</div>
+</div>
+</script>
+
+<script type="text/ng-template" id="cell/table">
+	<div class="graph_cell graph_cell_table {{#if isAnimate}}cell_to_max{{/if}}" id="{{id}}" {{#if width}}style="width: {{width}}px; height: {{height}}px;"{{/if}}>
+		<div title="{{name}}" class="graph_cell_header">
+			<div class="graph_cell_header_title">{{name}}</div>
+		</div>
+
+		<div class="graph_cell_table_body clear">
+			{{#each tableData}}
+			<div class="graph_cell_table_item" ug-ciid="{{../ciId}}" ug-kpiid="{{kpiId}}" >
+				<div class="graph_cell_table_item_number">
+				    {{#if kpiId}}
+				        {{ value }}
+				    {{else}}
+				        -
+				    {{/if}}
+				</div>
+				<div class="graph_cell_table_item_title" title="{{ kpi }}">{{ kpi }}</div>
+			</div>
+			{{/each}}
+		</div>
+
+	</div>
+</script>
+
+<script type="text/ng-template" id="cell/tool">
+	<div class="cell-tool" id="{{id}}">
+		{{#if isCi}}
+		<div class="cell-tool-btn cell-tool-btn-switch-mode" title="切换模式" data-id="{{id}}"></div>
+		{{/if}}
+
+		{{#if isHasView}}
+		<div class="cell-tool-btn cell-tool-btn-relation-view" title="下钻" data-id="{{id}}"></div>
+		{{/if}}
+	</div>
+</script>
+
+<div class="uDialog-modal" style="display:none !important;height:0 !important">
+    <!-- ngIf: opt.title -->
+    <div class="modal-body">
+        <div class="dialog-body-content">
+<!--            <input type="text" ng-model="inputValue" class="uDialog-input" spellcheck="false" placeholder="{{opt.placeholder}}">-->
+            <textarea ng-model="txtcontent" class="uDialog-textarea ng-pristine ng-untouched ng-valid ng-empty ng-valid-maxlength" placeholder="" maxlength=""></textarea>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <!-- ngIf: btnOK -->
+        <!-- ngIf: btnCancel -->
+    </div>
+</div>
+
+
+<script type="text/ng-template" id="graphinfo/ci">
+
+	<ul class="info-row-list">
+		<li class="info-row">
+			<span class="info-row-label">{{ 'CATEGORY' | translate }}</span>
+			<span class="info-row-content">{{ params.data.config.categoryName }}</span>
+		</li>
+		<li class="info-row" ng-repeat="(key, value) in params.data.config.data | filter:key">
+			<span class="info-row-label">{{ key[0] }}</span>
+			<span class="info-row-content">{{ value }}</span>
+		</li>
+	</ul>
+
+</script>
+
+<script type="text/ng-template" id="graphinfo/searchNode">
+
+	<div class="search-cell pd10">
+		<div class="search-cell-header">
+			<input type="text" id="info_search_node_input" ng-focus-me class="search-cell-input form-control" ng-model="searchCollection.keyword" ng-enter="search()" placeholder="{{ 'KEYWORK' | translate }}" />
+		</div>
+
+		<div ng-show="params.data.ci.length" class="search-cell-ci search-cell-list mt10">
+			<div class="search-cell-list-header">
+				CI
+				<span class="text-primary" ng-show="params.data.ci.length">({{params.data.ci.length}})</span>
+			</div>
+			<div class="search-cell-list-body">
+				<div ng-repeat="item in params.data.ci" ng-mouseenter="hoverCell(item, true)" ng-mouseleave="hoverCell(item)">
+					<div class="li">{{ item.name }}</div>
+					<div class="li">
+						<ul>
+							<li ng-repeat="(k,v) in item['match']" class="clearfix">
+								<span>{{k}}</span>
+								<span ng-bind-html="generateHTML(searchCollection.keyword, v);"></span>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+
+
+		<div ng-show="params.data.node.length" class="search-cell-ci search-cell-list mt10">
+			<div class="search-cell-list-header">
+				Cell
+				<span class="text-primary" ng-show="params.data.node.length">({{params.data.node.length}})</span>
+			</div>
+			<div class="search-cell-list-body">
+				<div ng-repeat="item in params.data.node" ng-mouseenter="hoverCell(item, true)" ng-mouseleave="hoverCell(item)">
+					<div class="li1" ng-bind-html="generateHTML(searchCollection.keyword, item.name);"></div>
+				</div>
+			</div>
+		</div>
+
+		<div ng-show="params.data.ci && !params.data.count && searchCollection.keyword" class="alert alert-warning mt10">
+			 {{ 'NO_RESULT' | translate }}
+		</div>
+
+	</div>
+
+</script>
+
+<script type="text/ng-template" id="graphinfo/view">
+
+
+	<ul class="info-row-list">
+
+		<li class="info-row">
+			<span class="info-row-label">{{ 'VIEW_NAME' | translate }}</span>
+			<span class="info-row-content">{{ params.data.name }}</span>
+		</li>
+		<li class="info-row">
+			<span class="info-row-label">{{ 'CATEGORY' | translate }}</span>
+			<span class="info-row-content">{{ params.data.categoryName }}</span>
+		</li>
+		<li class="info-row">
+			<span class="info-row-label">{{ 'PUBLIC_OR_NOT' | translate }}</span>
+			<span class="info-row-content">{{ formatBool(params.data.open) | translate }}</span>
+		</li>
+		<li class="info-row">
+			<span class="info-row-label">{{ 'CREATION_DATE' | translate }}</span>
+			<span class="info-row-content">{{ formatDate(params.data.createTime) }}</span>
+		</li>
+		<li class="info-row">
+			<span class="info-row-label">{{ 'UPDATE_DATE' | translate }}</span>
+			<span class="info-row-content">{{ formatDate(params.data.updateTime) }}</span>
+		</li>
+		<li class="info-row">
+			<span class="info-row-label">{{ 'VIEW_DESCRIPTION' | translate }}</span>
+			<span class="info-row-content">{{ params.data.description }}</span>
+		</li>
+		<li class="info-row">
+			<span class="info-row-label">{{ 'VIEW_VERSION' | translate }}</span>
+			<span class="info-row-content">{{ params.data.version }}</span>
+		</li>
+		<li class="info-row">
+			<span class="info-row-label">{{ 'CI_NUMBER' | translate }}</span>
+			<span class="info-row-content">{{ params.data.ciSize }}</span>
+		</li>
+
+		<li class="info-row">
+			<span class="info-row-label">{{ 'AUTHOR' | translate }}</span>
+			<span class="info-row-content">{{ params.data.userName }}</span>
+		</li>
+
+	</ul>
+</script>
+
+<script type="text/ng-template" id="model/monitor">
+
+	<!--<div id="{{id}}" style="width: 80px; height: 80px; background: red; margin-left: 4px;">-->
+
+	<!--</div>-->
+
+</script>
+
+<!--
+<div class="m-wrapper" ng-click="_outAll()">
+    <div class="m-save-wrapper" >
+        <span class="m-save-container"
+        style="height:28px;min-width:71px;background-color:#40a8de;
+        border-radius:1px;color:#fff;display:inline-block;
+        min-width:50px;padding:0 0 0 8px;text-align:center;line-height:28px;border-radius:2px;font-size:14px;
+        margin-right:10px;margin-bottom:10px" ng-repeat="memberName in teamOpNameSel track by $index">
+        {{memberName.opName}}
+        <i  class="fa fa-times" aria-hidden="true" style="display:inline-block;width:30px;
+            border-left:1px solid #fff;margin-left:5px" ng-click="delMemberNameClickFn(memberName)"></i>
+        </span>
+    </div>
+    <input class="m-ipt" type="text" ng-show="_out" ng-model="_filterCode">
+    <div class="m-container-wrapper" ng-show="_out">
+        <span class="m-container" ng-repeat="teamOpName in filteredTeam"
+        style="display:block;height:30px;line-height:20px;padding:5px 20px;color:#74797c;
+        margin:2px 0;font-weight:bold" ng-mouseover="mouserover(event)"
+        ng-mouseleave="mouseleave(event)" ng-mousedown="mousedown(event)"
+        ng-click="getMemberNameClickFn(teamOpName)">{{teamOpName.opName }}</span>
+    </div>
+</div>
+-->
+
+
+
+
+<!--
+<div class="m-wrapper" ng-click="_outAll()">
+    <div class="m-save-wrapper" >
+        <span class="m-save-container"
+        style="height:28px;min-width:71px;background-color:#40a8de;
+        border-radius:1px;color:#fff;display:inline-block;
+        min-width:50px;padding:0 0 0 8px;text-align:center;line-height:28px;border-radius:2px;font-size:14px;
+        margin-right:10px;margin-bottom:10px" ng-repeat="item in groupUserInfos track by $index">
+        {{item.userName}}
+        <i  class="fa fa-times" aria-hidden="true" style="display:inline-block;width:30px;
+            border-left:1px solid #fff;margin-left:5px" ng-click="editMemDel(item)"></i>
+        </span>
+    </div>
+    <input class="m-ipt" type="text" ng-show="_out" ng-model="_filterCode">
+    <div class="m-container-wrapper" ng-show="_out">
+        <span class="m-container" style="display:block;height:30px;line-height:20px;padding:5px 20px;color:#74797c;
+        margin:2px 0;font-weight:bold" ng-mouseover="mouserover(event)"
+        ng-mouseleave="mouseleave(event)" ng-mousedown="mousedown(event)"
+        ng-click="editGetMemberName(teamOpName)" ng-repeat="teamOpName in filteredTeam">{{teamOpName.opName}}</span>
+    </div>
+</div>
+-->
+
+
+
+<!--<div class="team-member-arr u-select" ng-click="inputGetFocusFn()">
+    <div class="u-select-member-wrapper">
+        <div class="u-select-membcont">
+            <span class="u-select-membname" ng-repeat="item in groupUserInfos track by $index">
+                <span>{{item.userName}}</span>
+                <span class="u-select-del" ng-click="editMemDel(item)">X</span>
+            </span>
+            <input type="text" id="editInputSelect" class="u-select-add-member-input" ng-model="stMerSehCot">
+        </div>
+        <div class="u-select-add-member-names" ng-show="startSearch">
+            <p class="u-select-add-member-name" ng-repeat="teamOpName in teamOpNames"
+               ng-click="editGetMemberName(teamOpName)">
+                {{teamOpName.opName}}
+            </p>
+        </div>
+    </div>
+</div>-->
+
+<!-- endinjectTemplate -->
+
+
+
+
+</body></html>

@@ -1,0 +1,39 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('MappingService', ['$http', 'Unit', function($http, Unit){
+        var o = {};
+
+        o.getCateMapping = function(data) {
+            return $http.post(Unit.api('/catemapping/query'), data);
+        };
+
+		o.getCiMapping = function(data) {
+			return $http.post(Unit.api('/cimapping/query'), data);
+		};
+
+		o.getRelMapping = function(data) {
+			return $http.post(Unit.api('/relmapping/query'), data);
+		};
+
+		o.getPerfMapping = function(data) {
+			return $http.post(Unit.api('/perfmapping/query'), data);
+		};
+
+		o.getKpiMapping = function(data) {
+			return $http.post(Unit.api('/kpimapping/query'), data);
+		};
+
+		o.getTask = function(data) {
+			return $http.post(Unit.api('/task/query'), data);
+		};
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

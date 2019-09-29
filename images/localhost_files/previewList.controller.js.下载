@@ -1,0 +1,139 @@
+(function (graph) {
+
+    'use strict';
+    graph.app.controller('previewCtrl', ['$uibModal', '$scope', '$uibModalInstance', 'MonitoringService', 'list', 'Unit', 'sourceId', function ($uibModal, $scope, $uibModalInstance, MonitoringService, list, Unit, sourceId) {
+
+        $scope.previewListArry = [];
+        $scope.previewListLoading = true;
+        try {
+            var colorObj = JSON.parse(localStorage.getItem('colorkey'));
+            if (colorObj !== null && typeof colorObj === 'object' && Array.isArray(colorObj.data)) {
+                $scope.colorArr = colorObj.data;
+            }
+        } catch (error) {
+            console.log(error);
+        }
+        $scope.loadingFun = function (pagesize, pagenum, list) {
+            $scope.loadingIMG = true;
+            //大屏屏蔽预览
+            if (list.selectorList) {
+                var parmList = list.selectorList;
+                if (list.selectorList[0].selectors[1].value === '-1') {
+                    parmList = [
+                        {
+                            selectors: [list.selectorList[0].selectors[0], list.selectorList[0].selectors[2]]
+                        }
+                    ]
+                }
+                MonitoringService.previewMemoryEvent({
+                    pageNum: pagenum,
+                    pageSize: pagesize,
+                    selectorList: parmList,
+                    sourceIds: sourceId
+                }).success(function (result) {
+                    if (result.success) {
+                        if (result.data !== null && typeof result.data === 'object') {
+                            $scope.previewListArry = $scope.previewListArry.concat(result.data.data);
+                            if (result.data.totalRows) {
+                                $scope.totalRows = result.data.totalRows;
+                                result.data.data.forEach(function (item1, index1) {
+                                    $scope.colorseverity = item1.severity;
+                                    $scope.colorArr.forEach(function (item, index) {
+                                        if (item.severity === $scope.colorseverity) {
+                                            item1.dictionarysevertity = item.chineseName;
+                                            item1.background = { 'border-left': 'solid 8px ' + item.color + '' }
+                                            item1.color = { 'color': item.color }
+
+                                        }
+                                    })
+                                })
+
+
+                            }
+                        }
+                        $scope.previewListLoading = false;
+                        $scope.loadingIMG = false;
+
+                    } else {
+                        Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_FAILED'));
+                    }
+
+
+
+                })
+            } else {
+                MonitoringService.previewEvent({
+                    pageNum: pagenum,
+                    pageSize: pagesize,
+                    selectorList: list,
+                    sourceIds: sourceId
+                }).success(function (result) {
+                    if (result.success) {
+                        if (result.data !== null && typeof result.data === 'object') {
+                            $scope.previewListArry = $scope.previewListArry.concat(result.data.data);
+                            if (result.data.totalRows) {
+                                $scope.totalRows = result.data.totalRows;
+                                result.data.data.forEach(function (item1, index1) {
+                                    $scope.colorseverity = item1.severity;
+                                    $scope.colorArr.forEach(function (item, index) {
+                                        if (item.severity == $scope.colorseverity) {
+                                            item1.dictionarysevertity = item.chineseName;
+                                            item1.background = { 'border-left': 'solid 8px ' + item.color + '' }
+                                            item1.color = { 'color': item.color }
+
+                                        }
+                                    })
+                                })
+                            }
+                        }
+                        $scope.previewListLoading = false;
+                        $scope.loadingIMG = false;
+
+                    } else {
+                        Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_FAILED'));
+                    }
+
+
+                })
+            }
+
+        }
+        $scope.page = 1;
+        $scope.load = function () {
+
+            angular.element('.preview-list').scroll(function () {
+                var scrollTop = document.getElementById('preview-list').scrollTop;
+                var scrollHeight = document.getElementById('preview-list').scrollHeight;
+                var offsetHeight = document.getElementById('preview-list').offsetHeight;
+                if (scrollTop > 1000) {
+                    $scope.topImg = true;
+                } else {
+                    $scope.topImg = false;
+                }
+                if (scrollHeight - (offsetHeight + scrollTop) <= 0 && ($scope.totalRows > $scope.previewListArry.length)) {
+                    $scope.page++;
+                    if ($scope.page > 1) {
+                        $scope.loadingIMG = true;
+                    }
+                    $scope.loadingFun(14, $scope.page, list)
+                }
+
+            });
+
+        }
+        $scope.topImgFun = function () {
+            $('.preview-list').animate({
+                scrollTop: 0
+            }, 300);
+            $scope.topImg = false;
+        }
+        $scope.loadingFun(14, 1, list)
+
+
+        // 取消按钮
+        $scope.cancel = function () {
+            $uibModalInstance.close({ ok: false });
+        };
+
+    }])
+})(nameSpace.reg('graph'));

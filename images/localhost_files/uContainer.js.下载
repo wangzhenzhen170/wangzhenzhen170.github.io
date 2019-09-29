@@ -1,0 +1,88 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('uContainer', ['emxBaseShape', function (uBaseShape) {
+        /**********************************************************/
+
+        /**
+         * 容器形状
+         */
+
+        function uContainer(bounds, fill, stroke, strokewidth) {
+            uBaseShape.apply(this, arguments);
+//            this.bounds = bounds;
+//            this.fill = fill;
+//            this.stroke = stroke;
+//            this.strokewidth = null != strokewidth ? strokewidth : 1
+        }
+
+        mxUtils.extend(uContainer, uBaseShape);
+
+        uBaseShape.prototype.uShapeName = "uContainer";
+
+
+        /**
+         * 绘制前的准备
+         */
+        uContainer.prototype.uBeforePaint = function (c, x, y, w, h) {
+            var state = this.state,
+                style = state.style,
+                cell = state.cell;
+
+            if (!style.image) {
+                style.image = cell.getAttribute('collapsed') || style.collapsedImage;
+                cell.style += ";image=" + style.image;
+            }
+
+            // 容器闭合时不用绘制左上角的图标
+            if (cell.collapsed) {
+                this.hideCellIcon = true;
+                style[mxConstants.STYLE_FONTCOLOR] = style.collapsedFontColor || 'black';
+
+            } else {
+                this.hideCellIcon = false;
+            }
+        };
+
+
+        /**
+         * 绘制背景
+         */
+        uContainer.prototype.paintBackground = function (c, x, y, w, h) {
+            var state = this.state,
+                style = state.style,
+                cell = state.cell,
+                image;
+
+            // 容器闭合时不用绘制左上角的图标
+            if (cell.collapsed) {
+                c.image(x, y, w, h, style.image);
+            } else {
+                // 默认的图标路径有问题，暂时改成不绘制 2016-08-04
+                this.hideCellIcon = true
+                uBaseShape.prototype.paintBackground.apply(this, arguments);
+            }
+        };
+
+
+        uContainer.prototype.getLabelBounds = function (bounds) {
+            var state = this.state,
+                style = state.style,
+                cell = state.cell;
+
+            if (cell.collapsed) {
+                bounds.y = bounds.y + bounds.height;
+                bounds.height = style.titleHeight;
+                return bounds;
+            } else {
+                return uBaseShape.prototype.getLabelBounds.apply(this, arguments);
+            }
+        };
+
+
+        // 注册形状
+        mxCellRenderer.registerShape('uContainer', uContainer);
+
+        return uContainer;
+    }]);
+})();

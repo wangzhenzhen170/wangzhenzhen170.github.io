@@ -1,0 +1,275 @@
+(function (graph, self) {
+    'use strict';
+
+    graph.app.controller('MainGroupList', ['$scope', '$state', '$q', 'GroupService', 'ViewService', 'Unit', 'Const', '$timeout', '$location', 'Event', function ($scope, $state, $q, GroupService, ViewService, Unit, Const, $timeout, $location, Event) {
+
+        $scope.groups = [];
+
+        var reqs = {};
+
+        // 查询私有
+        if ($state.includes('home.group.listmine')) {
+            reqs.private = GroupService.private({
+                page: 1,
+                pageSize: 500
+            });
+
+            // 查询我订阅的
+            reqs.subscried = GroupService.getSubscriber({
+                page: 1,
+                pageSize: 500
+            });
+        }
+
+        // 场景广场
+        if ($state.includes('home.group.listpublic')) {
+            reqs.public = GroupService.public({
+                page: 1,
+                pageSize: 5000
+            });
+        }
+
+
+        function parseData(datas, marker) {
+            var dataMap = {};
+            angular.forEach(datas, function (d) {
+                try {
+                    if (typeof d.content === 'string'){
+						d.content = JSON.parse(d.content);
+						var layers = d.content.content.d3setting.layers;
+						if(d.content.views.length){
+							for(var i=0; i<layers.length; i++){
+								for(var j=0; j<layers[i].length; j++){
+									if(layers[i][j] && typeof layers[i][j] === 'object' && layers[i][j].viewid === d.content.views[0]){
+										d.thumbnail = layers[i][j].src;
+									}
+								}
+							}
+						}
+					}
+
+                } catch (e) {
+                    console.error(e);
+                }
+
+                marker && (d[marker] = true);
+                dataMap[d.id] = d;
+            });
+
+            return dataMap;
+        }
+
+        // 处理数据
+        $q.all(reqs).then(function (resp) {
+            var datas, subs, pubs;
+            // 私有
+            if (resp.private) {
+                datas = resp.private.data.data.datas;
+                parseData(datas, '_private');
+                $scope.groups = $scope.groups.concat(datas);
+            }
+            // 订阅
+            if (resp.subscried) {
+                datas = resp.subscried.data.data.datas;
+                subs = parseData(datas, 'isSub');
+                // 如果当前在我的场景下则直接把订阅内容加到列表
+                if (!resp.public)
+                    $scope.groups = $scope.groups.concat(datas);
+            }
+            // 公共
+            if (resp.public) {
+                datas = resp.public.data.data.datas;
+                pubs = parseData(datas, '_public');
+                angular.forEach(pubs, function (d, id) {
+                    d.isSub && (d._subscribed = true);
+                });
+                $scope.groups = $scope.groups.concat(datas);
+            }
+
+        }, function (ret) {
+            console.error(ret);
+        });
+
+        // 修改
+        $scope.modify = function (item, $event) {
+            $event.stopPropagation();
+            $state.go('home.group.edit', {
+                id: item.id
+            });
+        };
+
+        // 删除
+        $scope.delItem = function (item, $event) {
+            $event.stopPropagation();
+            Unit.confirm(graph.translate('CONFIRM'), function () {
+
+                GroupService.delete(item.id).then(function (ret) {
+                    var i = $scope.groups.indexOf(item);
+                    if (i >= 0) {
+                        $scope.groups.splice(i, 1);
+                    }
+                }, function (ret) {
+                    console.error(ret);
+                });
+
+            });
+        };
+
+        // 取消订阅
+        $scope.cancelSub = function (item, $event) {
+            $event.stopPropagation();
+            Unit.confirm(graph.translate('CONFIRM'), function () {
+                GroupService.cancelSub(item.id).then(function (ret) {
+                    item.isSub = false;
+                    if ($state.includes('home.group.listmine')) {
+                        var i = $scope.groups.indexOf(item);
+                        if (i >= 0) {
+                            $scope.groups.splice(i, 1);
+                        }
+                    }
+                }, function (ret) {
+                    console.error(ret);
+                });
+            });
+        };
+        // 订阅
+        $scope.subscriber = function (item, $event) {
+            $event.stopPropagation();
+            GroupService.subscriber(item.id).then(function (ret) {
+                item.isSub = true;
+            }, function (ret) {
+                console.error(ret);
+            });
+        };
+
+        // 发布
+        $scope.publish = function (item, $event) {
+            $event.stopPropagation();
+            GroupService.publish(item.id).then(function (ret) {
+                item.open = true;
+            }, function (ret) {
+                console.error(ret);
+            })
+        };
+
+        // 取消发布
+        $scope.cancelPublish = function (item, $event) {
+            $event.stopPropagation();
+
+            Unit.confirm(graph.translate('CONFIRM'), function () {
+
+                GroupService.cancelPublish(item.id).then(function (ret) {
+                    item.open = false;
+                    if ($state.includes('home.group.listpublic')) {
+                        var i = $scope.groups.indexOf(item);
+                        if (i >= 0) {
+                            $scope.groups.splice(i, 1);
+                        }
+                    }
+                }, function (ret) {
+                    console.error(ret);
+                });
+
+            });
+        };
+
+        $scope.create = function ($event) {
+            $event.stopPropagation();
+            $state.go('home.group.create');
+        };
+
+        // 我的场景
+        $scope.goListMine = function ($event) {
+            $event.stopPropagation();
+            if (!$state.includes('home.group.listmine')) {
+                $state.go('home.group.listmine');
+            }
+        };
+
+        // 场景广场
+        $scope.goListPublic = function ($event) {
+            $event.stopPropagation();
+            if (!$state.includes('home.group.listpublic')) {
+                $state.go('home.group.listpublic');
+            }
+        };
+
+        // 打开场景
+        $scope.showGroup = function (item, $event) {
+            $event.stopPropagation();
+            $state.go('home.group.view', {
+                id: item.id
+            });
+        };
+
+        // 获取打开场景的url
+        $scope.getViewUrl = function (item) {
+            var curl = '#' + $location.url();
+            var vurl = $state.href('groupView', {
+                id: item.id
+            });
+
+            return $location.absUrl().replace(curl, vurl);
+        };
+
+        $scope.sceneAlarms = {};
+        $scope.getSceneAlarmData = function (item) {
+            var data = $scope.sceneAlarms[item.id];
+            var levelNames = [
+            	graph.translate('NORMAL'),
+				graph.translate('INFO'),
+				graph.translate('WARNING'),
+				graph.translate('MINOR'),
+				graph.translate('MAJOR'),
+				graph.translate('CRITICAL')
+			];
+
+            if (data && data.count) {
+                return {
+                    monitorStyle: 'monitor-level-' + data.level,
+                    count: data.count,
+                    level: data.level,
+                    levelName: levelNames[data.level]
+                };
+            } else {
+                return {};
+            }
+        };
+
+        $scope._alarmUpdateTimer = null;
+        // 查询我的场景里的告警
+        function updateMySceneAlarm () {
+            if ($scope._alarmUpdateTimer) {
+                $timeout.cancel($scope._alarmUpdateTimer);
+            }
+
+            if (!$state.includes('home.group.listmine')) {
+                return ;
+            }
+
+            GroupService.getMySceneAlarm().then(function (ret) {
+                var data = ret.data.data;
+                $scope.sceneAlarms = {};
+
+                angular.forEach(data, function (d) {
+                    $scope.sceneAlarms[d.sceneId] = d;
+                });
+
+            }, function (ret) {
+
+                console.error(ret);
+
+            }).finally(function () {
+
+                $timeout(updateMySceneAlarm, Const.MONITOR_TIMEOUT);
+
+            });
+
+        }
+
+        if ($state.includes('home.group.listmine')) {
+            updateMySceneAlarm();
+        }
+
+    }]);
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

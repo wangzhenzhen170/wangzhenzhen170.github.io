@@ -1,0 +1,119 @@
+(function(graph) {
+
+	'use strict';
+
+	graph.app.controller('mySceneCtrl', ['$scope', '$state', '$filter', '$location', 'ScenceService', 'Unit', function($scope, $state, $filter, $location, ScenceService, Unit) {
+
+		$scope.createScene = function() {
+			$state.go('tarsier.scenes.create');
+		};
+
+		// $scope.showScene = function (item, $event) {
+		//           $event.stopPropagation();
+		//           $state.go('tarsier.scenes.detail', {
+		//               id: item.scene.id
+		//           });
+		//       };
+
+		$scope.sceneBusy = true;
+
+		//获取场景列表
+		$scope.getSceneList = function() {
+			ScenceService.getSceneList().then(function(data) {
+				$scope.sceneBusy = false;
+				//获取缩略图
+				var dd = data.data.data;
+
+				if (!dd.length) {
+					$scope.sceneEmpty = true;
+				} else {
+					for (var i = 0; i < dd.length; i++) {
+						dd[i].scenename = dd[i].scene.sceneName;
+						var count = 0;
+						var severityArr = [];
+						var ciArr = [];
+						for (var j = 0; j < dd[i].sceneDiagramInfos.length; j++) {
+							if (dd[i].sceneDiagramInfos[j].vcDiagramInfo) {
+								if (dd[i].sceneDiagramInfos[0].vcDiagramInfo) {
+									dd[i].thumbnail = dd[i].sceneDiagramInfos[0].vcDiagramInfo.diagram.icon1;
+								}
+							}
+							//获取监控数据
+							if (dd[i].sceneDiagramInfos[j].eventStatistics) {
+								var monitor = dd[i].sceneDiagramInfos[j].eventStatistics;
+								$.each(monitor, function() {
+									if (this.count && this.severity != -1 && ciArr.indexOf(this.ciId) == -1) {
+										count += this.count;
+										severityArr.push(this.severity);
+										ciArr.push(this.ciId);
+									}
+								});
+								dd[i].alarmCount = count;
+								dd[i].severity = d3.min(severityArr);
+							}
+						}
+					}
+				}
+				$scope.sceneList = dd;
+			});
+		};
+
+		$scope.getSceneList();
+
+		//场景列表事件台筛选
+		$scope.$watch('filteredItems', function(nv, ov) {
+			if (ov) {
+				if (!nv.length) {
+					$scope.sceneEmpty = true;
+				} else {
+					$scope.sceneEmpty = false;
+				}
+			}
+		}, true);
+
+		//修改场景
+		$scope.modify = function(item, $event) {
+			$event.stopPropagation();
+			$state.go('tarsier.scenes.edit', {
+				id: item.scene.id
+			});
+		};
+
+		//删除场景
+		$scope.removeScene = function(item, $event) {
+			Unit.confirm('确认删除该故障吗', function() {
+				ScenceService.removeScence({
+					id: item.scene.id
+				}).then(function(data) {
+					$scope.getSceneList();
+				}, function(error) {
+					console.log(error);
+				});
+			});
+		};
+
+		//关注取关
+		$scope.follow = function(item, $event) {
+
+			var param;
+
+			if (item.sceneUserConf) {
+				param = {
+					id: item.sceneUserConf.id
+				};
+			} else {
+				param = {
+					sceneId: item.scene.id
+				};
+			}
+
+			ScenceService.followScence(param).then(function(data) {
+				$scope.getSceneList();
+			}, function(error) {
+				console.log(error);
+			});
+		};
+
+	}]);
+
+})(nameSpace.reg('graph'));

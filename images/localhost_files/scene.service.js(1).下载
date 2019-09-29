@@ -1,0 +1,66 @@
+(function(graph) {
+
+    'use strict';
+
+    graph.app.service('ScenceService', ['$http', 'Unit', function($http, Unit) {
+
+        //获取公开视图
+        this.getOpenDiagrams = function(params) {
+            return $http.post(Unit.sceneApi('/scene/queryDiagramInfoInScenePage'), params);
+        };
+
+        //获取视图及告警
+        this.getAlarmDiagrams = function(params) {
+            return $http.post(Unit.sceneApi('/scene/queryDiagramInfoAndWarningPage'), params);
+        };
+
+        //获取场景列表
+        this.getSceneList = function(params) {
+            var params = params || {};
+            return $http.post(Unit.sceneApi('/scene/querySceneAndWarningInfoList'), params);
+        };
+
+        //保存场景
+        this.saveScence = function(params) {
+            return $http.post(Unit.sceneApi('/scene/saveOrUpdateSceneAndLinksAndDiagrams'), params);
+        };
+
+        //删除场景
+        this.removeScence = function(params) {
+            return $http.post(Unit.sceneApi('/scene/removeSceneById'), params);
+        };
+
+        //关注取关
+        this.followScence = function(params) {
+            return $http.post(Unit.sceneApi('/scene/saveOrUpdateSceneUserConf'), params);
+        };
+
+        //获取场景中的视图信息
+        this.getSceneDiagramInfo = function(params) {
+            return $http.post(Unit.sceneApi('/scene/querySceneDiagramInWarningById'), params);
+        };
+
+        //根据视图查询告警
+        this.getDiagramAlarm = function(params) {
+            return $http.post(Unit.sceneApi('/scene/queryDiaramInWarningById'), params);
+        };
+
+        //视图下的告警列表
+        this.getDiagramEventlist = function(param) {
+            return $http.post(Unit.diagramApi('/comb/queryAlarmListByDiagramId'), param);
+        };
+
+        //查询带告警的视图详情
+        this.getDiagramDetail = function(params) {
+            // return $http.post(Unit.diagramApi('/comb/queryDiagramInfoAndWarnById'), params);
+            return $http.post(Unit.diagramApi('/comb/queryDiagramInfoAndEventById'), params);
+        };
+
+        //根据label查询CI
+        this.queryCiByLabels = function(params) {
+            return $http.post(Unit.diagramApi('/ci/queryPageByAllIndex'), params);
+        };
+
+    }]);
+
+})(nameSpace.reg('graph'));

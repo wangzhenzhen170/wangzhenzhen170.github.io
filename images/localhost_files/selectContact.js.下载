@@ -1,0 +1,198 @@
+(function (graph) {
+
+    'use strict';
+    //告警详情页面
+    graph.app.directive('selectContact', ['$cookies', function ($cookies) {
+        return {
+            restrict: 'AE',
+            replace: true,
+            scope: {
+                lineLong: '=lineLong'
+            },
+            templateUrl: 'app/directive/selectContact/selectContact.html',
+            controller: ['$scope', '$sce', '$timeout', '$state', 'Unit', 'uDialog', 'MonitoringService', '$uibModal', function ($scope, $sce, $timeout, $state, Unit, uDialog, MonitoringService, $uibModal) {
+                $scope.L =L;
+                $scope.objs = {};
+                $scope.objs.searchPerson = "";
+                $scope.objs.slShow = false;
+                $scope.bg = 1;
+                $scope.$on('bg', function (event, data) {
+                    $scope.bg = data;
+
+                })
+                $scope.queryUserFun = function (name) {
+                    var obj;
+                    if (name) {
+                        obj = { name: name }
+                    } else {
+                        obj = {}
+                    }
+                    MonitoringService.userList(obj).success(function (result) {
+                        if (result.success) {
+                            $scope.loadingIMG = false;
+                            $scope.list = result.data;
+                            if ($scope.list && $scope.list.length > 0) {
+                                $.each($scope.list, function (index, item) {
+                                    item.idFlag = "u" + item.id;
+                                })
+                            }
+                        } else {
+                          Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                        }
+
+
+                    })
+
+                }
+                //$scope.queryUserFun();
+                $scope.queryteamFun = function (string) {
+                    MonitoringService.queryAllGroup({ name: string }).success(function (result) {
+                        $scope.loadingIMG = false;
+                        $scope.list = result.data
+                        $.each($scope.list, function (index, item) {
+                            item.idFlag = "t" + item.id;
+                        })
+                    }).error(function () {
+
+                    });
+                }
+                $scope.dutypersonFun = function (string) {
+
+                    MonitoringService.getOnDutyPostList({ name: string }).success(function (result) {
+                        $scope.loadingIMG = false;
+                        $scope.list = result.data;
+
+                    }).error(function () {
+
+                    });
+                }
+
+                $scope.selectedPerson = [];
+                $scope.selectedcheckPerson = [];
+                $scope.list = $scope.personList;
+                $scope.teamPersonFun = function (flag, $event) {
+                    $scope.loadingIMG = true;
+                    $scope.objs.slShow = true;
+                    $scope.list = [];
+                    $event.stopPropagation();
+                    if (flag == 1) {
+                        $scope.bg = 1;
+                        $scope.queryUserFun();
+                    } else if (flag == 2) {
+                        $scope.bg = 2;
+                        $scope.queryteamFun();
+                    } else {
+                        $scope.bg = 3;
+                        $scope.dutypersonFun();
+                    }
+                    $scope.objs.searchPerson = "";
+                }
+                $scope.seclectFun = function (item, $event) {
+                    $event.stopPropagation();
+                    var param = {};
+                    param.id = item.id;
+                    param.groupName = item.groupName;
+                    if (item.groupName) {
+                        $scope.selectedPerson.unshift(param);
+                    } else {
+                        $scope.selectedPerson.unshift(item);
+                    }
+
+                    $scope.selectedcheckPerson.unshift(item.idFlag);
+                    $scope.lineLong();
+                    $scope.getUsersFun();
+                }
+                $scope.deletePersonFun = function (item, $index, $event) {
+                    $event.stopPropagation();
+                    $scope.selectedPerson.splice($index, 1)
+                    $scope.selectedcheckPerson.splice($index, 1);
+                    $scope.lineLong();
+                    $scope.getUsersFun();
+                }
+                $scope.searchFun = function () {
+                    if ($scope.bg == 2) {
+                        $scope.queryteamFun($scope.objs.searchPerson);
+                    } else if ($scope.bg == 1) {
+                        $scope.queryUserFun($scope.objs.searchPerson);
+                    } else if ($scope.bg == 3) {
+                        $scope.dutypersonFun($scope.objs.searchPerson);
+                    }
+                }
+                $scope.$on('pActive', function (event, data) {
+                    $scope.pActive = data;
+                    $scope.queryUserFun();
+                    $scope.objs.searchPerson = "";
+
+                })
+                $scope.$on('slShow', function (event, data) {
+                    $scope.objs.slShow = data;
+                    $scope.objs.searchPerson = "";
+                    //$scope.searchFun();
+
+                })
+                $scope.$on('UserTeams', function (event, data) {
+                    //console.log(data)
+                    $scope.selectedPerson = [];
+                    $scope.selectedcheckPerson = [];
+                    if (data.Users) {
+                        $.each(data.Users, function (index, item) {
+                            $scope.selectedPerson.push(item);
+                            item.idFlag = "u" + item.id;
+                            $scope.selectedcheckPerson.push(item.idFlag);
+                        })
+
+                    }
+                    if (data.Teams) {
+                        $.each(data.Teams, function (index, item) {
+                            $scope.selectedPerson.push(item);
+                            item.idFlag = "t" + item.id;
+                            $scope.selectedcheckPerson.push(item.idFlag)
+                        })
+
+                    }
+                    if (data.dutyperson) {
+                        $.each(data.dutyperson, function (index, item) {
+                            $scope.selectedPerson.push(item)
+                            //$scope.selectedcheckPerson.push(item.idFlag)
+                        })
+
+                    }
+
+                })
+                //
+                $scope.clearFun = function () {
+                    if (!$scope.objs.slShow) {
+                        $scope.objs.searchPerson = "";
+
+                    } else {
+                        $scope.searchFun();
+                    }
+                }
+                //$scope.getUsersFun();
+                $scope.getUsersFun = function () {
+                    var UserTeams = {};
+                    UserTeams.Users = [];
+                    UserTeams.Teams = [];
+                    UserTeams.dutyperson = [];
+                    if ($scope.selectedPerson.length > 0) {
+                        $.each($scope.selectedPerson, function (index, item) {
+                            if (item.userName) {
+
+                                UserTeams.Users.push(item.userCode)
+                            } else if (item.groupName) {
+                                UserTeams.Teams.push(item.id)
+                            } else {
+                                UserTeams.dutyperson.push(item)
+                            }
+                        })
+                    }
+                    //console.log(UserTeams.Users)
+
+                    $scope.$emit('UserTeams1', UserTeams)
+
+                }
+            }]
+        };
+    }]);
+
+})(nameSpace.reg('graph'));

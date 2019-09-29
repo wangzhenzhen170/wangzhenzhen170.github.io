@@ -1,0 +1,27 @@
+(function(mxCell){
+    var pre = 'ut';
+    mxCell.prototype.setUtAttr = function(key, val){
+
+        try {
+            if(typeof val === 'object' && val !== null){
+                val = JSON.stringify(val);
+            }
+        } catch (e){
+            // console.error(e);
+        }
+
+        this[pre + key] = val;
+    };
+
+    mxCell.prototype.getUtAttr = function(key){
+        var res = this[pre + key];
+        try {
+            res = JSON.parse(this[pre + key]);
+        } catch (e){
+            // console.error(e);
+        }
+        return res;
+    };
+
+})(mxCell);
+

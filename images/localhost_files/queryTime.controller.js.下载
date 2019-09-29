@@ -1,0 +1,119 @@
+(function(graph){
+
+	'use strict';
+	//告警详情页面
+	graph.app.directive('queryTime', function() {
+		return {
+			restrict : 'AE',
+			replace : true,
+			scope: {
+				type: '@type',
+				startTimeHour:'=startTimeHour',
+				endTimeHour:'=endTimeHour',
+				noClickType:'@noClickType'
+			},
+			templateUrl: 'app/directive/queryTime/queryTime.html',
+			controller: ['$scope', '$timeout', '$state','Unit','uDialog','MonitoringService','$uibModal',function($scope, $timeout,$state,Unit,uDialog,MonitoringService,$uibModal){
+				function timeNumber(small,large,arr){
+					for(var i=small; i<large;i++){
+						i=i>9?i:'0'+i;
+						arr.push(i);
+					}
+					return arr;
+				};
+				$scope.type;
+               //console.log($scope.startTimeHour);
+				//console.log($scope.endTimeHour)
+				$scope.hour=[];
+				$scope.minate=[];
+				$scope.seconds=[];
+				function dateFormFun(time){
+					if(time<10){
+						time="0"+time;
+					}
+					return time;
+				};
+				function calculateTime(hour,minate,seconds){
+					var time=hour*3600+minate*60+seconds
+					return time;
+				}
+				timeNumber(0,24,$scope.hour);
+				timeNumber(0,60,$scope.minate);
+				timeNumber(0,60,$scope.seconds);
+                if($scope.type=='startTime'){
+					$scope.timeHour=$scope.startTimeHour.split(':')[0];
+					$scope.timeMinate=$scope.startTimeHour.split(':')[1];
+					$scope.timeSeconds=$scope.startTimeHour.split(':')[2];
+				}
+				if($scope.type=='endTime'){
+					$scope.timeHour=$scope.endTimeHour.split(':')[0];
+					$scope.timeMinate=$scope.endTimeHour.split(':')[1];
+					$scope.timeSeconds=$scope.endTimeHour.split(':')[2];
+				}
+				/*$scope.timeHour='00';
+				$scope.timeMinate='00';
+				$scope.timeSeconds='00';*/
+				$scope.$on('timeOutTime',function(event,data){
+					$scope.timeHour=parseInt((data-(data%3600))/3600);
+					data=data-$scope.timeHour*3600;
+					$scope.timeMinate=parseInt((data-(data%60))/60);
+					$scope.timeSeconds=data-$scope.timeMinate*60;
+				})
+				$scope.selectHourFun=function(item){
+					$scope.timeHour=item;
+					//$scope.timeHour=dateFormFun($scope.timeHour);
+					calculateTime($scope.timeHour,$scope.timeMinate,$scope.timeSeconds)
+					$scope.$emit('duration',calculateTime($scope.timeHour,$scope.timeMinate,$scope.timeSeconds))
+
+					if($scope.type=='startTime'){
+						$scope.$emit('startTimeHour',($scope.timeHour)+":" +($scope.timeMinate)+":" +($scope.timeSeconds)
+						)
+					}
+					if($scope.type=='endTime'){
+						$scope.$emit('endTimeHour',($scope.timeHour)+":" +($scope.timeMinate)+":" +($scope.timeSeconds)
+						)
+					}
+
+				}
+				$scope.selectMinateFun=function(item){
+					$scope.timeMinate=item;
+					//$scope.timeMinate=dateFormFun($scope.timeMinate);
+					calculateTime($scope.timeHour,$scope.timeMinate,$scope.timeSeconds)
+					$scope.$emit('duration',calculateTime($scope.timeHour,$scope.timeMinate,$scope.timeSeconds));
+					if($scope.type=='startTime'){
+						$scope.$emit('startTimeHour',($scope.timeHour)+":" +($scope.timeMinate)+":" +($scope.timeSeconds)
+						)
+					}
+					if($scope.type=='endTime'){
+						$scope.$emit('endTimeHour',($scope.timeHour)+":" +($scope.timeMinate)+":" +($scope.timeSeconds)
+						)
+					}				}
+				$scope.selectSecondsFun=function(item){
+					$scope.timeSeconds=item;
+					//$scope.timeSeconds=dateFormFun($scope.timeSeconds);
+					calculateTime($scope.timeHour,$scope.timeMinate,$scope.timeSeconds);
+					$scope.$emit('duration',calculateTime($scope.timeHour,$scope.timeMinate,$scope.timeSeconds))
+					if($scope.type=='startTime'){
+						$scope.$emit('startTimeHour',($scope.timeHour)+":" +($scope.timeMinate)+":" +($scope.timeSeconds)
+						)
+					}
+					if($scope.type=='endTime'){
+						$scope.$emit('endTimeHour',($scope.timeHour)+":" +($scope.timeMinate)+":" +($scope.timeSeconds)
+						)
+					}				}
+				$scope.timeList=function(){
+					if($scope.type=='startTime'){
+						$('.start').show();
+					}
+					if($scope.type=='endTime'){
+						$('.end').show();
+					}
+
+				}
+
+
+			}]
+		};
+	});
+
+})(nameSpace.reg('graph'));

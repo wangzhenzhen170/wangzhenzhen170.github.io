@@ -1,0 +1,124 @@
+(function(graph) {
+
+    'use strict';
+    // 缩放画布
+    graph.app.directive('zoomGraph', function() {
+        return {
+            restrict: 'E',
+            replace: true,
+            templateUrl: 'app/directive/zoomGraph/zoomGraph.html',
+            scope: {
+                'graph': '=',
+                'left': '=',
+                'bottom': '='
+            },
+            link: function(scope, ele, attrs) {
+                $(ele).css('left', scope.left);
+                $(ele).css('bottom', scope.bottom);
+                scope.$watch('graph', function(nv, ov) {
+                    if (nv) {
+                        var zoomInIcon = $(ele).find('.add');
+                        var zoomOutIcon = $(ele).find('.minus');
+                        var zoomControl = $(ele).find('.range-control');
+                        var rangeBar = $(ele).find('.range-bar');
+                        var rangeSize = $(ele).find('.range-size');
+                        var scale = 1;
+
+                        zoomControl.on('mousedown', function(e) {
+                            var disY = e.pageY - parseInt($(this).css('top'));
+                            var _this = $(this);
+
+                            $(document).on('mousemove', function(e) {
+                                var _disY = e.pageY - disY;
+
+                                if (_disY < 0) {
+                                    _disY = 0;
+                                    scale = 2;
+                                }
+                                if (_disY > (rangeBar.height() - _this.height() - 2)) {
+                                    _disY = rangeBar.height() - _this.height() - 2;
+                                    scale = 0.2;
+                                }
+                                if (_disY < 112 && _disY >= 98) {
+                                    _disY = 98;
+                                    scale = 0.4;
+                                }
+                                if (_disY < 98 && _disY >= 84) {
+                                    _disY = 84;
+                                    scale = 0.6;
+                                }
+                                if (_disY < 84 && _disY >= 70) {
+                                    _disY = 70;
+                                    scale = 0.8;
+                                }
+                                if (_disY < 70 && _disY >= 56) {
+                                    _disY = 56;
+                                    scale = 1;
+                                }
+                                if (_disY < 56 && _disY >= 42) {
+                                    _disY = 42;
+                                    scale = 1.2;
+                                }
+                                if (_disY < 42 && _disY >= 28) {
+                                    _disY = 28;
+                                    scale = 1.4;
+                                }
+                                if (_disY < 28 && _disY >= 14) {
+                                    _disY = 14;
+                                    scale = 1.6;
+                                }
+                                if (_disY < 14 && _disY >= 0) {
+                                    _disY = 0;
+                                    scale = 1.8;
+                                }
+
+                                _this.css('top', _disY);
+                                rangeSize.height(rangeBar.height() - _disY - _this.height() - 2);
+                                scope.graph.zoomTo(scale);
+                            });
+
+                            $(document).bind('mouseup', function() {
+                                $(document).unbind();
+                            });
+
+                            return false;
+                        });
+
+                        scope.zoomIn = function() {
+                            var top = parseInt(zoomControl.css('top')) - 14;
+                            if (top < 0) {
+                                top = 0;
+                            } else {
+                                scale += 0.2;
+                                scope.graph.zoomTo(scale);
+                            }
+                            zoomControl.css('top', top);
+                            rangeSize.height(rangeBar.height() - zoomControl.height() - top - 2);
+                        };
+
+                        scope.zoomOut = function() {
+                            var top = parseInt(zoomControl.css('top')) + 14;
+                            if (top > (rangeBar.height() - zoomControl.height() - 2)) {
+                                top = rangeBar.height() - zoomControl.height() - 2;
+                            } else {
+                                scale -= 0.2;
+                                scope.graph.zoomTo(scale);
+                            }
+                            zoomControl.css('top', top);
+                            rangeSize.height(rangeBar.height() - zoomControl.height() - top - 2);
+                        };
+
+                        scope.zoomReset = function() {
+                            zoomControl.css('top', 56);
+                            rangeSize.height(56);
+                            scale = 1;
+                            // scope.graph.zoomTo(scale);
+                            scope.graph.zoomToCenter();
+                        };
+                    }
+                });
+            }
+        };
+    });
+
+})(nameSpace.reg('graph'));

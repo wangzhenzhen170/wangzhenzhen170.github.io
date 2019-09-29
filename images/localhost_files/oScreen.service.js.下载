@@ -1,0 +1,171 @@
+(function (graph) {
+
+    'use strict';
+
+    graph.app.service('OScreenService', ['$http', 'Unit', 'MockPromise', '$q', function ($http, Unit, MockPromise, $q) {
+        //获取大屏列表标题数据
+		/*this.getOScreenListTitle = function(param) {
+		 return $http.post(Unit.monitorApi('/event/queryViewFields'), param);
+		 };*/
+        this.queryTableColumn = function (param) {
+            return $http.post(Unit.monitorApi('/view/queryTableColumn'), param);
+        };
+        /*判断有没有权限派单*/
+        this.checkEventTicketAuthority = function (param) {
+            return $http.post(Unit.monitorApi('/event/checkEventTicketAuthority'), param);
+        };
+        /*判断派单/关闭/确认的权限*/
+        this.checkLoginUserAuthority = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/checkLoginUserAuthority'), param);
+        };
+        /*应用环图*/
+        this.appCircleDiagramParam = function (param) {
+            return $http.post(Unit.monitorApi('/event/appCircleDiagramParam'), param);
+        };
+        //列表查询
+        this.queryEventPage = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/queryEventPage'), param, { ignoreLoadingBar: true });
+        };
+        //确认事件&&关闭事件
+        this.confirmEvent = function (param) {
+            return $http.post(Unit.monitorApi('/event/ackEventAlarm'), param);
+        };
+        this.closeEvent = function (param) {
+            return $http.post(Unit.monitorApi('/event/closeEventAlarm'), param);
+        };
+        //下载接口
+        this.export = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/export'), param, { responseType: 'arraybuffer' });
+        };
+        /*告警显示灯接口*/
+        this.querySeverityGroup = function (param) {
+            //return $http.post(Unit.monitorApi('/event/querySeverityGroup'), param,{ignoreLoadingBar: true});
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.monitorApi('/eventShow/querySeverityGroup'), param, {
+                timeout: deferred.promise,
+                ignoreLoadingBar: true
+            });
+
+            $promise.cancel = function () {
+                deferred.resolve();
+            };
+            return $promise;
+        };
+        //搜索状态接口
+        this.queryDict = function (param) {
+            return $http.post(Unit.monitorApi('/dict/queryDict'), param);
+        };
+        //搜索状态接口
+        this.severityList = function (param) {
+            return $http.post(Unit.monitorApi('/severity/list'), param);
+        };
+        //获取所有table表头
+        this.queryTableColumnDiff = function (param) {
+            return $http.post(Unit.monitorApi('/view/queryTableColumnDiff'), param);
+        };
+        /*保存自定义的表头*/
+        this.modifyTitles = function (param) {
+            return $http.post(Unit.monitorApi('/view/modifyTitles'), param);
+        };
+        /*请求自定义视图*/
+        this.getAllviews = function (param) {
+            return $http.post(Unit.monitorApi('/view/getAllviews'), param);
+        };
+        /*可视化大屏  据时间范围查询指定时间段内事件处理情况*/
+        this.getEventVisual = function (param) {
+            return $http.post(Unit.monitorApi('/eventVisual/getEventVisual'), param, { ignoreLoadingBar: true });
+        };
+        /*可视化大屏  根据ruleType查规则*/
+        this.ruleMatches = function (param) {
+            return $http.post(Unit.monitorApi('/eventVisual/ruleMatches'), param);
+        };
+        /*可视化大屏  告警*/
+        this.eventList = function (param) {
+            return $http.post(Unit.monitorApi('/eventVisual/eventList'), param);
+        };
+        /*大屏30秒查询是否有新告警*/
+        this.queryLatest30sLargestLevel = function (param) {
+            //return $http.post(Unit.monitorApi('/event/queryLatest30sLargestLevel'), param,{ignoreLoadingBar: true});
+            var deferred = $q.defer();
+            var $promise = $http.post(Unit.monitorApi('/eventShow/queryLatest30sLargestLevel'), param, {
+                timeout: deferred.promise,
+                ignoreLoadingBar: true
+            });
+
+            $promise.cancel = function () {
+                deferred.resolve();
+            };
+            return $promise;
+        };
+        /*进入编辑-数据总接口*/
+        ///view/queryViewCdtDic
+        this.queryViewCdtDic = function (param) {
+            return $http.post(Unit.monitorApi('/view/queryViewCdtDic'), param);
+        };
+        // 确认、取消是否有权限
+        this.validate = function (param) {
+            return $http.post(Unit.monitorApi('/group/validate'), param);
+        };
+        // 添加标签
+        this.addTag = function (param) {
+            return $http.post(Unit.monitorApi('/event/addTag'), param);
+        };
+        // 工单过程
+        this.getEventTicketStatus = function (param) {
+            return $http.post(Unit.monitorApi('/eventTicket/getEventTicketStatus'), param);
+        };
+        // 大屏监控值班日志列表
+        this.eventLogQueryPageList = function (param) {
+            return $http.post(Unit.monitorApi('/eventLog/queryPageList'), param);
+        };
+        // 大屏监控值班日志列表下载
+        this.eventLogexport = function (param) {
+            return $http.post(Unit.monitorApi('/eventLog/export'), param, { responseType: 'arraybuffer' });
+        };
+        // 大屏监控值班日志列表更新
+        this.eventLogupdate = function (param) {
+            return $http.post(Unit.monitorApi('/eventLog/update'), param);
+        };
+        // 大屏监控值班日志列表删除
+        this.eventLogdelete = function (param) {
+            return $http.post(Unit.monitorApi('/eventLog/delete'), param);
+        };
+        // 应用商店列表
+        this.appSuperMarketQueryAll = function (param) {
+            return $http.post(Unit.monitorApi('/appSupermarket/queryAll'), param);
+        };
+        // 应用商店 删除
+        this.appSuperMarketRemoveById = function (param) {
+            return $http.post(Unit.monitorApi('/appSupermarket/removeById'), param);
+        };
+        // 获取所有星标应用
+        this.appSupermarketGetStarApp = function (param) {
+            return $http.post(Unit.monitorApi('/appSupermarket/getStarApp'), param);
+        };
+        // 星标应用
+        this.appSupermarketStar = function (param) {
+            return $http.post(Unit.monitorApi('/appSupermarket/star'), param);
+        };
+        // 取消星标应用
+        this.appSupermarketUnStar = function (param) {
+            return $http.post(Unit.monitorApi('/appSupermarket/unStar'), param);
+        };
+        // 告警声音所基于的告警范围配置
+        this.voiceSwitch = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/voiceSwitch'), param);
+        };
+        this.getMaxExcelRow = function (param) {
+            return $http.post(Unit.monitorApi('/eventShow/getExcelMaxRow'), param);
+        };
+        //影响分析大屏获取所有节点
+        this.getImpactAnalysis = function (param) {
+            return $http.post(Unit.monitorApi('/eventVisual/getImpactAnalysis'), param);
+        };
+        //影响分析大屏获取告警
+        this.getEventCountByCiCodes = function (param) {
+            return $http.post(Unit.monitorApi('/eventAdapter/getEventCountByCiCodes'), param);
+        };
+    }]);
+
+})(nameSpace.reg('graph'));

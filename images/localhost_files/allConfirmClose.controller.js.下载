@@ -1,0 +1,338 @@
+(function (graph) {
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('allConfirmClose', function () {
+		return {
+			restrict: 'AE',
+			replace: true,
+			scope: {
+				item: '=item',
+				type: '@type', /*1 告警 2故障*/
+				eventType: "@eventType", /*1活动事件 2已确认事件 3已关闭事件 4维护期事件 */
+				modalFlag: '@modalFlag', /*是否关闭弹窗*/
+				isOsreen: '@isOsreen',
+			},
+			templateUrl: 'app/directive/allConfirmClose/allConfirmClose.html',
+			controller: ['$scope', '$rootScope', '$state', 'Unit', '$filter', 'MonitoringService', 'OScreenService', '$timeout', '$interval', '$uibModal', 'uDialog', 'DefinedEventsService',
+				function ($scope, $rootScope, $state, Unit, $filter, MonitoringService, OScreenService, $timeout, $interval, $uibModal, uDialog, DefinedEventsService) {
+                    //console.log('1')
+                    //console.log($scope.item);
+                    $scope.L=L;
+					$scope.$on('scenceEvent', function (event, msg) {
+						$scope.scenceEvent = msg;
+					});
+					$scope.$on('faultEventList', function (event, msg) {
+						$scope.faultEventList = msg;
+					});
+					$scope.isShowNoticeFun = function (item) {
+						switch (item.eventType) {
+							case 1:
+								return ((item.IFNOTIFYCODE == '1' || item.ifnotify == '1'));
+							case 2:
+								return item.notifyTimes > 0 || item.sendTotalNum;
+							case 3:
+								return false;
+							default:
+								return false;
+						}
+					}
+					if ($scope.item.SERIAL) {
+						$scope.item.ALARMEMAIL = Number($scope.item.ALARMEMAIL);
+						$scope.item.ALARMSMS = Number($scope.item.ALARMSMS);
+						$scope.item.ALARMTICKET = Number($scope.item.ALARMTICKET);
+					} else {
+						$scope.item.alarmemail = Number($scope.item.alarmemail);
+						$scope.item.alarmsms = Number($scope.item.alarmsms);
+						$scope.item.alarmticket = Number($scope.item.alarmticket);
+					}
+					$scope.item.sendTotalNum = ($scope.item.ALARMEMAIL + $scope.item.ALARMSMS) || ($scope.item.alarmemail + $scope.item.alarmsms) || $scope.item.notifyTimes;
+					if ($scope.eventType == 2) {
+						$scope.isHistory = true;
+						/*已关闭*/
+					} else if ($scope.eventType == 1) {
+						$scope.isConfirmed = true;
+						/*已确认*/
+					} else if ($scope.eventType == 3) {
+						$scope.isDiscard = true;
+						/*维护期*/
+					}
+					if ($scope.type == 1) {
+						$scope.closeTitle = $scope.L.get('EMV_CLOSE_EVENT_TITLE');
+						$scope.sureTitile = $scope.L.get('EMV_ALARM_CONFIRM_TITLE');
+						$scope.cancleTitile = $scope.L.get('EMV_CANCLE_CONFIRM')
+					}
+					if ($scope.type == 2) {
+						$scope.closeTitle = $scope.L.get('EMV_CLOSE_FAULT_TITLE')
+						$scope.sureTitile = $scope.L.get('EMV_INCIDENT_CONFIRM_TITLE');
+						$scope.cancleTitile = $scope.L.get('EMV_CANCLE_CONFIRM')
+					}
+					//console.log($scope.showAlertDetail);
+					//阻止冒泡
+					$scope.stopPropagation = function ($event) {
+						$event.stopPropagation();
+					};
+
+					//确认告警
+					$scope.confirmAlert = function (item, type, index, e) {
+						OScreenService.checkLoginUserAuthority().then(function(data){
+							if(data.data.data.ackEvent){
+								//已恢复告警可以确认
+								// if (item.STATUS == 3 || item.status == 3) {
+								// 	Unit.error($scope.L.get('EMV_EVENT_RESTORED_CAN_NOT_CONFIRMED'));
+								// 	return false
+								// }
+								var validateParm = {};
+								validateParm.type = $scope.type;
+								validateParm.multi = false;
+								if (type == 2) {
+									validateParm.serial = item.ID || item.id;
+								} else {
+									validateParm.serial = item.SERIAL || item.serial;
+								}
+
+								MonitoringService.validate(validateParm)
+									.success(function (result) {
+										if (result.success) {
+											if (result.result || result.data.result) {
+												$uibModal.open({
+													size: 'monitor',
+													animation: true,
+													backdrop: 'static',
+													templateUrl: 'app/modal/manageAlert/confirmAlert.html',
+													controller: 'ModalConfirmAlertCtrl',
+													resolve: {
+														item: function () {
+															return item;
+														},
+														type: function () {
+															return $scope.type;
+														},
+														fn: function () {
+															return function () {
+																//Unit.success( $scope.L.get('COMMON_CONFIRMATION_SUCCEEDED'));
+																if ($scope.modalFlag) {
+																	$scope.$parent.cancel() && $scope.$parent.cancel();
+																}
+																$rootScope.changeConfirmClose();
+															}
+														}
+													}
+												});
+											} else {
+												if (result.data.authNotContainsEventSerials) {
+													if ($scope.type == 2) {
+														$scope.$parent.getDetail(item, e, index);
+													}
+													$timeout(function () {
+														$scope.faultEventList.data ? $scope.faultEventList.data : []
+														$.each($scope.faultEventList.data, function () {
+															for (var k = 0; k < result.data.authNotContainsEventSerials.length; k++) {
+																if (this.serial == result.data.authNotContainsEventSerials[k]) {
+																	this.noValidate = true;
+																}
+
+															}
+														})
+													}, 100)
+												}
+												Unit.error($scope.L.get('EMV_CONFIRM_FAIL'))
+												return;
+											}
+										}
+									});
+							}else{
+								Unit.error($scope.L.get('EMV_CONFIRM_FAIL'))
+								return false;
+							}
+
+						},function err(data){
+							Unit.error($scope.L.get('EMV_INTERFACE_REQUEST_FAILED'));
+						});
+
+					};
+					//取消确认
+					$scope.cancelDefineConfirmAlert = function (item, type, index, e) {
+						OScreenService.checkLoginUserAuthority().then(function(data){
+								if(data.data.data.ackEvent){
+									var validateParm = {};
+									validateParm.type = $scope.type;
+									validateParm.multi = false;
+									if (type == 2) {
+										validateParm.serial = item.ID || item.id;
+									} else {
+										validateParm.serial = item.SERIAL || item.serial;
+									}
+									MonitoringService.validate(validateParm)
+										.success(function (result) {
+											if (result.success) {
+												if (result.result || result.data.result) {
+													var cancelParm = [];
+													if (type == 2) {
+														/*故障*/
+														cancelParm.push(item.id);
+														MonitoringService.cancelConfirm(cancelParm).success(function () {
+															Unit.success($scope.L.get('EMV_CANCLE_SUCCESS'));
+															if ($scope.modalFlag) {
+																$scope.$parent.cancel() && $scope.$parent.cancel();
+															}
+															$rootScope.changeConfirmClose();
+														});
+													} else {
+														/*告警*/
+														cancelParm.push(item.serial || item.SERIAL);
+														MonitoringService.cancelConfirmFault(cancelParm).success(function () {
+															Unit.success($scope.L.get('EMV_CANCLE_SUCCESS'));
+															if ($scope.modalFlag) {
+																$scope.$parent.cancel() && $scope.$parent.cancel();
+															}
+															$rootScope.changeConfirmClose();
+														});
+													}
+
+
+												} else {
+													if (result.data.authNotContainsEventSerials) {
+														if ($scope.type == 2) {
+															$scope.$parent.getDetail(item, e, index);
+														}
+														$timeout(function () {
+															$scope.faultEventList.data ? $scope.faultEventList.data : []
+															$.each($scope.faultEventList.data, function () {
+																for (var k = 0; k < result.data.authNotContainsEventSerials.length; k++) {
+																	if (this.serial == result.data.authNotContainsEventSerials[k]) {
+																		this.noValidate = true;
+																	}
+
+																}
+															})
+														}, 10)
+													}
+													Unit.error($scope.L.get('EMV_CANCLE_FAIL'))
+													return;
+												}
+											}
+										});
+								}else{
+									Unit.error($scope.L.get('EMV_CANCLE_FAIL'))
+									return false;
+								}
+
+							},function err(data){
+								Unit.error($scope.L.get('EMV_INTERFACE_REQUEST_FAILED'));
+							});
+					};
+					//关闭告警
+					$scope.closeAlert = function (item, type, index, e) {
+						OScreenService.checkLoginUserAuthority().then(function(data){
+							if(data.data.data.closeEvent){
+								var validateParm = {};
+								validateParm.type = $scope.type;
+								validateParm.multi = false;
+								if (type == 2) {
+									validateParm.serial = item.ID || item.id;
+								} else {
+									validateParm.serial = item.SERIAL || item.serial;
+								}
+								MonitoringService.validate(validateParm)
+									.success(function (result) {
+										if (result.success) {
+											if (result.result || result.data.result) {
+												$uibModal.open({
+													size: 'monitor',
+													animation: true,
+													backdrop: 'static',
+													templateUrl: 'app/modal/manageAlert/closeAlert.html',
+													controller: 'ModalColseAlertCtrl',
+													resolve: {
+														item: function () {
+															return item;
+														},
+														type: function () {
+															return $scope.type;
+														},
+														fn: function () {
+															return function () {
+																//Unit.success( $scope.L.get('COMMON_CLOSED_SUCCESSFUL'));
+																if ($scope.modalFlag) {
+																	$scope.$parent.cancel() && $scope.$parent.cancel();
+																}
+																$rootScope.changeConfirmClose();
+															}
+														}
+													}
+												});
+
+											} else {
+
+												if (result.data.authNotContainsEventSerials) {
+													if ($scope.type == 2) {
+														$scope.$parent.getDetail(item, e, index);
+													}
+													$timeout(function () {
+														$scope.faultEventList.data ? $scope.faultEventList.data : []
+														$.each($scope.faultEventList.data, function () {
+															for (var k = 0; k < result.data.authNotContainsEventSerials.length; k++) {
+																if (this.serial == result.data.authNotContainsEventSerials[k]) {
+																	this.noValidate = true;
+																}
+
+															}
+														})
+													}, 100)
+
+												}
+												//console.log($scope.faultEventList.data)
+												Unit.error($scope.L.get('EMV_LAST_NO_PERMISSION_EXCEPTION_CLOSE'))
+												return;
+											}
+										}
+									});
+							}else{
+								Unit.error($scope.L.get('EMV_LAST_NO_PERMISSION_EXCEPTION_CLOSE'))
+								return false;
+							}
+
+						},function err(data){
+							Unit.error($scope.L.get('EMV_INTERFACE_REQUEST_FAILED'));
+						});
+					};
+					/*发送邮件*/
+					$scope.sendMail = function (item, mailName) {
+						$uibModal.open({
+							size: 'mail',
+							animation: true,
+							backdrop: 'static',
+							templateUrl: 'app/modal/manageAlert/mail.html',
+							controller: 'ModalMailCtrl',
+							resolve: {
+								item: function () {
+									return item;
+								},
+								type: function () {
+									return $scope.type;
+								},
+								mailName: function () {
+									//return mailName;
+									return $scope.type == 2 ?  $scope.L.get('EMV_FAULT_NOTI') :  $scope.L.get('EMV_ALARM_NOTIFICATION')
+								},
+								isOsreen: function () {
+									return $scope.isOsreen;
+                                },
+                                fn: function () {
+                                    return function () {
+                                        if ($scope.modalFlag) {
+                                            $scope.$parent.cancel() && $scope.$parent.cancel();
+                                        }
+
+                                    }
+                                }
+
+							}
+						});
+					}
+				}]
+		};
+	});
+
+})(nameSpace.reg('graph'));

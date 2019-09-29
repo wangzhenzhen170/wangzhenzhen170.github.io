@@ -1,0 +1,12 @@
+/*
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('InfiSc', function($http,Unit){
+
+
+	});
+
+})(nameSpace.reg('graph'));
+*/

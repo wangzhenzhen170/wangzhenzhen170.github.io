@@ -1,0 +1,680 @@
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('noticeCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        $scope.typeName = $stateParams.name;
+        $scope.freshFlag = false;
+        $scope.ruleType = 6;
+        $scope.ruleDetailFlag = true;
+        $scope.objs = {};
+        //$scope.ruleTitleName='通知规则'
+        $scope.stateParamsObj = {};
+        $scope.stateParamsObj = $stateParams;
+
+        $scope.checkModeMaliFun = function () {
+            $scope.modemail = (!$scope.modemail);
+            if ($scope.modemail && !$scope.modeMessage && !$scope.modeWeichat) {
+                Unit.error(L.get('EMV_MUST_CHOOSE_A_NOTIFICATION_METHOD'))
+                $scope.modemail = (!$scope.modemail);
+            }
+        }
+        $scope.checkModeMessFun = function () {
+            $scope.modeMessage = (!$scope.modeMessage);
+            if ($scope.modemail && !$scope.modeMessage && !$scope.modeWeichat) {
+              Unit.error(L.get('EMV_MUST_CHOOSE_A_NOTIFICATION_METHOD'))
+                $scope.modeMessage = (!$scope.modeMessage);
+            }
+        }
+        $scope.checkModeWeiFun = function () {
+            $scope.modeWeichat = (!$scope.modeWeichat);
+            if ($scope.modemail && !$scope.modeMessage && !$scope.modeWeichat) {
+              Unit.error(L.get('EMV_MUST_CHOOSE_A_NOTIFICATION_METHOD'))
+                $scope.modeWeichat = (!$scope.modeWeichat);
+            }
+        }
+        //页面滚动条回到初始位置
+        $scope.topFun = function () {
+            $('.content').animate({
+                scrollTop: 0
+            }, 300);
+        }
+        $scope.personSendArray = [];
+        $scope.checkopCode = [];//给后台传的邮件用户名
+        $scope.personCheckedArray = [];//显示在页面上的邮件用户名
+        $scope.teamCheckedArray = [];
+        $scope.mailContentString = '';
+        $scope.messageContentString = '';
+        $scope.objs.mailTitle = '';
+        $scope.mailContentFun = function (e, flag) {
+            var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+
+            if ((window.event.shiftKey) && (keycode === 52 || keycode === 229)) {
+                e.preventDefault();
+                if (flag === 'mail') {
+                    $scope.mailContentFlag = true;
+                    $timeout(
+                        function () {
+                            $($('.mail-notice .mailContentli')[0]).addClass('active');
+                        }
+                    )
+                }
+                if (flag === 'message') {
+                    $scope.messageContentFlag = true;
+                    $timeout(
+                        function () {
+                            $($('.message-notice .mailContentli')[0]).addClass('active');
+                        }
+                    )
+                }
+                if (flag === 'Wei') {
+                    $scope.WeiContentFlag = true;
+                    $timeout(
+                        function () {
+                            $($('.message-notice .mailContentli')[0]).addClass('active');
+                        }
+                    )
+                }
+                if (flag === 'title') {
+                    $scope.titleFlag = true;
+                    $timeout(
+                        function () {
+                            $($('.mail-title .mailContentli')[0]).addClass('active');
+                        }
+                    )
+                }
+
+            } else {
+                if (keycode !== 13 && keycode !== 38 && keycode !== 40) {
+
+                    if (flag === 'mail') {
+                        $scope.mailContentFlag = false;
+                        $timeout(function () {
+                            $scope.mailtextareaVal = $('.mail-notice .mailContent').val()
+                            $scope.mailContentString = $scope.mailtextareaVal;
+                        })
+                    }
+                    if (flag === 'message') {
+                        $scope.messageContentFlag = false;
+                        $timeout(function () {
+                            $scope.mailtextareaVal = $('.message-notice .mailContent').val()
+                            $scope.messageContentString = $scope.mailtextareaVal;
+                        })
+                    }
+                    if (flag === 'Wei') {
+                        $scope.WeiContentFlag = false;
+                        $timeout(function () {
+                            $scope.mailtextareaVal = $('.Wei-notice .mailContent').val()
+                            $scope.objs.WeiContentString = $scope.mailtextareaVal;
+                        })
+                    }
+                    if (flag === 'title') {
+                        $scope.titleFlag = false;
+                        $timeout(function () {
+                            $scope.mailtextareaVal = $('.mail-title .mailContent').val()
+                            $scope.objs.mailTitle = $scope.mailtextareaVal;
+                        })
+                    }
+
+
+                }
+            }
+
+            if (keycode === 38) {
+                e.preventDefault();
+                hintListCtrl($('.mail-notice .mailContentlist'), 'UP');
+                hintListCtrl($('.message-notice .mailContentlist'), 'UP');
+                hintListCtrl($('.mail-title .mailContentlist'), 'UP');
+                hintListCtrl($('.Wei-notice .mailContentlist'), 'UP');
+            } else if (keycode === 40) {
+                e.preventDefault();
+
+                hintListCtrl($('.mail-notice .mailContentlist'), 'DOWN');
+                hintListCtrl($('.message-notice .mailContentlist'), 'DOWN');
+                hintListCtrl($('.mail-title .mailContentlist'), 'DOWN');
+                hintListCtrl($('.Wei-notice .mailContentlist'), 'DOWN');
+            }
+            if (keycode === 13) {
+                e.preventDefault();
+
+                if (flag === 'mail') {
+                    $scope.mailContentString += '${' + $('.mail-notice .mailContentlist .active span').text() + '}';
+                    $('.mail-notice .mailContent').val($scope.mailContentString)
+                    $('.mail-notice .mailContentli').removeClass('active')
+                    $scope.mailContentFlag = false;
+                }
+                if (flag === 'message') {
+                    $scope.messageContentString += '${' + $('.message-notice .mailContentlist .active span').text() + '}';
+                    $('.message-notice .mailContent').val($scope.messageContentString)
+                    $('.message-notice .mailContentli').removeClass('active')
+                    $scope.messageContentFlag = false;
+                }
+                if (flag === 'Wei') {
+                    $scope.objs.WeiContentString += '${' + $('.Wei-notice .mailContentlist .active span').text() + '}';
+                    $('.Wei-notice .mailContent').val($scope.objs.WeiContentString)
+                    $('.Wei-notice .mailContentli').removeClass('active')
+                    $scope.WeiContentFlag = false;
+                }
+                if (flag === 'title') {
+                    $scope.objs.mailTitle += '${' + $('.mail-title .mailContentlist .active span').text() + '}';
+                    $('.mail-title .mailContent').val($scope.objs.mailTitle)
+                    $('.mail-title .mailContentli').removeClass('active')
+                    $scope.titleFlag = false;
+                }
+            }
+
+        }
+
+        $scope.checkedInforFun = function (li, flag) {
+
+            if (flag === 'mail') {
+                $scope.mailContentString += li.display;
+                $('.mail-notice .mailContent').val($scope.mailContentString)
+                $('.mail-notice .mailContentli').removeClass('active')
+                $scope.mailContentFlag = false;
+            }
+            if (flag === 'message') {
+                $scope.messageContentString += li.display;
+                $('.message-notice .mailContent').val($scope.messageContentString)
+                $('.message-notice .mailContentli').removeClass('active')
+
+                $scope.messageContentFlag = false;
+            }
+            if (flag === 'Wei') {
+                $scope.objs.WeiContentString += li.display;
+                $('.Wei-notice .mailContent').val($scope.objs.WeiContentString)
+                $('.Wei-notice .mailContentli').removeClass('active')
+
+                $scope.WeiContentFlag = false;
+            }
+            if (flag === 'title') {
+                $scope.objs.mailTitle += li.display;
+                $('.mail-title .mailContent').val($scope.objs.mailTitle)
+                $('.mail-title .mailContentli').removeClass('active')
+
+                $scope.titleFlag = false;
+            }
+        }
+        function hintListCtrl(hint_wrap, direction) {
+            var hint_List = hint_wrap.find('.mailContentli'),
+                hint_Active = hint_wrap.find('.mailContentli.active');
+            var wrapHeight = hint_wrap.height();
+            if (hint_List.hasClass('active')) {
+                var length = hint_List.length;
+                var index = hint_Active.index();
+                if (direction === 'UP') {
+                    index === 0 ? index = length - 1 : index--;
+                } else if (direction === 'DOWN') {
+                    index === length - 1 ? index = 0 : index++;
+                }
+                hint_List.removeClass('active');
+                var select_hint = hint_List.eq(index);
+                select_hint.addClass('active');
+                var posTop = select_hint.position().top;
+                var childrenHeight = hint_Active.height();
+                var srcollTop = hint_wrap.scrollTop();
+                posTop >= wrapHeight ? hint_wrap.scrollTop(srcollTop + posTop - wrapHeight + childrenHeight) : '';
+                posTop <= 0 ? hint_wrap.scrollTop(srcollTop + posTop) : '';
+            } else {
+                if (direction === 'UP') {
+                    hint_List.last().addClass('active');
+                } else if (direction === 'DOWN') {
+                    hint_List.first().addClass('active');
+                }
+            }
+        }
+
+
+        //设置左侧顺序线的长度
+        $scope.lineLong = function () {
+            $timeout(function () {
+                var height = angular.element('.content-following5').height();
+                angular.element('.step-line1').height(height);
+                var height2 = angular.element('.content-following1').height();
+                angular.element('.step-line2').height(height2);
+                var height3 = angular.element('.content-following2').height();
+                angular.element('.step-line3').height(height3);
+            }, 10);
+        };
+
+        //弹出添加页面
+        $scope.ruleDetailFun = function (ruleDetail) {
+
+
+            $scope.rules = [];//筛选规则
+            $scope.personCheckedArray = [];//显示在页面上的邮件用户名
+            $scope.teamCheckedArray = [];
+            $scope.dutyPersonArray = [];
+            $scope.mailContentString = '';//邮件的详细内容
+            $scope.messageContentString = '';
+            $scope.objs.mailTitle = '';
+            $scope.objs.WeiContentString = '';
+            $scope.modeMessage = false;
+            $scope.modemail = true;
+            $scope.modeWeichat = false;
+            $scope.mailContentFlag = false;//邮件通知方式
+            $scope.topFun();
+            $scope.$broadcast('bg', 1);
+            $scope.objs.charge = false;
+            if (!$scope.$$phase) {
+                $scope.$apply();
+            }
+            MonitoringService.getModelCode({ 'function': true, ruleType: 0 }).success(function (result) {
+                if (result.success) {
+                    $scope.classList = result.data;
+                    if (ruleDetail) {
+                        $scope.objs.charge = false;
+                        $scope.removeButton = true;//修改时显示右上角删除按钮
+                        $scope.ruleId = ruleDetail.id;
+                        MonitoringService.getRuleById({
+                            id: ruleDetail.id
+                        }).success(function (result) {
+                            if (result.success) {
+                                $scope.result = result.data;
+                                $scope.objs.newRuleFatherName = ruleDetail.name;
+                                $scope.objs.ruleDetail = $scope.result.description;
+                                $scope.sourceId = $scope.result.sourceIdList;
+                                $scope.objs.charge = $scope.result.action.notifyApp;
+                                if ($scope.result.selectorList) {
+                                    $.each($scope.result.selectorList, function () {
+                                        $scope.rules.push(this.selectors)
+                                    });
+                                }
+                                if ($scope.result.action.notifies.length > 0) {
+                                    $.each($scope.result.action.notifies, function (index, item) {
+                                        if (item.type === 1) {
+                                            $scope.modemail = false;
+                                            $scope.objs.mailTitle = item.title;
+                                            $scope.mailContentString = item.content;
+                                        } else if (item.type === 2) {
+                                            $scope.modeMessage = true;
+                                            $scope.messageContentString = item.content;
+                                        } else if (item.type === 4) {
+                                            $scope.modeWeichat = true;
+                                            $scope.objs.WeiContentString = item.content;
+                                        }
+                                    })
+
+                                }
+
+                                var UserTeams = {};
+                                if (result.data.action.groupInfo) {
+                                    $scope.teamCheckedArray = result.data.action.groupIds;
+                                    UserTeams.Teams = result.data.action.groupInfo;
+                                }
+
+                                if ($scope.result.action.users) {
+                                    $scope.personCheckedArray = $scope.result.action.users;
+                                    UserTeams.Users = $scope.result.action.users;
+                                }
+                                if ($scope.result.action.duties) {
+                                    $scope.dutyPersonArray = $scope.result.action.duties;
+                                    UserTeams.dutyperson = $scope.result.action.duties;
+                                }
+                                $scope.ruleDetailFlag = false;
+                                $timeout(function () {
+                                    $scope.lineLong();
+                                    $scope.$broadcast('sourceId', $scope.sourceId);
+                                    $scope.$broadcast('rules', $scope.rules);
+                                    $scope.$broadcast('ruleId', $scope.ruleId);
+                                    $scope.$broadcast('freshFlag', $scope.freshFlag)
+                                    $scope.$broadcast('removeButton', $scope.removeButton);
+                                    $scope.$broadcast('UserTeams', UserTeams);
+                                    $scope.$broadcast('pActive', true);
+                                    $scope.$broadcast('sourceIdArray', $scope.sourceId)
+
+                                },300)
+                            } else {
+                              Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                            }
+
+
+                        })
+                    } else {
+                        $scope.ruleDetailFlag = false;
+                        $scope.objs.charge = false;
+                        $scope.sourceId = [];
+                        $scope.modeWeichat = false;
+                        $scope.modemail = false;
+                        $timeout(function () {
+                            $('#newNameInput').focus();
+                        })
+                        $scope.removeButton = false;
+                        $scope.rules = [
+                            [
+                                {
+                                    property: 'CINAME',
+                                    operator: '==',
+                                    value: '*',
+                                    propertyDesc: L.get('EMV_EVENT_OBJECT'),
+                                    operatorDesc: L.get('EMV_EQUAL'),
+                                }
+                            ]
+
+                        ];
+                        //console.log($scope.rules)
+                        $scope.objs.newRuleFatherName = '';
+                        $scope.ruleId = '';
+                        $scope.objs.ruleDetail = '';
+                        $scope.personSendArray = [];//给后台传的邮件用户名
+                        $scope.personCheckedArray = [];//显示在页面上的邮件用户名
+                        $scope.mailContentString = '';//邮件的详细内容
+                        $scope.mailContentFlag = false;//邮件通知方式
+                        $('.mailContent').val('');
+                        $scope.copyValueFun($scope.rules);
+                        var UserTeams = {};
+
+                        $timeout(function () {
+                            $scope.lineLong();
+                            $scope.$broadcast('sourceId', $scope.sourceId);
+                            $scope.$broadcast('rules', $scope.rules);
+                            $scope.$broadcast('ruleId', $scope.ruleId);
+                            $scope.$broadcast('freshFlag', $scope.freshFlag)
+                            $scope.$broadcast('removeButton', $scope.removeButton);
+                            $scope.$broadcast('UserTeams', UserTeams);
+                            $scope.$broadcast('pActive', true);
+                            $scope.$broadcast('sourceIdArray', $scope.sourceId)
+                        },300)
+                    }
+
+                } else {
+                  Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                }
+
+            })
+
+
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+        //规则描述框内容返显
+        $scope.copyValueFun = function (rules) {
+            $scope.andObj = L.get('EMV_FILER_EVENT_RANGE')+':';
+            for (var i = 0; i < rules.length; i++) {
+                for (var j = 0; j < rules[i].length; j++) {
+                    if (j === rules[i].length - 1) {
+                        $scope.andObj += rules[i][j].propertyDesc + rules[i][j].operatorDesc + rules[i][j].value;
+                    } else {
+                        $scope.andObj += rules[i][j].propertyDesc + rules[i][j].operatorDesc + rules[i][j].value + ' ' + L.get('COMMON_AND') + ' ';
+                    }
+
+                }
+                if (i < rules.length - 1) {
+                    $scope.andObj += ' ' + L.get('COMMON_OR') + ' ';
+                }
+
+            }
+            $scope.objs.ruleDetail = $scope.andObj;
+        }
+
+        //保存调接口函数
+        $scope.saveLastFun = function (flag) {
+            var selectorList = [];
+            $.each($scope.rules, function () {
+                var json = {};
+                json.selectors = this;
+                selectorList.push(json);
+            });
+            var checkStingLong = JSON.stringify(selectorList);
+            if (checkStingLong.length > 4096) {
+              Unit.error(L.get('EMV_FILTER_CONDITION_CHARACTER_LENGTH_CANNOT_EXCEED')+'4000')
+              return false;
+            }
+            if ($scope.objs.ruleDetail.length > 512) {
+              Unit.error(L.get('EMV_DESCRIPTION_CHARACTER_LENGTH_CANNOT_EXCEED')+'500')
+                return false;
+            }
+            $scope.notifies = [];
+            if (!$scope.modemail) {
+                var mail = { 'type': 1, 'content': $scope.mailContentString, 'title': $scope.objs.mailTitle };
+                $scope.notifies.push(mail);
+            }
+            if ($scope.modeMessage) {
+                var message = { 'type': 2, 'content': $scope.messageContentString };
+                $scope.notifies.push(message);
+            }
+            if ($scope.modeWeichat) {
+                var wei = { 'type': 4, 'content': $scope.objs.WeiContentString };
+                $scope.notifies.push(wei);
+            }
+            var personCheckedArray = [];
+            if ($scope.personCheckedArray.length > 0) {
+                if ($scope.personCheckedArray[0].id) {
+                    $.each($scope.personCheckedArray, function (index, item) {
+                        personCheckedArray.push(item.userCode)
+                    })
+                } else {
+                    personCheckedArray = $scope.personCheckedArray;
+                }
+            }
+            MonitoringService.saveRule({
+                id: $scope.ruleId,
+                name: $scope.objs.newRuleFatherName,
+                ruleType: '6',
+                active: flag,
+                priority: 1,
+                description: $scope.objs.ruleDetail,
+                selectorList: selectorList,
+                action: {
+                    userCodes: personCheckedArray,
+                    groupIds: $scope.teamCheckedArray,
+                    duties: $scope.dutyPersonArray,
+                    notifies: $scope.notifies,
+                    notifyApp: $scope.objs.charge
+                },
+                sourceIdList: $scope.sourceId
+            }).success(function (result) {
+                if (result.success) {
+                    Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'));
+                    $scope.freshFlag = !$scope.freshFlag;
+                    $scope.ruleDetailFlag = true;
+                    $scope.$broadcast('saveId', result.data);
+
+                } else {
+                  Unit.error(L.get('COMMON_SAVE_FAILED'));
+                    $scope.$broadcast('saveId', result.data);
+                }
+
+            })
+
+        }
+
+        //保存
+        $scope.saveFun = function (flag) {
+            if ($scope.sourceId === null) {
+              Unit.error(L.get('EMV_THE_SOURCE_OF_THE_EVENT_CANNOT_BE_UNSELECTED'))
+                return false;
+            }
+            if (!$scope.modemail && $scope.objs.mailTitle.length === 0) {
+                Unit.error(L.get('EMV_MAIL_NOTIFICATION_TITLE_CANNOT_BE_EMPTY'))
+                return false;
+            }
+            if (!$scope.modemail && $scope.mailContentString.length === 0) {
+                Unit.error(L.get('EMV_EMAIL_NOTIFICATION_CONTENT_CANNOT_BE_EMPTY'))
+                return false;
+            }
+            if ($scope.modeMessage && $scope.messageContentString.length === 0) {
+              Unit.error(L.get('EMV_SMS_NOTIFICATION_CONTENT_CANNOT_BE_EMPTY'))
+                return false;
+            }
+            if (!$scope.objs.newRuleFatherName) {
+                Unit.error(L.get('COMMON_RULE_NAME_CANNOT_BE_EMPTY'))
+                return false;
+            }
+
+            if ($scope.personCheckedArray.length === 0 && $scope.teamCheckedArray.length === 0 && $scope.dutyPersonArray.length === 0 && !$scope.objs.charge) {
+              Unit.error(L.get('EMV_NOTIFICATION_OBJECT_CANNOT_BE_EMPTY'))
+                return false;
+            }
+
+            if ($scope.ruleId) {
+                MonitoringService.checkRuleName({
+                    name: $scope.objs.newRuleFatherName,
+                    id: $scope.ruleId,
+                    ruleType: 6
+                }).success(function (result) {
+                    if (result.success) {
+                        $scope.saveLastFun(flag);
+                    } else {
+                      Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+                    }
+                })
+            } else {
+                MonitoringService.checkRuleName({
+                    name: $scope.objs.newRuleFatherName,
+                    ruleType: 6
+                }).success(function (result) {
+                    if (result.success) {
+                        $scope.saveLastFun(flag);
+                    } else {
+                      Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+                    }
+                })
+            }
+
+
+        }
+        //取消按钮
+        $scope.cancelFun = function () {
+            $scope.ruleDetailFlag = true;
+        }
+
+
+        // 自定义下拉框
+        $('.environment-edit-wrap').on('click', '.select-wrap', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu').stop().slideToggle(150);
+
+        });
+        $('.environment-edit-wrap').on('click', '.select-wrap1', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu1').stop().slideToggle(150);
+
+        });
+        $('.environment-edit-wrap').on('click', '.drop-menu li', function () {
+            var ele = $(this).parent().siblings('.select-choice');
+            ele.html($(this).html());
+        });
+        $(document).on('click', function () {
+            $scope.objs.listShowFlag = false;
+            $scope.mailContentFlag = false;
+            $scope.titleFlag = false;
+            $scope.messageContentFlag = false;
+            $scope.WeiContentFlag = false;
+            if (!$scope.$$phase) {
+                $scope.$apply();
+            }
+            $scope.lineLong();
+            $scope.$broadcast('importFlag', false)
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+            $('.select-wrap1').find('.drop-menu1').stop().slideUp(150);
+            $scope.$broadcast('slShow', false)
+        });
+        $scope.$on('copyFlag', function (event, data) {
+            $scope.copyFlag = data;
+        })
+        $scope.$on('saveCopyId', function (event, data) {
+            $scope.saveId = data;
+            $scope.$broadcast('saveId', $scope.saveId);
+        })
+        $scope.$on('ruleTitleName', function (event, data) {
+            $scope.objs.newRuleFatherName = data;
+        })
+        $scope.$on('UserTeams1', function (event, data) {
+            $scope.personCheckedArray = data.Users;
+            $scope.dutyPersonArray = data.dutyperson;
+            $scope.teamCheckedArray = [];
+            if (data.Teams) {
+                $.each(data.Teams, function (index, item) {
+                    $scope.teamCheckedArray.push(item)
+                })
+            }
+
+
+        })
+        $scope.$on('rules', function (event, data) {
+            $scope.rules = data;//接受值
+        });
+        $scope.$on('ruleDetail', function (event, data) {
+            $scope.objs.ruleDetail = data;//接受值
+        });
+        $scope.$on('freshFlag', function (event, data) {
+            $scope.freshFlag = data;//接受值
+        });
+        $scope.$on('sourceId', function (event, data) {
+            $scope.sourceId = data;
+            $scope.$broadcast('sourceIdArray', $scope.sourceId)
+        })
+        // 拖拽缩放功能
+        var parentW;
+        $timeout(function () {
+            parentW = $('.preview-wrapper').width() / 0.4;
+        }, 1);
+
+        $('.drag-scale').bind('mousedown', function (e) {
+            var dragW = $('.drag-scale').width() + 2;
+            var leftW = $('.preview-wrapper').width();
+            var disX = e.pageX;
+
+            $(document).bind('mousemove', function (e) {
+                var _disX = e.pageX;
+                var _leftW = leftW + (_disX - disX);
+                var marginLeft = leftW + (_disX - disX) + dragW;
+
+                if (_leftW < 400) {
+                    _leftW = 400;
+                    marginLeft = 400 + dragW;
+                }
+
+                if (_leftW > (parentW - 500 - dragW)) {
+                    _leftW = parentW - 500 - dragW;
+                    marginLeft = _leftW + dragW;
+                }
+
+                $('.preview-wrapper').width(_leftW);
+                $('.environment-edit-wrap').css('margin-left', marginLeft);
+            });
+
+            $(document).bind('mouseup', function () {
+                $(document).unbind('mousemove');
+                $(document).unbind('mouseup');
+            });
+
+            return false;
+        });
+
+    }]);
+	/*
+	 * 高亮搜索关键词
+	 * @param: 文本内容
+	 * @param： 搜索关键词
+	 * html标签中使用指令 ng-bind-html
+	 */
+    graph.app.filter('highlightWord', ['$sce', function ($sce) {
+        return function (text, keyword) {
+            if (!keyword) {
+                return $sce.trustAsHtml(text);
+            }
+            text = encodeURI(text);
+            keyword = encodeURI(keyword);
+
+            var reg = new RegExp(keyword, 'gi')
+            var result = text.replace(reg, '<span class="highlightedText">$&</span>');
+            result = decodeURI(result);
+            return $sce.trustAsHtml(result);
+        }
+    }]);
+
+})(nameSpace.reg('graph'));

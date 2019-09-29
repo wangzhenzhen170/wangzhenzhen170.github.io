@@ -1,0 +1,169 @@
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('ruleFilterEventSet', function() {
+		return {
+			restrict : 'AE',
+			replace : true,
+            scope: {
+				ruleType : '@ruleType',
+				lineLong: '=lineLong'
+			},
+			templateUrl: 'app/directive/ruleFilterEvent/ruleFilterEventSet.html',
+			controller: ['$scope', '$timeout', '$state','DefinedEventsService','Unit','uDialog','MonitoringService','$uibModal',function($scope, $timeout,$state,DefinedEventsService,Unit,uDialog,MonitoringService,$uibModal){
+				MonitoringService.getModelCode({"function": true,ruleType:0}).success(function(result) {
+					//console.log(result.data)
+					$scope.classList=result.data;
+				}).error(function() {
+
+        });
+        $scope.L = L;
+				$scope.objs={};
+				$scope.objs.ruleDetail="";
+				$scope.operators = [
+					{
+						"display": L.get('EMV_EQUAL'),
+						"value": "=="
+					},
+					{
+						"display": L.get('EMV_NOT_EQUAL_TO'),
+						"value": "!="
+					},
+					{
+						"display": L.get('COMMON_CONTAIN_1'),
+						"value": "contains"
+					},
+					{
+						"display": L.get('EMV_NOT_INCLUDED'),
+						"value": "not contains"
+					}
+				];
+				$scope.rules= [
+					[
+						{
+							property: "CINAME",
+							operator:"==",
+							value :"*",
+							propertyDesc:L.get('EMV_EVENT_OBJECT'),
+							operatorDesc:L.get('EMV_EQUAL'),
+						}
+					]
+
+				];
+				$scope.$emit('rules',$scope.rules)
+				
+				//添加或关系
+				$scope.AndaddRuleFun=function(orRule){
+					orRule.push(
+						{
+							property: "CINAME",
+							operator:"==",
+							value :"*",
+							propertyDesc:L.get('EMV_EVENT_OBJECT'),
+							operatorDesc:L.get('EMV_EQUAL'),
+
+						}
+					);
+					$scope.copyValueFun();
+					$scope.lineLong();
+					
+				}
+				//删除且、或关系
+				$scope.removeAnd=function ($index,rule) {
+					rule.splice($index,1);
+					$scope.copyValueFun();
+					$scope.lineLong();
+				}
+				//添加且关系
+				$scope.addRule = function(){
+					console.log($scope.rules)
+					$scope.rules.push(
+						[
+							{
+								property: "CINAME",
+								operator:"==",
+								value :"*",
+								propertyDesc:L.get('EMV_EVENT_OBJECT'),
+								operatorDesc:L.get('EMV_EQUAL'),
+							}
+						]
+					);
+					$scope.copyValueFun();
+					$scope.lineLong();
+					
+				}
+
+				//预览列表
+				$scope.previewListFun=function(){
+					var selectorList = [];
+					$.each($scope.rules, function () {
+						var json = {};
+						json.selectors = this;
+						selectorList.push(json);
+					});
+					$uibModal.open({
+						size: 'previewList',
+						animation: true,
+						backdrop: 'static',
+						templateUrl: 'app/modal/manageAlert/previewList.html',
+						controller: 'previewCtrl',
+						resolve: {
+							list: function() {
+								return selectorList
+							},
+							sourceId: function() {
+								return []
+							},
+						}
+					});
+				};
+				//console.log($('.select-wrap'))
+				
+				//select框自定义赋值
+				$scope.selectClassify = function(andrule, value1,value2) {
+					andrule.property = value1;
+					andrule.propertyDesc=value2;
+					$scope.copyValueFun();
+				}
+				
+				$scope.selectProp = function(andrule, value1,value2) {
+					andrule.operator = value1;
+					andrule.operatorDesc = value2;
+					$scope.copyValueFun();
+				}
+				$scope.eventValueFun=function(){
+					$scope.copyValueFun();
+				}
+				//规则描述框内容返显
+				$scope.copyValueFun=function(){
+					$scope.andObj=L.get('EMV_FILER_EVENT_RANGE')+':';
+					for(var i=0;i<$scope.rules.length;i++){
+						for(var j=0;j<$scope.rules[i].length;j++){
+							console.log($scope.rules[i][j].value)
+							if(j==$scope.rules[i].length-1){
+								$scope.andObj+=$scope.rules[i][j].propertyDesc+$scope.rules[i][j].operatorDesc+$scope.rules[i][j].value;
+							}else{
+								$scope.andObj+=$scope.rules[i][j].propertyDesc+$scope.rules[i][j].operatorDesc+$scope.rules[i][j].value+' '+L.get('COMMON_AND')+' ';
+							}
+
+						}
+						if(i<$scope.rules.length-1){
+							$scope.andObj+=' '+L.get('COMMON_AND')+' ';
+						}
+
+					}
+					$scope.objs.ruleDetail=$scope.andObj;
+					$scope.$emit('ruleDetail',$scope.objs.ruleDetail)
+					console.log($scope.rules)
+					$scope.$emit('rules',$scope.rules)
+					console.log($scope.objs.ruleDetail)
+				}
+				$scope.copyValueFun();
+				
+
+			}]
+		};
+	});
+
+})(nameSpace.reg('graph'));

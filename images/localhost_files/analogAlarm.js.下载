@@ -1,0 +1,473 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('analogAlarmCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        $scope.getTopLiArray = [];
+        $scope.getServityArray = [];
+        $scope.getSourceCINameArray = [];
+        $scope.SourceID = [];
+        $scope.Status = [];
+        $scope.objs = {};
+        $scope.getselectDataFun = function () {
+            MonitoringService.getSelectorCodes({ codeType: 0 }).success(function (result) {
+                //console.log(result.data)
+                $scope.getServityArray = result.data;
+
+            }).error(function () {
+
+            });
+            MonitoringService.getSelectorCodes({ codeType: 1 }).success(function (result) {
+                //console.log(result.data)
+                $scope.SourceID = result.data;
+
+
+            }).error(function () {
+
+            });
+            MonitoringService.getSelectorCodes({ codeType: 2, except: [3] }).success(function (result) {
+                //console.log(result)
+                $scope.Status = result.data;
+
+            }).error(function () {
+
+            });
+            MonitoringService.getCiList({ "ciCode": " " }).success(function (result) {
+                $scope.getSourceCINameArray = result.data;
+                //console.log($scope.getTopLiArray)
+                // if (!$scope.$$phase) {
+                //     $scope.$apply();
+                // }
+
+            }).error(function () {
+
+            });
+
+        }
+        //$scope.getselectDataFun();
+        $scope.getDataFun = function () {
+            $scope.sendWarningObj = {};
+            $scope.sendWarningObj.Summary = 'Free disk space is less than 20% on volume ';
+            $scope.sendWarningObj.displayParameterArry = [];
+            $scope.sendWarningObj.moreArry = [];
+            MonitoringService.getCiList({ "ciCode": "" }).success(function (result) {
+                $scope.getSourceCINameArray = result.data;
+                $scope.sendWarningObj.displayParameterArry.unshift(
+                    { value: $scope.getSourceCINameArray[0], describle: L.get('COMMON_ALARM_OBJECT') + " SourceCIName", id: "SourceCIName" }
+                )
+            }).error(function () {
+
+            });
+            MonitoringService.getSelectorCodes({ codeType: 0 }).success(function (result) {
+                //console.log(result.data)
+                $scope.getServityArray = result.data;
+                $scope.sendWarningObj.displayParameterArry.push({ value: $scope.getServityArray[0].name, describle: L.get('COMMON_ALARM_LEVEL') + " Severity", id: "Severity" })
+            }).error(function () {
+
+            });
+            MonitoringService.getSelectorCodes({ codeType: 1 }).success(function (result) {
+                //console.log(result.data)
+                $scope.SourceID = result.data;
+                $scope.sendWarningObj.moreArry.unshift(
+                    { value: $scope.SourceID[0].name, describle: L.get('COMMON_ALARM_SOURCE') + " SourceID", id: "SourceID" }
+                )
+
+            }).error(function () {
+
+            });
+            MonitoringService.getSelectorCodes({ codeType: 2, except: [3] }).success(function (result) {
+                //console.log(result)
+                $scope.Status = result.data;
+                $scope.sendWarningObj.moreArry.push(
+                    { value: $scope.Status[0].name, describle: L.get('COMMON_ALARM_STATUS') + " Status", id: "Status" }
+                )
+
+            }).error(function () {
+
+            });
+
+
+            $scope.sendWarningObj.displayParameterArry = [
+
+                { value: "disk fault", describle: L.get('COMMON_ALARM_INDICATOR') + " SourceAlertKey", id: "SourceAlertKey" },
+
+
+            ]
+            $scope.sendWarningObj.moreArry = [
+                { value: $scope.getround(), describle: L.get('COMMON_ALARM_NUMBER') + " SourceEventID", id: "SourceEventID" },
+                { value: 'Warning', describle: L.get('COMMON_ORIGINAL_ALARM_LEVEL') + " SourceSeverity", id: "SourceSeverity" },
+                { value: "Identifier", describle: L.get('COMMON_ALARM_IDENTIFIER') + " SourceIdentifer", id: "SourceIdentifier" }
+            ]
+
+
+
+        }
+
+
+
+
+
+        $scope.searchCinameFun = function () {
+            // $scope.getSourceCINameArray=[];
+            MonitoringService.getCiList({ "ciCode": $scope.objs.searchValue }).success(function (result) {
+                $scope.getTopLiArray = result.data;
+                $scope.getSourceCINameArray = result.data;
+                if (!$scope.$$phase) {
+                    $scope.$apply();
+                }
+                //console.log($scope.getTopLiArray)
+
+            }).error(function () {
+
+            });
+
+        }
+        //$scope.searchCinameFun()
+
+
+        $scope.getTopLiFun = function (id) {
+            //console.log(id)
+            $scope.listShwFlag = id;
+            $('.listArray').stop().slideDown(150);
+            $('.search-input').stop().slideDown(150);
+            if (id == "SourceCIName") {
+                $scope.getTopLiArray = $scope.getSourceCINameArray;
+                //console.log($scope.getTopLiArray)
+            } else if (id == "Severity") {
+                $scope.getTopLiArray = $scope.getServityArray;
+            } else if (id == "SourceID") {
+                $scope.getTopLiArray = $scope.SourceID;
+                //console.log($scope.getTopLiArray)
+            } else if (id == "Status") {
+                $scope.getTopLiArray = $scope.Status;
+            }
+        }
+
+        $(document).on('click', function () {
+            //$scope.listShwFlag="";
+            $('.listArray').stop().slideUp(150);
+            $('.search-input').stop().slideUp(150);
+        })
+        $scope.getSeverityFun = function (item, item1) {
+            item.value = item1.name;
+            $scope.listShwFlag = "";
+            if ($('.search-input')) {
+                $('.search-input').stop().slideUp(150);
+            }
+
+            $('.listArray').stop().slideUp(150);
+        }
+        $scope.getSourceCINameFun = function (item, item1) {
+            item.value = item1;
+            $scope.listShwFlag = "";
+
+            $('.search-input').stop().slideUp(150);
+            $('.listArray').stop().slideUp(150);
+        }
+
+        $scope.hiddenListFun = function () {
+            $('.search-input').stop().slideUp(150);
+            $('.listArray').stop().slideUp(150);
+        }
+        //console.log($scope.getServityArray)
+        //console.log($scope.dictionaryArray)
+        $scope.getround = function () {
+            var rand = "";
+            for (var i = 0; i < 5; i++) {
+                var r = Math.floor(Math.random() * 10);
+
+                rand += r;
+
+            }
+            var time = Date.parse(new Date());
+            var number = time + rand;
+            return number
+        }
+
+        //console.log($scope.getround());
+        $scope.dateformat = function (number) {
+            //debugger;
+            var string = "";
+            //number=parseInt(number)
+            if (number == "" || number == undefined) {
+                if (number == 0) {
+                    string = '00';
+                } else {
+                    string = "";
+                }
+
+            } else {
+                number = parseInt(number)
+
+                if (number < 10) {
+                    string = '0' + number;
+                } else {
+
+                    string = number.toString();
+                }
+            }
+
+
+
+
+            return string
+        };
+        $scope.addEventObj = function () {
+            var type = 'get';
+            $uibModal.open({
+                size: 'addEventObj',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/addEventObj.html',
+                controller: 'addEventObjCtrl',
+                resolve: {
+                    type: function () {
+                        return type;
+                    },
+                    fn: function () {
+                        return function (d) {
+                            if (type == 'add') {
+                                $scope.getFocusData();
+                            }
+                            if (type == 'get') {
+
+                                $.each($scope.sendWarningObj.displayParameterArry, function (index, item) {
+                                    if (item.id == 'SourceCIName') {
+                                        item.value = d;
+                                    }
+                                })
+                            }
+
+                        }
+                    }
+                }
+            });
+        }
+        $scope.getDateNowFun = function () {
+            var newDate = new Date();
+            var month = newDate.getMonth() + 1;
+            var date = $scope.dateformat(newDate.getDate())
+            var getHours = $scope.dateformat(newDate.getHours())
+            var getMinutes = $scope.dateformat(newDate.getMinutes())
+            var getSeconds = $scope.dateformat(newDate.getSeconds())
+
+            if (month < 10) {
+                month = '0' + month;
+            }
+            var dateString = newDate.getFullYear() + '-' + month + '-' + date + ' ' + getHours + ':' + getMinutes + ':' + getSeconds;
+            return dateString
+        }
+
+        if (!window.localStorage.getItem('set-send-warning')) {
+
+            $scope.getDataFun();
+
+            $scope.sendWarningObj.LastOccurrence = $scope.getDateNowFun();
+            $.each($scope.sendWarningObj.moreArry, function (index, item) {
+                if (item.id == 'SourceEventID') {
+                    item.value = $scope.getround();
+                }
+            })
+        } else {
+
+            $scope.getselectDataFun();
+            //$scope.getDataFun();
+            $scope.sendWarningObj = JSON.parse(window.localStorage.getItem('set-send-warning'))
+            //console.log($scope.sendWarningObj)
+            $scope.sendWarningObj.LastOccurrence = $scope.getDateNowFun();
+            //$scope.sendWarningObj.SourceEventID=$scope.getround();
+            //console.log($scope.sendWarningObj)
+            $.each($scope.sendWarningObj.moreArry, function (index, item) {
+                if (item.id == 'SourceEventID') {
+                    item.value = $scope.getround();
+                }
+
+            })
+
+            MonitoringService.getSelectorCodes({ codeType: 0 }).success(function (result) {
+                //console.log(result.data)
+                $scope.getServityArray = result.data;
+                $scope.sendWarningObj.displayParameterArry[2] = { value: $scope.getServityArray[0].name, describle: L.get('COMMON_ALARM_LEVEL') + " Severity", id: "Severity" };
+            }).error(function () {
+
+            });
+            MonitoringService.getSelectorCodes({ codeType: 1 }).success(function (result) {
+                //console.log(result.data)
+                $scope.SourceID = result.data;
+                $scope.sendWarningObj.moreArry[0] = { value: $scope.SourceID[0].name, describle: L.get('COMMON_ALARM_SOURCE') + " SourceID", id: "SourceID" }
+
+
+            }).error(function () {
+
+            });
+        }
+
+        $scope.delteBtnFun = function (item) {
+            item.value = ""
+        }
+        $scope.delteBtnSumFun = function () {
+            $scope.sendWarningObj.Summary = "";
+        }
+
+        $scope.sendFun = function () {
+            //console.log(1)
+            var sendObj = {};
+            //console.log($scope.sendWarningObj.displayParameterArry)
+            $.each($scope.sendWarningObj.displayParameterArry, function (index, item) {
+                if (item.id == "SourceCIName") {
+                    if (item.value) {
+                        sendObj.SourceCIName = item.value;
+                    } else {
+                        Unit.error(L.get('EMV_THE_ALARM_OBJECT_CANNOT_BE_EMPTY'))
+
+                    }
+
+                }
+                if (item.id == "Severity") {
+                    if (item.value) {
+
+                        $.each($scope.getServityArray, function (index, item1) {
+                            if (item1.name == item.value) {
+                                sendObj.Severity = item1.value;
+                            }
+                        })
+
+                    } else {
+                        Unit.error(L.get('EMV_THE_ALARM_LEVEL_CANNOT_BE_EMPTY'))
+
+                    }
+
+                }
+                if (item.id == "SourceAlertKey") {
+                    if (item.value) {
+                        sendObj.SourceAlertKey = item.value;
+                    } else {
+                        Unit.error(L.get('EMV_THE_ALARM_INDICATOR_CANNOT_BE_EMPTY'))
+
+                    }
+
+                }
+                // if(index==4){
+                // 	sendObj.LastOccurrence=item.value;
+                // }
+            })
+
+            if ($scope.sendWarningObj.LastOccurrence) {
+                sendObj.LastOccurrence = $scope.sendWarningObj.LastOccurrence;
+            } else {
+                Unit.error(L.get('COMMON_ALARM_SENDING_TIME'))
+            }
+            if ($scope.sendWarningObj.Summary) {
+                sendObj.Summary = $scope.sendWarningObj.Summary;
+            } else {
+                Unit.error(L.get('EMV_ALARM_DETAILS_CANNOT_BE_EMPTY'))
+            }
+            //console.log($scope.sendWarningObj.moreArry)
+            $.each($scope.sendWarningObj.moreArry, function (index, item) {
+                if (item.id == "SourceID") {
+                    if (item.value) {
+
+                        $.each($scope.SourceID, function (index, item1) {
+                            if (item.value == item1.name) {
+                                sendObj.SourceID = item1.value;
+                            }
+                        })
+                    } else {
+                        Unit.error(L.get('EMV_ALARM_SOURCE_CANNOT_BE_EMPTY'))
+
+                    }
+
+                }
+                if (item.id == 'SourceEventID') {
+                    if (item.value) {
+                        sendObj.SourceEventID = item.value;
+                    } else {
+                        Unit.error(L.get('EMV_THE_ALARM_NUMBER_CANNOT_BE_EMPTY'))
+
+                    }
+
+                }
+                if (item.id == 'SourceSeverity') {
+                    if (item.value) {
+                        sendObj.SourceSeverity = item.value
+
+                    } else {
+                        Unit.error(L.get('EMV_THE_ORIGINAL_ALARM_LEVEL_CANNOT_BE_EMPTY'))
+                    }
+
+                }
+                if (item.id == 'Status') {
+                    if (item.value) {
+
+                        $.each($scope.Status, function (index, item1) {
+                            if (item.value == item1.name) {
+                                sendObj.Status = item1.value;
+                            }
+                        })
+                    } else {
+                        Unit.error(L.get('EMV_THE_ALARM_STATUS_CANNOT_BE_EMPTY'))
+                    }
+                }
+                if (item.id == 'SourceIdentifier') {
+                    if (item.value) {
+                        sendObj.SourceIdentifier = item.value;
+                    } else {
+                        Unit.error(L.get('EMV_THE_ALARM_ID_CANNOT_BE_EMPTY'))
+                    }
+
+                }
+
+            })
+            //console.log(sendObj)
+            //console.log(sendObj.SourceCIName + sendObj.SourceEventID + sendObj.SourceSeverity + sendObj.Severity + sendObj.SourceID  + sendObj.SourceAlertKey + sendObj.Summary + sendObj.SourceIdentifier + sendObj.LastOccurrence + sendObj.SourceEventID + sendObj.Status)
+
+            if (sendObj.SourceCIName && sendObj.SourceEventID && sendObj.SourceSeverity && sendObj.Severity && sendObj.SourceID && sendObj.SourceAlertKey && sendObj.Summary && sendObj.SourceIdentifier && sendObj.LastOccurrence && sendObj.SourceEventID && sendObj.Status) {
+                MonitoringService.sendEvent([sendObj]).success(function (result) {
+                    if (result.success == true) {
+                        window.localStorage.setItem('set-send-warning', JSON.stringify($scope.sendWarningObj));
+                        Unit.success(L.get('EMV_THE_SIMULATED_ALARM_WAS_SENT_SUCCESSFULLY'))
+                    } else {
+                        Unit.error(L.get('EMV_ANALOG_ALARM_FAILED_TO_BE_SENT') + result.message)
+                    }
+                }).error(function () {
+
+                });
+
+            } else {
+                //console.log(321)
+            }
+
+
+        }
+
+
+        $scope.onTimeSet2 = function (newDate) {
+            $scope.sendWarningObj.LastOccurrence = newDate;
+            //var date=new Date($scope.dateString1.substr(0,4),parseInt($scope.dateString1.substr(5,2))-1,$scope.dateString1.substr(8,2),parseInt($scope.dateString1.substr(11,2)),parseInt($scope.dateString1.substr(14,2)));
+            //$scope.dateEndCom=newDate.substr(0,4).toString()+newDate.substr(5,2).toString()+newDate.substr(8,2).toString()+newDate.substr(11,2).toString()+newDate.substr(14,2).toString()+newDate.substr(17,2).toString()+newDate.substr(20,2).toString()
+            //$scope.sendWarningObj.LastOccurrence=$scope.dateString1;
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+    }]);
+
+
+})(nameSpace.reg('graph'));

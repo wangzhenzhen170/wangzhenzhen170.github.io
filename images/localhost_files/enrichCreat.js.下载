@@ -1,0 +1,88 @@
+			
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('createEnrichRule', function() {
+		return {
+			restrict : 'AE',
+			replace : true,
+            scope: {
+                ruleType : '@ruleType'
+                
+			},
+			templateUrl: 'app/directive/creatRule/enrichCreat.html',
+			controller: ['$scope', '$timeout', '$state','Unit','uDialog','DefinedEventsService','MonitoringService','$uibModal',function($scope, $timeout,$state,Unit,uDialog,DefinedEventsService,MonitoringService,$uibModal){
+                $scope.L = L;
+                $scope.enrichStrategyArr = [{}];
+                $scope.$emit("enrichStrategyArr",$scope.enrichStrategyArr);
+                //添加丰富策略
+                MonitoringService.getSelectorCodes({
+                    codeType:12
+                }).success(function(result) {
+                    $scope.enrichData = result.data;
+                }).error(function() {
+
+                });
+                MonitoringService.getCiClassCodes({}).success(function(result) {
+                    $scope.CiClassCodes = result.data;
+                }).error(function() {
+
+                });
+                $scope.addEnrichFun = function () {
+                    var flag = true;
+                    $.each($scope.enrichStrategyArr,function(index,item){
+                        if(!item.defindeShow && !item.ciShow){
+                            flag=false;
+                        }
+                    })
+                    $timeout(function(){
+                        if(flag){
+                            $scope.enrichStrategyArr.push({});
+                        }
+                        
+                    },1)
+                    
+                }
+                //删除丰富规则
+                $scope.deleteEnrichFun=function ($index){
+                    $scope.enrichStrategyArr.splice($index,1)
+                    $scope.$emit("enrichStrategyArr",$scope.enrichStrategyArr);
+                }
+                $scope.selectFun = function (item,item1) {
+                    item.eventAttr=item1.value;
+                    $scope.$emit("enrichStrategyArr",$scope.enrichStrategyArr);
+                    
+                        
+                }
+                $scope.selectFun1 = function (item,item2) {
+                    
+                    item.ciClassId = item2.id;
+                    MonitoringService.getCiAttrDefs({classId:item2.id}).success(function(result) {
+                        $scope.getCiAttrDefs=result.data;
+                        
+                    }).error(function() {
+
+                    });
+                    $scope.$emit("enrichStrategyArr",$scope.enrichStrategyArr)
+                    
+                }
+                $scope.selectFun2 = function (item,item3) {
+                    item.ciAttr = item3.proName;
+                    $scope.$emit("enrichStrategyArr",$scope.enrichStrategyArr)
+                }
+            }]
+        };
+	});
+    graph.app.filter('selectCI',function(){
+		return function(input,arr){
+			var classCode="";
+			angular.forEach(arr, function(item,index){
+				if(item.id === input){
+					classCode = item.classCode;
+				}
+			});
+			return classCode
+		}
+	})
+})(nameSpace.reg('graph'));

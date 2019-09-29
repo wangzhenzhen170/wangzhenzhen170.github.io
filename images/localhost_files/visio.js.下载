@@ -1,0 +1,28 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('DiagramVisioService', ['$http', 'Unit','$q', function($http, Unit, $q){
+        var o = {};
+
+        o.parser = function(files){
+            var fromData = new FormData();
+            angular.forEach(files, function (value) {
+                fromData.append('file', value);
+            });
+
+            return $http.post(Unit.diagramApi('/visio/parser'), fromData, {
+                headers: {
+                    'Content-Type': undefined
+                }
+            });
+        };
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,93 @@
+
+(function(graph){
+	'use strict';
+
+	graph.app.factory('modalBackdropService', ['$rootScope', '$compile', '$document', function($rootScope, $compile, $document){
+		var self = {};
+
+		self.backdrop = function(backdropClass, zIndex) {
+			var $backdrop = angular.element('<ui-backdrop></ui-backdrop>')
+				.attr({
+					'backdrop-class': 'backdropClass',
+					'z-index': 'zIndex'
+				});
+
+			var backdropScope = $rootScope.$new(true);
+			backdropScope.backdropClass = backdropClass;
+			backdropScope.zIndex = zIndex;
+			$document.find('body').append($compile($backdrop)(backdropScope));
+
+			return function() {
+				$backdrop.remove();
+				backdropScope.$destroy();
+			};
+		};
+         return self;
+	}]).factory('trainningService', ['$compile', '$rootScope', '$document', '$q', function($compile, $rootScope, $document, $q){
+		var trainning = this;
+
+		trainning.trainning = function(trainnings) {
+			var trainningScope = $rootScope.$new(true),
+				defer = $q.defer(),
+				$stepElm = angular.element('<trainning-step></trainning-step>')
+					.attr({
+						'step': 'step',
+						'trainnings': 'trainnings',
+						'next-step': 'nextStep($event, step);',
+						'pre-step':'preStep($event, step)',
+						'cancel': 'cancel($event, step)'
+					}),
+				destroyTrainningPanel = function(){
+					if (trainningScope) {
+						$stepElm.remove();
+						trainningScope.$destroy();
+					}
+				};
+
+			trainningScope.cancel = function($event, step){
+				//defer.reject('cancel');
+				destroyTrainningPanel();
+				return defer.resolve('done');
+			};
+
+			trainningScope.nextStep = function($event, step) {
+				if (trainningScope.step === trainnings.length) {
+					destroyTrainningPanel();
+					return defer.resolve('done');
+				}
+
+				trainningScope.step++;
+			};
+			trainningScope.preStep = function($event, step) {
+
+				if (trainningScope.step === 1) {
+					/*destroyTrainningPanel();
+					 return defer.resolve('done');*/
+					alert('已经是第一页')
+				}else{
+					trainningScope.step--;
+				}
+
+			};
+			trainningScope.trainnings = trainnings;
+			trainningScope.step = 1;
+
+			$document.find('body').append($compile($stepElm)(trainningScope));
+			trainningScope.$on('$locationChangeStart', destroyTrainningPanel);
+
+			return {
+				done: function(func) {
+					defer.promise.then(func);
+					return this;
+				},
+				cancel: function(func) {
+					defer.promise.then(null, func);
+					return this;
+				}
+			};
+		};
+		return trainning;
+
+	}]);
+
+})(nameSpace.reg('graph'));

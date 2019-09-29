@@ -1,0 +1,43 @@
+/* global CanvasJS */
+
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalCiMonitorCtrl', ['$scope', '$uibModalInstance', 'result', '$timeout', function($scope, $uibModalInstance, result, $timeout){
+
+		$scope.$modal = $uibModalInstance;
+
+		$timeout(function() {
+			var dataArr = [];
+			var datas = result.data[result.title];
+			if (datas) {
+				$.each(datas, function() {
+					dataArr.push({
+						label: this.time,
+						y: parseFloat(this.val)
+					});
+				});
+			}
+			var chart = new CanvasJS.Chart($('.user-monitor-char')[0], {
+				title:{
+					text: result.title
+				},
+				zoomEnabled: true,
+				animationEnabled: true,
+				height: 200,
+				data: [
+					{
+						type: 'line',
+						dataPoints: dataArr
+					}
+				]
+			});
+			chart.render();
+		}, 200);
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

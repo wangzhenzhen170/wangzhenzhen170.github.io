@@ -1,0 +1,85 @@
+(function(graph) {
+
+	'use strict';
+
+	graph.app.factory('HttpInterceptor', ['$q', 'Unit', '$rootScope', 'Event', 'RequestMap', '$cookies', function($q, Unit, $rootScope, Event, RequestMap, $cookies) {
+		var requestStack = 0; // 0 表示无未处理请求，整数表示未处理请求数量
+
+		$rootScope.$on(Event.NEED_NOTIFY, function(e, d) {
+			window.localStorage.setItem('needNotify', d);
+			if (d) {
+				Unit.success(graph.translate('ENABLED_NOTIFICATION'));
+			} else {
+				Unit.success(graph.translate('DISABLED_NOTIFICATION'));
+			}
+		});
+
+		return {
+			request: function(config) {
+
+				//				if(config.url.indexOf('api/') >= 0){
+				if (!config.timeout) {
+					var defer = $q.defer();
+					config.timeout = defer.promise;
+					RequestMap.set(defer);
+				}
+
+				// config.headers.token = localStorage.getItem('token');
+
+				requestStack++;
+				//Unit.loadingbar.show();
+				//				}
+
+				return config;
+			},
+			response: function(result) {
+				if (angular.isObject(result.data) && result.data.message && result.config.method !== 'GET' && result.config.method !== 'POST') {
+					if (!window.localStorage.getItem('needNotify')) {
+						Unit.success(graph.translate(result.data.message));
+					}
+				}
+
+				//				if (result.config.url.indexOf('api/') !== -1) {
+				requestStack--;
+				if (requestStack === 0) {
+					//Unit.loadingbar.hide();
+				}
+				//				}
+				if (result.status === 210) {
+					$.post(Unit.monitorApi('/sso/client/oauth/refreshToken'), function(data) {
+						var token = data.data;
+						$cookies.put('token', token, {path: '/'});
+					});
+				}
+				return result;
+			},
+
+			responseError: function(result) {
+
+				//				if (result.config.url.indexOf('api/') !== -1) {
+				requestStack--;
+				//Unit.loadingbar.rollback();
+				//Unit.loadingbar.error();
+				//				}
+
+				if (angular.isObject(result.data) && result.data.message) {
+					Unit.error(graph.translate(result.data.message));
+				}
+
+				if (result.status === 401) {
+					$cookies.remove('token', {path: '/'});
+                    try{
+                        //跳转到登录页
+                        var loginInfo = JSON.parse(localStorage.getItem('configLoginInfo'));
+                        Unit.jumpToLogin(loginInfo.data.ssoServerRoot);
+                    } catch (e) {
+                        console.error(e);
+                    }
+				}
+
+				return $q.reject(result);
+			}
+		};
+	}]);
+
+})(nameSpace.reg('graph'));

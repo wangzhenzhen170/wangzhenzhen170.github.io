@@ -1,0 +1,46 @@
+(function(graph){
+
+    'use strict';
+
+	var obj = {};
+	var elements = [];
+
+	window.setInterval(function(){
+		var i, element, item;
+		for(i=0; i<elements.length; i++){
+			element = elements[i];
+			item = obj[element];
+
+			if(item && (element.scrollHeight !== item.lastScrollHeight)){
+				item.lastScrollHeight = element.scrollHeight;
+				item.lastClientHeight = element.clientHeight;
+				window.Ps.update(element);
+			}
+		}
+	}, 500);
+
+    graph.app.directive('ngScroll', function() {
+
+        return function(scope, element, attrs){
+            elements.push(element[0]);
+            obj[element[0]] = {
+                lastScrollHeight: element[0].scrollHeight,
+                lastClientHeight: element[0].clientHeight
+            };
+
+            if (attrs.ngScroll !== '') {
+                var xy = attrs.ngScroll.split(',');
+                var scrollX = xy[0];
+                var scrollY = xy[1];
+                window.Ps.initialize(element[0], {
+                    suppressScrollX: scrollX === 'false' ,
+                    suppressScrollY: scrollY === 'false'
+                });
+            } else {
+                window.Ps.initialize(element[0]);
+            }
+        };
+    });
+
+
+})(nameSpace.reg('graph'));

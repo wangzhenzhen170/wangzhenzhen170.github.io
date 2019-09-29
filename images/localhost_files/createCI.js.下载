@@ -1,0 +1,64 @@
+
+
+(function(graph){
+
+	'use strict';
+	// graph.app.controller('createCICtrl', function(){})
+	graph.app.controller('createCICtrl', ['$uibModal','$scope', '$uibModalInstance', 'MonitoringService','Unit','ciCode','$sce','$cookies','$cookieStore','flag',function($uibModal,$scope, $uibModalInstance,MonitoringService,Unit,ciCode,$sce,$cookies,$cookieStore,flag) {
+		
+		// $uibModal.$close(function() {
+		// 	console.log('####')
+		// })
+		$scope.token=$cookies.get("token") ;
+		MonitoringService.selectCMVUrl({}).success(function(data) {
+
+			$scope.cmvUrl = data.data;
+			var url=$scope.cmvUrl+"/vmdb/cmv/foundCi/foundCi.html?ciCode="+ciCode+"&time="+Date.parse(new Date())+"&token="+$scope.token;
+			$scope.myURL = $sce.trustAsResourceUrl(url);
+		});
+		$scope.$on('modal.closing',function(){
+			window.removeEventListener("message",addListenerFun);
+		})
+			
+		function addListenerFun(evt){
+			//console.log(evt)
+			
+			if(evt.data.msg){
+				if(evt.data.msgType=="error"){
+					Unit.error(evt.data.msg)
+					//window.addEventListener('message', addListenerFun);
+				}else if(evt.data.msgType=="success" && evt.data.type=="addCi"){
+					
+					Unit.success(evt.data.msg)
+					MonitoringService.saveCreateLog({
+						"objectCode": ciCode,
+						"objectType":1
+					}).success(function(data) {
+						if(data.success){
+							flag();
+						}
+						
+						
+					});
+					
+				}
+			}
+			if(evt.data.close==1){
+				$scope.cancel();
+			}
+			if(evt.data.ok==1){
+				//Unit.success('CI '+L.get('COMMON_CREATION_SUCCEEDED'));
+				
+			}
+		}
+		window.addEventListener('message', addListenerFun);
+
+		$scope.cancel = function () {
+			window.removeEventListener("message",addListenerFun);
+			$uibModalInstance.close({ok: false});
+			
+			
+		};
+
+	}])
+})(nameSpace.reg('graph'));

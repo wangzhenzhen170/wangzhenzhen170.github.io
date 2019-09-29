@@ -1,0 +1,98 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('SceneService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+
+        /**
+         * 根据场景id获取告警分组
+         * @param {Object} data -
+         *   {sceneid: "场景ID"}
+         */
+        o.getEventByScene = function (data) {
+            return $http.post(Unit.api('/event/getsourcegroupbyscene'), data);
+        };
+
+
+        /**
+         * 根据场景id获取告警
+         * @param {Object} data -
+         *   {sceneid: "场景ID", like: "模糊匹配", order: "排序字段", page: 页码, pageSize: 每页数据个数}
+         */
+        o.getAlarmDetailByScene = function (data) {
+            return $http.post(Unit.api('/event/geteventinfobyscene'), data);
+        };
+
+        /**
+         * 根据视图获取告警数据
+         * @param {Object} data -
+         *   {viewid: "视图ID", like: "模糊匹配", order: "排序字段", page: 页码, pageSize: 每页数据个数}
+         */
+        o.getAlarmDetailByView = function (data) {
+            return $http.post(Unit.api('/event/geteventinfobyview'), data);
+        };
+
+        /**
+         * 根据视图中的节点获取告警数据
+         * @param {Object} data -
+         *   {id: {id: "ciid", viewid: "viewid"}, like: "模糊匹配", order: "排序字段", page: 页码, pageSize: 每页数据个数}
+         */
+        o.getAlarmDetailByNode = function (data) {
+            return $http.post(Unit.api('/event/geteventinfobynode'), data);
+        };
+
+
+		/**
+		 * 关闭告警
+		 * @param id
+         */
+		o.closeEvent = function(id){
+			return $http.post(Unit.api('/event/closeEventAlarm'), {serial: id, ackInfo: 'close'});
+		};
+
+        /**
+         * 获取操作组
+         * @param {string} id - 操作组ID
+         */
+        o.getActGroup = function (id) {
+            return $http.get(Unit.api('/auto/' + id));
+        };
+
+        /**
+         * 获取全部操作组
+         * @returns {promise}
+         */
+        o.getAllActGroup = function () {
+            return $http.post(Unit.api('/auto/query'));
+        };
+
+        /**
+         * 执行自动化操作
+         * @param   {object} data - 执行操作所需的参数
+         * @param   {string} data.ciId - 执行操作的CI的长id
+         * @param   {string} data.groupId - 操作所在的操作组的id
+         * @param   {string} data.path - 操作的脚本文件路径
+         *
+         * @returns {promise}
+         */
+        o.execAction = function (data) {
+            return $http.post(Unit.api('/auto/execute'), data);
+        };
+
+        /**
+         * 批量获取CI的监控指标
+         * @param   {object} data - 需要查询的ci与kpi
+         * @param   {Array.<object>} data.kpis - ci和kpi列表[{ci:'ci长id', kpi:'kpi的id'}, ...]
+         * @returns {promise}
+         */
+        o.getCurPerfValue = function (data) {
+            return $http.post(Unit.api('/currentperformance/value'), data);
+        };
+
+        return o;
+	}]);
+
+})(nameSpace.reg('graph'));

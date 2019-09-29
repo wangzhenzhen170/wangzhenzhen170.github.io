@@ -1,0 +1,188 @@
+(function(graph) {
+
+	'use strict';
+
+	var controller = function($scope,$state, $uibModalInstance, Unit, ViewService,DiagramDiagramService,combDiagrams,diagramInfo) {
+		$scope.position = {};
+
+		$scope.view = {
+			name: '组合视图1',
+			description: '',
+			categoryId: ''
+		};
+
+
+
+		// 保存成功跳转链接
+		$scope.goBack = function() {
+			window.history.back();
+		};
+
+		$scope.getSelectTreeInfoById = function(id){
+			var i, len = $scope.treeListToArr.length, res;
+			for(i = 0; i < len; i++){
+				if($scope.treeListToArr[i].id === id){
+					res = $scope.treeListToArr[i];
+					break;
+				}
+			}
+
+			return res;
+		};
+
+		$scope.addTreeList = function(arr){
+			(function(list){
+				angular.forEach(list, function(item){
+					if(item.children && item.children.length){
+						$scope.addTreeList(item.children);
+						// delete $scope.treeListToArr[$scope.treeListToArr.length - 1].children;
+					}
+					$scope.treeListToArr.push(item);
+				});
+			})(arr);
+		};
+
+		DiagramDiagramService.queryDiagramDirTree({}).success(function(res){
+			$scope.dataForTheTree = res.data;
+			$scope.treeListToArr = [];
+
+			if(!angular.isArray($scope.dataForTheTree)){
+				$scope.dataForTheTree = [];
+			}
+
+			$scope.dataForTheTree.unshift({
+				dirName: "我的",
+				id: 0,
+				label: "我的",
+				parentId: 0,
+				iconHidden: true,
+				_iconStyle_: {
+					'background': 'none'
+				}
+			});
+
+			$scope.position.categoryNode = $scope.dataForTheTree[0];
+
+			if(angular.isArray($scope.dataForTheTree)){
+				$scope.addTreeList($scope.dataForTheTree);
+			}
+
+			if(!isEmptyObject(diagramInfo)){
+				$scope.view.name = diagramInfo.diagram.name;
+				if(angular.isArray(diagramInfo.tags)){
+					$scope.tags = [];
+					angular.forEach(diagramInfo.tags, function(item){
+						item.text = item.tagName;
+						$scope.tags.push(item);
+					});
+				}
+				$scope.position.categoryNode = $scope.getSelectTreeInfoById(diagramInfo.diagram.dirId) || null;
+			}
+		});
+
+		$scope.treeOptions = {
+			nodeChildren: "children",
+			dirSelectable: true,
+			templateUrl: 'canvas-tree-template.html'
+		}
+
+		$scope.cancel = function() {
+			$uibModalInstance.close();
+		};
+
+		$scope.ok = function() {
+			if(!$scope.view.name){
+				Unit.error('请填写组合视图名称');
+				return;
+			}
+
+			// diagramInfo为空则为保存组合视图，否则为编辑视图
+			var params = {};
+			if(isEmptyObject(diagramInfo)) {
+				params = {
+					diagramInfo: {
+						diagram: {
+							dirId: $scope.position.categoryNode && $scope.position.categoryNode.id !== undefined ? $scope.position.categoryNode.id : 0,
+							isOpen: 0,
+							diagramDesc: "",
+							status: 1,
+							name: $scope.view.name,
+							diagramType: 2
+						},
+						tags: [],
+						combDiagrams: combDiagrams
+					}
+				};
+			} else {
+				params.diagramInfo = diagramInfo;
+				params.diagramInfo.diagram.dirId = $scope.position.categoryNode && $scope.position.categoryNode.id !== undefined ? $scope.position.categoryNode.id : 0;
+				params.diagramInfo.diagram.name = $scope.view.name;
+				params.diagramInfo.combDiagrams = combDiagrams;
+			}
+
+			if(angular.isArray($scope.tags)){
+				var tagJSONArr = [];
+				angular.forEach($scope.tags,function(item){
+					tagJSONArr.push({
+						tagName: item.text
+					});
+					params.diagramInfo.tags = tagJSONArr;
+				});
+			}
+			DiagramDiagramService.saveOrUpdateCombDiagram(params).success(function(res){
+				if (res.success) {
+					Unit.success('保存组合视图成功！');
+					$scope.cancel();
+					// $scope.goBack();
+				} else {
+					Unit.error(res.message);
+					return;
+				}
+			});
+		};
+
+		$scope.isShowPath = function(){
+			$scope.savePathShow = !$scope.savePathShow;
+		};
+
+		$scope.selectPath = function(node){
+			$scope.categoryName = node.label;
+		};
+
+		$scope.selectCategory = function(node){
+			$scope.isShowPath();
+		};
+
+		$scope.cancelTree = function(e){
+			if(!$scope.hasClass(e.target, ['view-save-select-path', 'tree-label', 'tree-branch-head', 'tree-leaf-head', 'select-path-team', 'tree-show-title'])){
+				if($scope.savePathShow){
+					$scope.isShowPath();
+				}
+			}
+		};
+
+		$scope.hasClass = function(dom, list){
+			var i, res;
+			for(i = 0; i < list.length; i++){
+				if($(dom).hasClass(list[i])){
+					res = true;
+					break;
+				}
+			}
+
+			return res;
+		};
+
+		function isEmptyObject(obj) {
+			var t;
+			for (t in obj)
+				return !1;
+			return !0
+		}
+
+	};
+
+	graph.app.controller('saveScenceModalCtrl', ['$scope','$state','$uibModalInstance', 'Unit', 'ViewService','DiagramDiagramService','combDiagrams','diagramInfo', controller]);
+
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,112 @@
+(function(graph) {
+
+	'use strict';
+
+	graph.app.controller('myDiagramCtrl', ['$scope', '$state', '$filter', '$location', 'ScenceService', 'Unit', '$timeout', '$cookies', function($scope, $state, $filter, $location, ScenceService, Unit, $timeout, $cookies) {
+		//外部页面跳转
+		$scope.goOutLink = function(code, diagramId) {
+			var url;
+			if (diagramId) {
+				url = '/monitor-web/dmv/integration/page/jumpout/' + code + '/' + diagramId + '/mine/?token=' + $cookies.get('token');
+			} else {
+				url = '/monitor-web/dmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token');
+			}
+
+			window.location = url;
+		};
+
+		// 获取视图列表
+		$scope.curPage = 1;
+		$scope.diagramsList = [];
+		$scope.getOpenDiagrams = function() {
+			if(!$scope.loadMore){
+				$scope.sceneBusy = true;
+			}
+			if ($scope.isEnd) {
+				return;
+			}
+			var param = {
+				pageNum: $scope.curPage,
+				pageSize: 50
+			};
+			if ($scope.searchvalue) {
+				$scope.diagramsList = [];
+				param.cdt = {
+					name: "%" + $scope.searchvalue + "%"
+				}
+			}
+			ScenceService.getAlarmDiagrams(param).success(function(data) {
+				$scope.sceneBusy = false;
+				$scope.loadMore = false;
+				var dd = data.data.data;
+				$scope.totalPages = data.data.totalPages;
+				if ($scope.curPage == 1 && !dd) {
+					$scope.diagramEmpty = true;
+				} else {
+					$scope.diagramEmpty = false;
+				}
+				if (dd) {
+					$.each(dd, function() {
+						this.diagramname = this.vcDiagramInfo.diagram.name;
+						//获取监控数据
+						if (this.eventStatistics) {
+							var monitor = this.eventStatistics;
+							var count = 0;
+							var severityArr = [];
+							var ciArr = [];
+							$.each(monitor, function() {
+								if (this.count && this.severity != -1 && ciArr.indexOf(this.ciId) == -1) {
+									count += this.count;
+									severityArr.push(this.severity);
+									ciArr.push(this.ciId);
+								}
+							});
+							this.alarmCount = count;
+							this.severity = d3.min(severityArr);
+						}
+					});
+					if ($scope.curPage === 1) {
+						$scope.diagramsList = dd;
+					} else {
+						$scope.diagramsList = $scope.diagramsList.concat(dd);
+					}
+				}
+			});
+		};
+		$scope.getOpenDiagrams();
+		// 滚动到最底部加载更多视图
+		$('.scene-list-box').eq(0).on('scroll', function() {
+			var last = $('.diagrams-list').children().eq(-1);
+			if (last.length && (last.offset().top <= (this.offsetHeight + 62)) && $scope.curPage < $scope.totalPages) {
+				$scope.loadMore = true;
+				$scope.curPage++;
+				$scope.$apply();
+				$scope.getOpenDiagrams();
+			}
+		});
+		// 查询视图
+		$scope.searchDiagrams = function($event) {
+			if ($event.keyCode == 13) {
+				$scope.curPage = 1;
+				$scope.isEnd = false;
+				$scope.diagramEmpty = false;
+				$scope.diagramsList = [];
+				$scope.getOpenDiagrams();
+			}
+		}
+
+	}]);
+
+	graph.app.filter('customTime', function() {
+		return function(time) {
+			time = time + "";
+			var year = time.substring(0, 4);
+			var mouth = time.substring(4, 6);
+			var day = time.substring(6, 8);
+			var hour = time.substring(8, 10);
+			var min = time.substring(10, 12);
+			return year + "/" + mouth + "/" + day + " " + hour + ":" + min;
+		}
+	});
+
+})(nameSpace.reg('graph'));

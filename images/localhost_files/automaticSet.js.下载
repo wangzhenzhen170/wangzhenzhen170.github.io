@@ -1,0 +1,149 @@
+(function (graph) {
+
+    'use strict';
+    //右侧浮动层
+    graph.app.directive('automaticSet', function () {
+        return {
+            restrict: 'AE',
+            replace: true,
+            scope: {
+                ruleType: '@ruleType'
+            },
+            templateUrl: 'app/directive/ruleFilterEvent/automaticSet.html',
+            controller: ['$scope', '$timeout', '$state', 'Unit', 'uDialog', 'DefinedEventsService', 'MonitoringService', '$uibModal', function ($scope, $timeout, $state, Unit, uDialog, DefinedEventsService, MonitoringService, $uibModal) {
+                $scope.objs = {};
+                $scope.L = L;
+                $scope.personCheckedArray = [];
+                $scope.personSendArray = [];
+                MonitoringService.getModelCode({ 'function': true, ruleType: 0 }).success(function (result) {
+                    $scope.classList = result.data;
+                }).error(function () {
+
+                });
+                MonitoringService.getSelectorCodes({ 'codeType': 11 }).success(function (result) {
+                    $scope.influenceList = result.data;
+                    $scope.influence = $scope.influenceList[0];
+                }).error(function () {
+
+                });
+                MonitoringService.getSelectorCodes({ 'codeType': 13 }).success(function (result) {
+                    $scope.severityClassList = result.data;
+                    $scope.severityClass = $scope.severityClassList[0];
+                }).error(function () {
+
+                });
+
+                $scope.selectClassify = function (valueObj) {
+                    $scope.influence = valueObj;
+                    $scope.$emit('automaticInfluence', $scope.influence.value)
+                };
+                $scope.selectClassify1 = function (valueObj) {
+                    $scope.severityClass = valueObj;
+                    $scope.$emit('automaticSeverityClass', $scope.severityClass.value)
+                }
+                //获取邮件通知人信息
+                $scope.queryUserFun = function (mailname) {
+                    var obj;
+                    if (mailname) {
+                        obj = { name: mailname };
+                    } else {
+                        obj = {};
+                    }
+                    MonitoringService.userList(obj).success(function (result) {
+                        $scope.personArray = result.data;
+                    }).error(function () {
+
+                    });
+                };
+                $scope.queryUserFun();
+                $scope.queryPerson = function () {
+                    $scope.queryUserFun($scope.objs.searchPerson);
+                };
+                $scope.personCheckedArray = [];
+                $scope.personSendArray = [];
+                //邮件通知选择联系人
+                $scope.checkPersonFun = function (person) {
+                    $scope.personCheckedArray.push(person);
+                    $scope.personSendArray.push(person.userCode);
+                    $scope.$emit('automaticperson', $scope.personSendArray);
+                }
+                $scope.removeCheckedFun = function (item, $index) {
+                    $scope.personCheckedArray.splice($index, 1);
+                    $scope.personSendArray.splice($index, 1);
+                    console.log($scope.personSendArray);
+                    $scope.$emit('automaticperson', $scope.personSendArray);
+                }
+                $scope.influence = {};
+                $scope.influence.value = 0;
+                $scope.severityClass = {};
+                $scope.severityClass.value = 0;
+                $scope.$watch('objs.mailContentString', function () {
+                    $scope.$emit('automaticDescrible', $scope.objs.mailContentString);
+                })
+                $scope.$emit('automaticInfluence', $scope.influence.value);
+                $scope.$emit('automaticSeverityClass', $scope.severityClass.value);
+                $scope.$emit('automaticperson', $scope.personSendArray);
+                $scope.$emit('automatictitle', $scope.objs.adtitle);
+                $scope.$watch('objs.adtitle', function () {
+                    $scope.$emit('automatictitle', $scope.objs.adtitle);
+                })
+                $scope.mailContentFun = function (e) {
+                    var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+                    //console.log(window.event)
+                    if ((window.event.shiftKey) && (keycode === 52 || keycode === 229)) {
+                        $scope.mailContentFlag = true;
+                        //console.log($scope.mailContentFlag)
+                        $timeout(
+                            function () {
+                                $($('.set-automaticDispatch .mailContentli')[0]).addClass('active');
+                            }, 2
+                        )
+
+
+                    } else {
+                        if (keycode !== 13 && keycode !== 38 && keycode !== 40) {
+                            $scope.mailContentFlag = false;
+                            $timeout(function () {
+                                $scope.mailtextareaVal = $('.set-automaticDispatch .mailContent').val()
+                                $scope.objs.mailContentString = $scope.mailtextareaVal;
+                                //$scope.$emit('automaticDescrible',$scope.objs.mailContentString)
+                            });
+
+                        }
+                    }
+
+                    if (keycode === 38) {
+                        e.preventDefault();
+                        hintListCtrl($('.set-automaticDispatch .mailContentlist'), 'UP');
+                    } else if (keycode === 40) {
+                        e.preventDefault();
+                        hintListCtrl($('.set-automaticDispatch .mailContentlist'), 'DOWN');
+                    }
+                    if (keycode === 13) {
+                        e.preventDefault();
+                        $scope.objs.mailContentString += '${' + $('.mailContentlist .active span').text() + '}';
+                        $('.set-automaticDispatch .mailContent').val($scope.objs.mailContentString)
+                        //$scope.$emit('automaticDescrible',$scope.objs.mailContentString)
+                        $('.set-automaticDispatch .mailContentli').removeClass('active')
+                        $scope.mailContentFlag = false;
+
+                    }
+
+                }
+                $scope.checkedInforFun = function (li) {
+                    $scope.objs.mailContentString += li.display;
+                    $('.set-automaticDispatch .mailContent').val($scope.objs.mailContentString);
+                    //$scope.$emit('automaticDescrible',$scope.objs.mailContentString)
+                    $('.set-automaticDispatch .mailContentli').removeClass('active');
+                    $scope.mailContentFlag = false;
+                }
+
+
+
+
+
+            }]
+        };
+    });
+
+})(nameSpace.reg('graph'));

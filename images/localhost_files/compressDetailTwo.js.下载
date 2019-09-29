@@ -1,0 +1,82 @@
+(function(graph){
+
+	'use strict';
+	graph.app.controller('compressDetailTwoCtrl', ['$uibModal','$scope', '$uibModalInstance', 'MonitoringService','Unit','serial','css','type','startTime','endTime','sourceId',function($uibModal,$scope, $uibModalInstance,MonitoringService,Unit,serial,css,type,startTime,endTime,sourceId) {
+		//$scope.pageSizeOption=[24,48,64];
+		//console.log(type)
+		//console.log(startTime);
+		//console.log(endTime);
+		if(type=="SOURCEALERTKEY"){
+			$scope.extra_sql='SERIAL = DUPLICATESERIAL AND KPIID IS NULL AND FILTERTYPE IS NULL'
+		}else if(type=="SOURCECINAME"){
+			$scope.extra_sql='SERIAL = DUPLICATESERIAL AND CINAME IS NULL AND FILTERTYPE IS NULL'
+        }
+        if(sourceId==0){
+            $scope.sourceId="";
+        }else{
+            $scope.sourceId=sourceId;
+        }
+
+		$scope.type=type;
+		$scope.pageSize=16;
+		$scope.currentPage=1;
+		$scope.css=css;
+		$scope.paging = function (data) {
+				$scope.pageSize=data.pageSize;
+				$scope.currentPage=data.currentPage;
+				$scope.loadData();
+
+		}
+
+		$scope.loadData=function(){
+
+			MonitoringService.queryEventPage({
+					isHistory:true,
+					compressed:true,
+					startTime:startTime,
+					endTime:endTime,
+					pageNum:$scope.currentPage,
+					pageSize:$scope.pageSize,
+
+					view_search:{
+							self_define_search:[
+									[{field:$scope.type,op:"=",value:serial},{field:"SOURCEID",op:"=",value:$scope.sourceId+""}]
+							]
+					},
+					extra_sql:$scope.extra_sql
+
+			}).success(function(data) {
+					if (data.success) {
+						$scope.totalRows=data.data.totalRows;
+						$scope.compressDetailArry=data.data.data;
+						console.log($scope.compressDetailArry)
+						// $.each($scope.colorArr,function(index,item){
+						// 	//console.log(item.severity)
+						// 	$.each($scope.compressDetailArry,function(index1,item1){
+						// 		if(item.severity==item1.OLDSEVERITY){
+						// 			item1.color=item.color
+						// 			item1.background={border:'solid 1px '+item1.color, background: item1.color }
+						// 			//$scope.color={'color':$scope.color}
+						// 			//console.log($scope.background)
+						// 		}
+						// 	})
+
+						// })
+						$.each($scope.compressDetailArry,function(index,item){
+							item.background={border:'solid 1px '+item.COLOR, background: item.COLOR }
+
+						})
+					} else {
+
+					}
+			});
+		}
+		$scope.loadData();
+
+
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+
+	}])
+})(nameSpace.reg('graph'));

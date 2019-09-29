@@ -1,0 +1,199 @@
+
+(function(graph, self){
+
+
+	'use strict';
+
+	graph.app.controller('MainViewCtrl', 	['$scope', 'GraphViewtree', 'ViewService', 'Editor', 'GraphContextMenu',
+		'GraphToolbar', 'GraphInfo', 'Event', 'Unit', 'Const', 'ContextLibs',
+		'UserInfo', '$timeout', 'Keymap', 'GraphTable', function($scope, GraphViewtree, ViewService, Editor, GraphContextMenu,
+													 GraphToolbar, GraphInfo, Event, Unit, Const, ContextLibs,
+													UserInfo, $timeout, Keymap, GraphTable){
+
+		$scope.graphId = 'graph-view';
+
+		$scope.LAYOUT.collapsedSidebar = false;
+
+
+		$scope.viewtreeParams = new GraphViewtree({
+			queryView: true,
+			showForm: true,
+			allowEdit: true,
+			allowShowPubview: true,
+			allowShowSubscription: true,
+			selectNode: function(node){
+				if(!node.children){
+					ViewService.getView(node.id)
+						.success(function (result) {
+							Unit.converObject(result.data, node);
+							self.editor.action.openView(result.data);
+							$scope.infoParams.update('view', result.data);
+							$scope.$state.go('home.view.id', {id: node.id});
+						});
+				}
+			}
+		});
+
+
+		$scope.$on('$viewContentLoaded', function() {
+			self.editor = new Editor(document.querySelector('#graph'), document.querySelector('#graph_outline'));
+			$scope.editorState = self.editor.state;
+			$scope.graphTableParams = new GraphTable(self.editor);
+			self.editor.keymap = new Keymap(self.editor);
+
+			new GraphContextMenu(self.editor, {
+				vertex: [
+					Const.MENU_CELL_COPY,
+					Const.MENU_CELL_CUT,
+					Const.MENU_CELL_DELETE,
+					'-',
+					Const.MENU_STYLE,
+					[
+						Const.MENU_FONT_STYLE,
+						Const.MENU_STROKE_WIDTH,
+						Const.MENU_OPACITY
+					],
+					'-',
+					Const.MENU_EXPAND_NODE,
+					Const.MENU_OPEN_URL,
+					Const.MENU_VIEW_RELATION,
+					[
+						Const.MENU_VIEW_RELATION_SET,
+						Const.MENU_VIEW_RELATION_OPEN,
+						Const.MENU_VIEW_RELATION_DELETE
+					]
+				],
+				edge: [
+					Const.MENU_CELL_COPY,
+					Const.MENU_CELL_CUT,
+					Const.MENU_CELL_DELETE,
+					'-',
+					Const.MENU_STYLE,
+					[
+						Const.MENU_FONT_STYLE,
+						Const.MENU_STROKE_WIDTH,
+						Const.MENU_OPACITY
+					]
+				],
+				canvas: [
+
+					Const.MENU_VIEW_NEW,
+					Const.MENU_VIEW_OPEN,
+					Const.MENU_VIEW_SAVE,
+					'-',
+					Const.MENU_EXPORT,
+					[
+						Const.MENU_EXPORT_PNG,
+						Const.MENU_EXPORT_PDF,
+						Const.MENU_EXPORT_SVG,
+						Const.MENU_EXPORT_XML
+					],
+					'-',
+					Const.MENU_GRAPH_CLEAR,
+					Const.MENU_CELL_PASTE,
+					'-',
+					Const.MENU_LAYOUT,
+					[
+						Const.MENU_LAYOUT_HORIZONTAL,
+						Const.MENU_LAYOUT_VERTICAL,
+						Const.MENU_LAYOUT_ORGANIC,
+						Const.MENU_LAYOUT_CIRCLE,
+						//Const.MENU_LAYOUT_PARALLEL,
+						Const.MENU_LAYOUT_STACK_HORIZONTAL,
+						Const.MENU_LAYOUT_STACK_VERTICAL
+					],
+					'-',
+					Const.MENU_ZOOM,
+					[
+						Const.MENU_ZOOM_IN,
+						Const.MENU_ZOOM_OUT,
+						Const.MENU_ZOOM_CENTER,
+						Const.MENU_ZOOM_ACTUAL
+					],
+					'-',
+					Const.MENU_VIEW_RELATION_BACK
+
+				],
+				libs: ContextLibs
+			});
+
+			$scope.toolbarParams = new GraphToolbar({
+				editor: self.editor
+			});
+
+			$scope.infoParams = new GraphInfo(self.editor);
+			self.editor.infoParams = $scope.infoParams;
+
+			if($scope.$state.params.id){
+				ViewService.getView($scope.$state.params.id)
+					.success(function(result){
+						$scope.LAYOUT.collapsedSidebar = true;
+						self.editor.action.openView(result.data);
+						$scope.infoParams.show();
+						$scope.infoParams.update('view', result.data);
+					});
+			}
+		});
+
+
+		$scope.$on(Event.VIEW_DELETE_BEFORE, function(event, data){
+			Unit.confirm(graph.translate('DELETE_CONFIRM'), function(){
+				ViewService.remove(data.id)
+					.success(function(){
+						self.editor.action.clear();
+						$scope.$broadcast(Event.VIEW_DELETE_AFTER, Unit.eventData(data));
+						$scope.infoParams.hide();
+						$scope.$state.go('home.view');
+					});
+			});
+		});
+
+		$scope.$on(Event.VIEW_DELETE_AFTER, function(event, data) {
+			if ($scope.$state.params.id === data.id) {
+				self.editor.action.clear();
+				self.editor.action.clearPaintPanel();
+				$scope.infoParams.hide();
+				$scope.$state.go('home.view');
+			}
+		});
+
+		$scope.$on(Event.CATE_DELETE_AFTER, function (event, data) {
+			if (self.editor.state.view && Array.isArray(self.editor.state.view.path)) {
+				var path = self.editor.state.view.path.map(function (item) { return item.id; });
+				if (path.indexOf(data.id) >= 0) {
+					self.editor.action.clear();
+					self.editor.action.clearPaintPanel();
+					$scope.infoParams.hide();
+					$state.go('home.edit');
+				}
+			}
+		});
+
+		$scope.$on(Event.VIEW_UPDATE_BEFORE, function(){
+			self.editor.action.update();
+		});
+
+		$scope.$on(Event.VIEW_PUBLIC_BEFORE, function(){
+			self.editor.action.publicView();
+		});
+
+		$scope.$on(Event.VIEW_UNPUBLIC_BEFORE, function(){
+			self.editor.action.unpublicView();
+		});
+
+		$scope.$on(Event.VIEW_SUBSCRIPTION_BEFORE, function(){
+			self.editor.action.subscription();
+		});
+
+		$scope.$on(Event.VIEW_UNSUBSCRIPTION_BEFORE, function(){
+			self.editor.action.unsubscription();
+		});
+
+		$scope.treeHeight = 'height: calc(100% - 380px)';
+
+	}]);
+
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page.view'));
+
+

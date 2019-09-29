@@ -1,0 +1,20 @@
+(function (graph) {
+
+    'use strict';
+
+    graph.app.filter('severityColor', function () {
+        return function (severity) {
+            var colorObj = JSON.parse(localStorage.getItem('colorkey')).data;
+            var color = 'gray';
+            $.each(colorObj, function (index, item) {
+                if (severity === item.severity) {
+                    color = item.color;
+                }
+
+
+            });
+            return color;
+
+        };
+    });
+})(nameSpace.reg('graph'));

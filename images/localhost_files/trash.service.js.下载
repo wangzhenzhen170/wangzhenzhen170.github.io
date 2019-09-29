@@ -1,0 +1,30 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('TrashService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+		o.queryRecycleDiagram = function(data){
+			return $http.post(Unit.diagramApi('/diagram/queryRecycleDiagram'), data);
+		};
+
+        o.alldlt = function(data){
+			return $http.post(Unit.diagramApi('/diagram/removeDiagramByIds'), data);
+		};
+
+		o.huanyuan = function(data){
+			return $http.post(Unit.diagramApi('/diagram/restoreRecycleBinDiagram'), data);
+		};
+
+        o.rename = function(data){
+			return $http.post(Unit.diagramApi('/diagram/restoreRecycleBinDiagram'), data);
+		};
+
+		o.delete = function(data) {
+			return $http.post(Unit.diagramApi('/diagram/removeDiagramByIds'), data);
+		};
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

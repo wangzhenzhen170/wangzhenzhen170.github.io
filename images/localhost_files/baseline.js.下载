@@ -1,0 +1,52 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('_emxBaseLineEffetc', ['_emxBaseSvg',
+                               function (baseSvg) {
+
+
+
+            /******************************************************************/
+
+            /**
+             * 图中连线的特效
+             */
+            return baseSvg.extend({
+                init: function (mxg) {
+                    this._super(mxg);
+
+                    /*
+                     * 保存对线所在的g元素的引用
+                     * 因为mxGraph在变动时cell对应的svg元素会重新生成，但g不会变
+                     * 所以可以保留对g元素的引用快速找到cell对应的svg
+                     */
+                    this.cellNodes = {};
+                },
+
+                syncAllEffect: function () {
+                    this._super();
+
+                    for (var i in this.cellNodes) {
+                        this.syncEffect(i);
+                    }
+                },
+
+                clear: function (cell) {
+                    if (cell == null) {
+                        var nodes = this.cellNodes;
+                        for (var i in nodes) {
+                            delete nodes[i];
+                        }
+
+                        this.cellNodes = {};
+                    } else {
+                        cell = this.getCell(cell);
+                        delete this.cellNodes[cell.id];
+                    }
+
+                    this._super(cell);
+                }
+            });
+
+    }]);
+})();

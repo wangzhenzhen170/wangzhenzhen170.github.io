@@ -1,0 +1,91 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxSelEffect', ['_emxBaseSvg', function (BaseSvgEffect) {
+
+
+
+        /*********************************************************************************/
+
+        return BaseSvgEffect.extend({
+            /**
+             * 创建元素被选中的特效
+             * @param {Array<mxCell|String>|mxCell|String} cells
+             */
+            createEffect: function (cells) {
+                cells = cells instanceof Array ? cells : [cells];
+                var cell, i, g;
+                for (i in cells) {
+                    cell = this.getCell(cells[i]);
+                    if (cell && !this.cellEffects[cell.id]) {
+                        g = this.cellEffects[cell.id] = this.createSvg('g', {
+                            filter: 'url(#' + this._defGaussianBlur(1) + ')'
+                        });
+                        g.appendChild(this.createSvg('circle', {
+                            fill: 'rgba(0, 200, 0, 0.2)',
+                            "stroke-width": "2",
+                            stroke: "rgba(0, 200, 0, 0.6)"
+                        }));
+                    }
+                    if (cell) {
+                        this.syncEffect(cell);
+                    }
+                }
+
+                // fade in
+                this._animate_opacity = 0;
+                this._animate_lasttime = 0;
+                this.runAnimate();
+            },
+
+            /**
+             * @param {mxCell|String} cell
+             */
+            syncEffect: function (cell) {
+                cell = this.getCell(cell);
+                var geo = this.getCellGeo(cell),
+                    cx = geo.x + geo.width / 2,
+                    cy = geo.y + geo.height / 2,
+                    r = Math.min(geo.width, geo.height) / 4 * 3,
+                    v = cell.isCollapsed() || !cell.children ? "visible" : "hidden",
+                    g;
+
+                g = this.cellEffects[cell.id];
+                if (!g) return;
+                this.attr(g, {
+                    visibility: v
+                });
+                this.attr(g.childNodes[0], {
+                    cx: cx,
+                    cy: cy,
+                    r: r
+                });
+
+                this.toCellBack(g, cell);
+            },
+
+            update: function (t) {
+                this._animate_opacity = this._animate_opacity == null ? 0 : this._animate_opacity;
+                this._animate_lasttime = !this._animate_lasttime || t - this._animate_lasttime > this._animate_duration ? t : this._animate_lasttime;
+
+                var diff = (t - this._animate_lasttime) / this._animate_duration_,
+                    es = this.cellEffects,
+                    g, i;
+
+                this._animate_opacity += diff;
+
+                if (this._animate_opacity >= 1) {
+                    this._animate_opacity = 1;
+                    this.stopAnimate();
+                }
+
+                for (i in es) {
+                    g = es[i];
+                    this.attr(g, 'opacity', this._animate_opacity);
+                }
+
+            }
+        });
+
+    }]);
+})();

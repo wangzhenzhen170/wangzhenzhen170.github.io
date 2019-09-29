@@ -1,0 +1,86 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('DiagramDiagramService', ['$http', 'Unit','$q', '$cookies', function($http, Unit,$q, $cookies){
+        var o = {};
+
+        o.saveOrUpdateDiagram = function(params) {
+            return $http.post(Unit.diagramApi('/diagram/saveOrUpdateDiagram'), params);
+        };
+
+		o.saveOrUpdateCombDiagram = function(params) {
+			return $http.post(Unit.diagramApi('/comb/saveOrUpdateCombDiagram'), params);
+		};
+
+        o.queryDiagramDirTree = function(params){
+            return $http.post(Unit.diagramApi('/diagram/queryDiagramDirTree'), params);
+        };
+        o.queryDiagramInfoById = function(params){
+            return $http.post(Unit.diagramApi('/diagram/queryDiagramInfoById'), params);
+        };
+
+        o.copyDiagramById = function(params){
+            return $http.post(Unit.diagramApi('/diagram/copyDiagramById'), params);
+        };
+
+        o.queryDiagramTree = function(params){
+            return $http.post(Unit.diagramApi('/diagram/queryDiagramTree'), params);
+        };
+
+        o.saveTmpSvg = function(params){
+            return $http.post(Unit.diagramApi('/diagram/saveTmpSvg'), params);
+        };
+
+        o.queryOpenDiagram = function(params){
+            return $http.post(Unit.diagramApi('/diagram/queryOpenDiagram'), params);
+        };
+
+        o.queryOpenDiagramAndWarnPage = function(params){
+			return $http.post(Unit.diagramApi('/comb/queryOpenDiagramAndWarnPage'), params);
+		};
+
+		o.queryWorkabilityDiagram = function(params){
+			return $http.post(Unit.diagramApi('/diagram/queryWorkabilityDiagram'), params);
+		};
+
+		// 公开视图查询
+		o.queryOpenDiagramAndEventPage = function(params){
+			return $http.post(Unit.diagramApi('/comb/queryOpenDiagramAndEventPage'), params);
+		};
+		// 根据视图id查询视图的告警信息接口  
+		o.queryDigramInfoAndEventByIds = function(params){
+			return $http.post(Unit.diagramApi('/comb/queryDigramInfoAndEventByIds'), params);
+		};
+		// 视图详情接口
+		o.queryDiagramInfoAndEventById = function(params){
+			return $http.post(Unit.diagramApi('/comb/queryDiagramInfoAndEventById'), params);
+		};
+
+
+        o.svgToPng = function (params) {
+            var save_link = document.createElementNS('http://www.w3.org/1999/xhtml', 'a');
+            save_link.href = Unit.diagramApi('/diagram/svgToPng?name=' + params.name + '&url=' + params.url + '&token=' + $cookies.get('token'));
+            save_link.download = params.name;
+            save_link.click();
+        };
+
+        o.queryDiagramByCiIds = function(params){
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/diagram/queryDiagramByCiIds'), params, {timeout: deferred.promise});
+
+            $promise.cancel = function(){
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

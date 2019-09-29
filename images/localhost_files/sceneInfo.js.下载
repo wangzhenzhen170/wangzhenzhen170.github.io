@@ -1,0 +1,302 @@
+(function (graph) {
+
+    'use strict';
+
+    var app = graph.app;
+
+    // us means Uinnova Graph
+    app.directive('ugSceneInfo', ['SceneService',
+                                  'CiService',
+                                  '$timeout',
+                                  'Const',
+                                  'Unit',
+                                  'CIData',
+                                  '$compile',
+                                  function (SceneService, CiService, $timeout, Const, Unit, CIData, $compile) {
+
+            return {
+                restrict: 'E',
+                replace: false,
+                templateUrl: 'app/directive/sceneInfo/sceneInfo.html',
+                scope: {
+                    sceneId: '=',
+                    configData: '=',
+                    sceneData: '=',
+                    selectCell: '='
+                },
+                link: function (scope, ele, attrs) {
+
+					scope.eventMsg = '';
+                    scope.justtest = 'abc';
+                    // 缓存CI数据
+                    scope._ciDataCache = {};
+                    // 记录timeout
+                    scope._timer = {};
+
+                    scope._watchers = [];
+
+                    scope.ciKpiValue = {};
+
+                    // 记录操作调用的当前模式
+                    scope.actMode = {
+                        graph: true,
+                        tableTitles: ['id', 'name', 'IP']
+//                        tableTitles: ['主机名', '业务IP', '管理员']
+                    };
+
+                    // 更新告警数据
+                    function updateEvent() {
+                        if (scope._timer.event) {
+                            $timeout.cancel(scope._timer.event);
+                        }
+
+                        // 根据场景id查询告警数据
+                        SceneService.getEventByScene({
+                            sceneid: scope.sceneId
+                        }).then(function (ret) {
+
+                            //                        console.log(ret);
+                            scope.eventDatas = ret.data.data;
+                            scope.eventCount = scope.eventDatas.reduce(function (p, v) {
+                                return p + (+v.count);
+                            }, 0);
+                            scope.eventMsg = scope.eventCount ? null : 'NO_RESULT';
+
+                        }, function (ret) {
+                            scope.eventCount = 'Err';
+                            scope.eventMsg = 'SYSTEM_ERROR!';
+                            console.error(ret);
+
+                        });
+
+
+                        // 关注CI指标
+                        if (scope.sceneData) {
+
+                            var cks = {kpis: []};
+                            angular.forEach(scope.sceneData.focusCi, function (fci) {
+                                angular.forEach(fci.kpis, function (kpi) {
+                                    cks.kpis.push({
+                                        ci: kpi.ciId,
+                                        kpi: kpi.kpiHex
+                                    });
+                                });
+                            });
+
+                            SceneService.getCurPerfValue(cks).then(function (ret) {
+                                var data = ret.data.data;
+                                var ciKpiValue = scope.ciKpiValue;
+                                if (data) {
+
+                                    angular.forEach(data, function (d) {
+                                        ciKpiValue[d.ci] || (ciKpiValue[d.ci] = {});
+                                        ciKpiValue[d.ci][d.kpi] = d.value;
+                                    });
+
+                                }
+                            }, function (ret) {
+                                console.error(ret);
+                            });
+
+                        }
+
+                        scope._timer.event = $timeout(updateEvent, Const.MONITOR_TIMEOUT);
+                    }
+
+                    //                if (scope.sceneId) {
+                    //                    updateEvent();
+                    //                }
+
+                    // 查询CI配置信息
+                    function getConfigData(ciId) {
+                        CIData.get(ciId).then(function (ret) {
+                            scope.ciConfigData = ret.data;
+                        }, function (ret) {
+                            console.error(ret);
+                        });
+                    }
+
+                    // scene id 变化时更新告警数据
+                    // scope._watchers.push(
+                    //     scope.$watch('sceneId', function (nvalue) {
+                    //         if (nvalue)
+                    //             updateEvent();
+                    //     })
+                    // );
+
+                    // 选中的ci改变时更新配置信息
+                    scope._watchers.push(
+                        scope.$watch('configData', function (nv) {
+                            if (nv) {
+                                getConfigData(nv);
+                            } else {
+                                scope.ciConfigData = null;
+                            }
+                        })
+                    );
+
+                    // 显示告警列表
+                    scope.showAlarm = function () {
+//                        scope.$emit('sceneShowAlarm', scope.sceneId);
+                        scope.$parent.showGroupFooter();
+                        scope.$parent.$broadcast('SCENEDETAIL_REFRESH_ALARM');
+                    };
+
+                    // 显示指标图表
+                    scope.showChart = function (ciId, kpiId) {
+                        scope.$parent.showGroupFooter();
+                        scope.$parent.$broadcast('SCENE_SHOW_CHART', {ciId: ciId, kpiId: kpiId});
+                    };
+
+                    // 监听点击CI指标
+                    scope.$on('CLICKED_CI_PERF', function (e, d) {
+                        scope.showChart(d.ciId, d.kpiId);
+                    });
+
+                    ele.on('$destroy', function () {
+                        try {
+
+                            if (scope._timer.event) {
+                                $timeout.cancel(scope._timer.event);
+                            }
+
+                            // 移除$watch
+                            angular.forEach(scope._watchers, function (wt) {
+                                wt();
+                            });
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    });
+
+
+                    scope.actions = {};
+
+                    scope._watchers.push(
+                        scope.$watch('sceneData', function (nv) {
+                            if (nv) {
+                                scope.actions = {};
+                                angular.forEach(nv.operationGroup, function (d) { //operationGroup
+                                    // d = [groupId, groupName]
+                                    scope.actions[d.id] = {
+                                        groupId: d.id,
+                                        groupName: d.name
+                                    };
+                                });
+
+                                 updateEvent();
+                            }
+                        })
+                    );
+
+                    // 记录选择操作
+                    scope.actSel = {};
+
+                    // 获取操作组中CI的数据
+                    function getActCiDatas (actGroup) {
+                        CIData.getBatch(actGroup.cis.map(function (d) { return d.id}))
+//                            CIData.getBatch(['5B2274657374222C22313031225D', '5B2274657374222C223130225D'])
+                            .then(function (ciDatas) {
+
+                                scope.actMode.ciDatas = ciDatas;
+
+
+                        }, function (ret) {
+                            console.error(ret);
+                        });
+                    }
+
+                    scope._watchers.push(
+                        scope.$watch('actSel.group', function (nv) {
+
+                            if (nv && nv.cis) {
+
+                                getActCiDatas(nv);
+
+                            }
+
+                            if (nv && !nv.cis) {
+                                SceneService.getActGroup(nv.groupId).then(function (ret) {
+                                    console.log(ret);
+                                    var app = ret.data.apps[0];
+
+                                    nv.cis = app.cis;
+                                    nv.scripts = app.scripts;
+
+                                    getActCiDatas(nv);
+
+                                }, function (ret) {
+                                    console.error(ret);
+                                });
+                            }
+                        })
+                    );
+
+
+                    // 执行操作
+                    scope.runAction = function (ci, group, action) {
+                        console.log(arguments);
+                        Unit.confirm(graph.translate('CONFIRM'), function () {
+                            // To-Do
+                            console.log(L.get('COMMON_RUN')+'：' + action.name + '; ci: ' + ci.name);
+                            scope.$emit('SCENE_RUNACT', {
+                                ci: ci,
+                                action: action
+                            });
+
+                            action.runningCi || (action.runningCi = {});
+                            action.runningCi[ci.id] = true;
+
+                            var actLog = {
+                                actName: action.name,
+                                ciName: ci.name,
+                                time: new Date(),
+                                message: ''
+                            };
+
+                            SceneService.execAction({
+                                ciId: ci.id,
+                                groupId: group.groupId,
+                                path: action.path
+                            }).then(function (ret) {
+                                // To-Do 操作成功
+                                console.log(ret);
+                                actLog.message = ret.data.message;
+                                scope.$parent.$broadcast('SCENE_FINISH_ACT', actLog);
+                            }, function (ret) {
+                                // To-Do 操作失败
+                                console.error(ret);
+                                actLog.message = ret.data.message;
+                                scope.$parent.$broadcast('SCENE_FINISH_ACT', actLog);
+                            }).finally(function (ret) {
+                                delete action.runningCi[ci.id];
+                                scope.$parent.showGroupFooter();
+                            });
+                        });
+                    };
+
+                    // 应用启停模式切换
+                    scope.toggleActTable = function () {
+                        scope.actMode.graph = !scope.actMode.graph;
+
+                        // 如果切换到表格模式而且表格还未生成
+                        if (!scope.actMode.graph && !$('div[ug-scene-action-table]').size()) {
+                            // 把应用启停的表格模式插入到页面里面
+                            var actTable = $compile('<div ng-if="!actMode.graph" class="sceneInfo-action-table" ug-scene-action-table ng-scroll></div>')(scope);
+                            $(actTable).insertAfter('#graph');
+                        }
+
+
+                    };
+
+                    // 过滤没有KPIID的数据
+                    scope.ciKpiFilter = function(p){
+                        return !!p.kpiId;
+                    };
+
+
+                }
+            };
+    }]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

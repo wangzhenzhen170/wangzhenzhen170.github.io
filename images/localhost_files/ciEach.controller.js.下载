@@ -1,0 +1,356 @@
+
+(function(graph){
+
+    'use strict';
+
+    var controller = function($scope, $uibModalInstance,DiagramCIService, $uibModal, DiagramCIClassService, DiagramCiRltClassService, DiagramCiRltService, paramsInfo,editor,Const, Unit, fn){
+        $scope.level = {};
+        $scope.rlt = {};
+        $scope.ciClass = {};
+        $scope.initMap = {};
+
+        $scope.level.levelList = [
+            // {
+            //     upName: '向上一级',
+            //     downName: '向下一级',
+            //     value: 1
+            // },
+            // {
+            //     upName: '向上二级',
+            //     downName: '向下二级',
+            //     value: 2
+            // },
+            // {
+            //     upName: '向上三级',
+            //     downName: '向下三级',
+            //     value: 3
+            // }
+        ];
+        var levelNnberArr = ['零', '一', '二', '三', '四', '五', '六'];
+        var levelNnber;
+        for(levelNnber = 0; levelNnber < 6; levelNnber++){
+            $scope.level.levelList.push({
+                upName: '向上' + levelNnberArr[levelNnber] + '级',
+                downName: '向下' + levelNnberArr[levelNnber] + '级',
+                value: levelNnber
+            });
+        }
+
+        $scope.getCiNameByIndexByAttr = function (item, itemCi) {
+            var __name = [], __attr = [], __valObj = {};
+            angular.forEach(item.attrDefs, function (x) {
+                if (x.isCiDisp === 1) {
+                    __attr.push(x.proStdName);
+                    __valObj[x.proStdName] = itemCi.attrs[x.proStdName];
+                    if (itemCi.attrs[x.proStdName]) {
+                        __name.push(itemCi.attrs[x.proStdName]);
+                    }
+                }
+            });
+
+            if (__name.length > 0) {
+                __name = __name.join(',');
+            } else {
+                __name = itemCi.ci.ciCode;
+            }
+
+            return {name: __name, attr:  __attr, valObj: __valObj};
+        };
+
+        $scope.getRltName = function(id){
+            var i, res;
+            for(i = 0; i < $scope.rlt.rltConfigList.length; i++){
+                if($scope.rlt.rltConfigList[i].ciClass.id === id){
+                    res = $scope.rlt.rltConfigList[i].ciClass.className;
+                    break;
+                }
+            }
+
+            return res;
+        };
+
+        $scope.initRltList = function(rltList){
+            if(angular.isArray(rltList)){
+                var ms,mx,ml;
+                ms = Const.GRAPH_DRAG_MS;
+                mx = Const.GRAPH_DRAG_MX;
+                ml = Const.GRAPH_DRAG_ML;
+                var setSize = function(cell){
+                    cell.setUtAttr('size-ms', [(cell.geometry.width / mx) * ms, (cell.geometry.height / mx) * ms].join(','));
+                    cell.setUtAttr('size-mx', [(cell.geometry.width / mx) * mx, (cell.geometry.height / mx) * mx].join(','));
+                    cell.setUtAttr('size-ml', [(cell.geometry.width / mx) * ml, (cell.geometry.height / mx) * ml].join(','));
+                    editor.graph.setCellAttr(cell, 'size-ms', [(cell.geometry.width / mx) * ms, (cell.geometry.height / mx) * ms].join(','));
+                    editor.graph.setCellAttr(cell, 'size-mx', [(cell.geometry.width / mx) * mx, (cell.geometry.height / mx) * mx].join(','));
+                    editor.graph.setCellAttr(cell, 'size-ml', [(cell.geometry.width / mx) * ml, (cell.geometry.height / mx) * ml].join(','));
+                };
+                var parent = paramsInfo.cell.getParent();
+                var x = paramsInfo.cell.geometry.x;
+                var y = paramsInfo.cell.geometry.y;
+
+               editor.graph.model.beginUpdate();
+               try {
+                   var ii = 0, jj = 0;
+                   if(rltList.length){
+                       angular.forEach(rltList, function(item, i){
+                           if(!angular.isObject(editor.graph.getCellByDataId(Const.CI_PREFIX + item.sourceCiInfo.ci.id)) || !angular.isObject(editor.graph.getCellByDataId(Const.CI_PREFIX + item.targetCiInfo.ci.id))){
+                               ii++;
+                               (function(itemObj, index){
+                                   // console.log(itemObj.sourceCiInfo.ci.classId);
+                                   var classInfo = paramsInfo.getClassByClassId(itemObj.sourceCiInfo.ci.classId);
+                                   if(String(item.targetCiInfo.ci.id) !== String(paramsInfo.ciId)){
+                                       classInfo = paramsInfo.getClassByClassId(itemObj.targetCiInfo.ci.classId);
+                                   }
+
+                                   if(String(item.sourceCiInfo.ci.id) !== String(paramsInfo.ciId)){
+                                       classInfo = paramsInfo.getClassByClassId(itemObj.sourceCiInfo.ci.classId);
+                                   }
+
+                                   var img;
+                                   img = new Image();
+                                   img.src = classInfo.ciClass.icon;
+                                   img.defer = 'defer';
+
+                                   img.onerror = function(){
+                                       img.src = Unit.diagramApi('images/class_big.png');
+                                   };
+
+                                   img.onload = function(){
+                                       var iconWidth, iconHeight,cellItem;
+                                       var insertImage = 'image;image=' + classInfo.ciClass.icon;
+                                       var name, v1, v2, id, code;
+
+
+                                       var insertVertex = function(id,code,name,  nameAttr, valObj, attrObjs, ciInfo){
+
+                                           if(editor.uvAttrShow && editor.uvAttrShow[ciInfo.ci.classId] && editor.uvAttrShow[ciInfo.ci.classId].length){
+                                               var i, len = editor.uvAttrShow[ciInfo.ci.classId].length;
+                                               var uvattrs = editor.uvAttrShow[ciInfo.ci.classId];
+                                               nameAttr = uvattrs;
+                                               name = [];
+                                               for(i = 0; i < len; i++){
+                                                   name.push(ciInfo.attrs[uvattrs[i]]);
+                                               }
+
+                                               // name = name.join(Const.CI_NAME_LOGO);
+                                           }
+
+                                           // if(name){
+                                           //     name = name.split(Const.CI_NAME_LOGO).join(Const.CI_NAME_JOIN);
+                                           // }
+                                           var resCell;
+                                           if(img.width < Const.GRAPH_DRAG_WIDTH){
+                                               iconWidth = img.width;
+                                           }else {
+                                               iconWidth = Const.GRAPH_DRAG_WIDTH
+                                           }
+
+                                           iconHeight = iconWidth * (img.height / img.width);
+
+                                           if(iconHeight > Const.GRAPH_DRAG_HEIGHT){
+                                               iconHeight = Const.GRAPH_DRAG_HEIGHT;
+                                               iconWidth = iconHeight * (img.width / img.height);
+                                           }
+
+                                           y = (y + 20 * (index+1)) + iconHeight;
+
+                                           resCell =  editor.graph.insertVertex(parent,
+                                               null,
+                                               name.join(Const.CI_NAME_JOIN) || '',
+                                               x,
+                                               y,
+                                               iconWidth,
+                                               iconHeight,
+                                               insertImage
+                                           );
+
+                                           if(code){
+                                               resCell.setUtAttr('code', code);
+                                               editor.graph.setCellAttr(resCell, 'code', code);
+                                           }
+
+                                           resCell.setUtAttr('data-values', name);
+                                           resCell.setUtAttr('data-label-list', nameAttr);
+                                           resCell.setUtAttr('data-label-val', valObj);
+                                           resCell.setUtAttr('data-label-val-obj', attrObjs);
+                                           setSize(resCell);
+                                           resCell.setUtAttr('data-id', id);
+                                           editor.graph.setCellAttr(resCell, 'data-id', id);
+                                           return resCell;
+                                       };
+
+                                       if(String(item.sourceCiInfo.ci.id) !== String(paramsInfo.ciId)){
+                                           id = Const.CI_PREFIX + itemObj.sourceCiInfo.ci.id;
+                                           code = itemObj.sourceCiInfo.ci.ciCode;
+                                           var ciobj = $scope.getCiNameByIndexByAttr(classInfo.ciClass, itemObj.sourceCiInfo);
+
+                                           cellItem = editor.graph.getCellByDataId(id);
+                                           if(!angular.isObject(cellItem)){
+                                               cellItem  = insertVertex(id,code,ciobj.name, ciobj.attr, ciobj.valObj, itemObj.sourceCiInfo.attrs, itemObj.sourceCiInfo);
+                                           }
+                                       }
+
+                                       if(String(item.targetCiInfo.ci.id) !== String(paramsInfo.ciId)){
+                                           id = Const.CI_PREFIX + itemObj.targetCiInfo.ci.id;
+                                           code = itemObj.targetCiInfo.ci.ciCode;
+                                           name = $scope.getCiNameByIndexByAttr(classInfo.ciClass, itemObj.targetCiInfo);
+                                           cellItem = editor.graph.getCellByDataId(id);
+                                           if(!angular.isObject(cellItem)){
+                                               insertVertex(id,code,name.name, name.attr, name.valObj, itemObj.targetCiInfo.attrs, item.targetCiInfo);
+                                           }
+                                       }
+
+                                       // cellItem = editor.graph.getCellByDataId(id);
+                                       //
+                                       // if(!angular.isObject(cellItem)){
+                                       //     cellItem  = insertVertex(code);
+                                       // }
+
+                                       v1 = editor.graph.getCellByDataId(Const.CI_PREFIX + itemObj.sourceCiInfo.ci.id);
+                                       v2 = editor.graph.getCellByDataId(Const.CI_PREFIX + itemObj.targetCiInfo.ci.id);
+
+                                       // if(String(item.targetCiInfo.ci.id) !== String(paramsInfo.ciId)){
+                                       //     v1 = cellItem;
+                                       //     v2 = paramsInfo.cell;
+                                       // }
+                                       //
+                                       // if(String(item.sourceCiInfo.ci.id) !== String(paramsInfo.ciId)){
+                                       //     v1 = paramsInfo.cell;
+                                       //     v2 = cellItem;
+                                       // }
+
+                                       if(v1 && v2){
+                                           var edgeId = [Const.RELATION_PREFIX, itemObj.ciRlt.id].join('');
+                                           if(!editor.graph.getCellByDataId(edgeId)){
+                                               var cellEdge = editor.graph.insertEdge(parent, null, $scope.getRltName(item.ciRlt.classId), v1, v2);
+                                               cellEdge.setUtAttr('data-id', edgeId);
+                                               editor.graph.setCellAttr(cellEdge, 'data-id', edgeId);
+                                           }
+                                       }
+
+                                       jj++;
+                                       if(ii === jj){
+                                           editor.graph.model.endUpdate();
+
+                                           if(editor.autoLayoutState){
+                                               editor.action.layoutHorizontal();
+                                               editor.graph.zoomToCenter();
+                                               editor.graph.refresh();
+                                           }
+                                       }
+                                   };
+                               })(item, i);
+                           }
+                       });
+                   }else {
+                       editor.graph.model.endUpdate();
+                   }
+
+               } finally {
+               }
+            }
+        };
+
+        $scope.ok = function(){
+            var obj = {
+                sCiId: paramsInfo.ciId,
+                up: $scope.level.upSelectItem,
+                down: $scope.level.downSelectItem
+            };
+
+            var ciClassId = $scope.getCiClassIds();
+            var rltClassId = $scope.getRltClassIds();
+
+            if(ciClassId.length){
+                obj.ciClassIds = ciClassId;
+            }
+            if(rltClassId.length){
+                obj.rltClassIds = rltClassId;
+            }
+
+            DiagramCiRltService.queryUpAndDownRlt(obj).success(function(result){
+                $scope.close();
+                if(result.success &&  result.data && result.data.length){
+                    $scope.initRltList(result.data);
+                }
+            });
+            // $scope.save();
+            // $scope.close();
+        };
+
+        $scope.close = function(){
+            $uibModalInstance.close();
+        };
+
+        $scope.getClassIds = function(arr){
+            var res = [];
+            angular.forEach(arr, function(item){
+                if(!item){
+                    return;
+                }
+                var itemObj = angular.fromJson(item);
+
+                res.push(itemObj.id);
+            });
+
+            return res;
+        };
+
+        $scope.getRltClassIds = function(){
+            var res = [];
+            if(angular.isArray($scope.rlt.rltConfigItem)){
+                res = $scope.getClassIds($scope.rlt.rltConfigItem);
+            }
+
+            return res;
+        };
+
+        $scope.getCiClassIds = function(){
+            var res = [];
+            if(angular.isArray($scope.ciClass.ciClassItem)){
+                res = $scope.getClassIds($scope.ciClass.ciClassItem);
+            }
+
+            return res;
+        };
+
+        $scope.initRltConfig = function(){
+            DiagramCiRltClassService.queryList({}).success(function(result){
+                $scope.rlt.rltConfigList = result.data;
+            });
+        };
+
+        $scope.initConfig = function (query) {
+            if (!query) {
+                return;
+            }
+            $scope.initMap.config = true;
+
+            if ($scope.initConfigTime) {
+                $scope.initConfigTime.cancel();
+                $scope.initMap.configReloadCencel = true;
+            }
+
+            $scope.initMap.configReload = true;
+            var obj = {};
+
+            $scope.initConfigTime = DiagramCIClassService.queryList(obj).success(function (result) {
+                $scope.initMap.configReload = false;
+                $scope.ciClass.ciClassList = result.data;
+            }).error(function () {
+                if ($scope.initMap.configReloadCencel) {
+                    $scope.initMap.configReloadCencel = false;
+                } else {
+                    $scope.initMap.configReload = false;
+                }
+            });
+        };
+
+        $scope.level.upSelectItem = $scope.level.levelList[0].value;
+        $scope.level.downSelectItem = $scope.level.levelList[0].value;
+
+    };
+
+    graph.app.controller('ModalViewCiEachCtrl', ['$scope', '$uibModalInstance', 'DiagramCIService', '$uibModal','DiagramCIClassService','DiagramCiRltClassService','DiagramCiRltService', 'paramsInfo', 'editor','Const', 'Unit', 'fn', controller]);
+
+
+})(nameSpace.reg('graph'));

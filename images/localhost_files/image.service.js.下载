@@ -1,0 +1,28 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('ImageService', ['$http', 'Unit', 'Upload', function($http, Unit, Upload){
+		var o = {};
+
+		o.uploadBackground = function(file){
+			return Upload.upload({
+				url: Unit.api('/view/background'),
+				file: file
+			});
+		};
+
+		o.getBackgound = function(params){
+			return $http.post(Unit.api('/view/fuzzybackground'), params);
+		};
+
+
+		o.removeBackground = function(image){
+			return $http.delete(Unit.api('/view/background/' + image));
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,43 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalRelationViewOpenCtrl', ['$scope', '$uibModalInstance', 'ViewService', 'Unit', 'editor', function($scope, $uibModalInstance, ViewService, Unit, editor){
+
+		var cell = editor.graph.getSelectionCell();
+
+		$scope.ok = function(){
+			$uibModalInstance.close();
+
+			if($scope.data.selected){
+				editor.history.push(editor.state.view);
+				editor.action.openView($scope.data.selected);
+			}
+		};
+
+		$scope.$modal = $uibModalInstance;
+		$scope.staticUrl = Unit.static;
+
+		$scope.data = {};
+		$scope.views = [];
+
+		ViewService.private()
+			.success(function(result){
+				var str = editor.graph.getCellAttr(cell, 'view');
+				if(str){
+					$.each(str.split('$'), function(){
+						var i;
+
+						for(i=0; i<result.data.length; i++){
+							if(result.data[i].id === this){
+								$scope.views.push(result.data[i]);
+							}
+						}
+					});
+				}
+			});
+	}]);
+
+
+})(nameSpace.reg('graph'));

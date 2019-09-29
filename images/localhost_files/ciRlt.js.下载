@@ -1,0 +1,59 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('DiagramCiRltService', ['$http', 'Unit','$q', function($http, Unit, $q){
+        var o = {};
+
+        o.queryById = function(params) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ciRlt/queryById'), params, {timeout: deferred.promise});
+
+            $promise.cancel = function(){
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        o.queryCiBetweenRlt = function(params) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ciRlt/queryCiBetweenRlt'), params, {timeout: deferred.promise});
+
+            $promise.cancel = function(){
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        o.queryList = function(params){
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ciRlt/queryList'), params, {timeout: deferred.promise});
+
+            $promise.cancel = function(){
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        o.queryUpAndDownRlt = function(params){
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ciRlt/queryUpAndDownRlt'), params, {timeout: deferred.promise});
+
+            $promise.cancel = function(){
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

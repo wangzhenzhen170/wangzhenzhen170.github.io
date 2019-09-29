@@ -1,0 +1,34 @@
+
+(function(graph){
+
+	'use strict';
+
+	var url = graph.stateUrl;
+
+	graph.app.config(function($stateProvider) {
+
+		$stateProvider
+			.state('home.citree', {
+				url: 'citree',
+				templateUrl: url('/main/citree/citree.html'),
+				controller: 'MainCiTreeCtrl',
+				data: {
+					title: ''
+				}
+			})
+
+			.state('home.citree.id', {
+				url: '/:id/:type',
+				templateUrl: url('/main/citree/citree.html'),
+				controller: 'MainCiTreeCtrl',
+				data: {
+					title: 'CI Tree'
+				}
+			});
+
+	});
+
+
+})(nameSpace.reg('graph'));
+
+

@@ -1,0 +1,234 @@
+(function (graph) {
+
+    'use strict';
+    //右侧浮动层
+    graph.app.directive('workListCreatRule', function () {
+        return {
+            restrict: 'AE',
+            replace: true,
+            scope: {
+                ruleType: '@ruleType'
+            },
+            templateUrl: 'app/directive/creatRule/worklistCreat.html',
+            controller: ['$scope', '$timeout', '$state', 'Unit', 'uDialog', 'DefinedEventsService', 'MonitoringService', '$uibModal', function ($scope, $timeout, $state, Unit, uDialog, DefinedEventsService, MonitoringService, $uibModal) {
+                $scope.L = L;
+                $scope.objs = {};
+                $scope.personCheckedArray = [];
+                $scope.personSendArray = [];
+                $scope.objs.mailContentString = '';
+                $scope.objs.adtitle = '';
+                MonitoringService.getModelCode({ "function": true, ruleType: 0 }).success(function (result) {
+                    if (result.success) {
+                        $scope.classList = result.data;
+                    } else {
+                        Unit.error($scope.L.get('EMV_VARIABLES_LIST_FAILED_TO_GET'));
+                    }
+
+                }).error(function () {
+                    Unit.error($scope.L.get('EMV_VARIABLES_LIST_FAILED_TO_GET'));
+                });
+                MonitoringService.getSelectorCodes({ "codeType": 11 }).success(function (result) {
+                    if (result.success) {
+                        $scope.influenceList = result.data;
+                        $scope.influence = $scope.influenceList[0];
+                    } else {
+                        Unit.error($scope.L.get('EMV_SPHERE_OF_INFLUENCE_LIST_FAILED_TO_GET'));
+                    }
+
+                }).error(function () {
+                    Unit.error($scope.L.get('EMV_SPHERE_OF_INFLUENCE_LIST_FAILED_TO_GET'));
+                });
+                MonitoringService.getSelectorCodes({ "codeType": 13 }).success(function (result) {
+                    if (result.success) {
+                        $scope.severityClassList = result.data;
+                        $scope.severityClass = $scope.severityClassList[0];
+                    } else {
+                        Unit.error($scope.L.get('EMV_SEVERITY_LIST_FAILED_TO_GET'));
+                    }
+
+                }).error(function () {
+                    Unit.error($scope.L.get('EMV_SEVERITY_LIST_FAILED_TO_GET'));
+                });
+
+                $scope.selectClassify = function (valueObj) {
+                    $scope.influence = valueObj;
+                    $scope.$emit("automaticInfluence", $scope.influence.value)
+
+                };
+                $scope.selectClassify1 = function (valueObj) {
+                    $scope.severityClass = valueObj;
+                    $scope.$emit("automaticSeverityClass", $scope.severityClass.value)
+
+                }
+                //获取邮件通知人信息
+                $scope.queryUserFun = function (mailname) {
+                    var obj;
+                    if (mailname) {
+                        obj = { name: mailname }
+                    } else {
+                        obj = {}
+                    }
+                    MonitoringService.userList(obj).success(function (result) {
+                        if (result.success) {
+                            $scope.personArray = result.data;
+                        } else {
+                            Unit.error($scope.L.get('EMV_USER_LIST_ACQUISITION_FAILED'));
+                        }
+
+                    }).error(function () {
+                        Unit.error($scope.L.get('EMV_USER_LIST_ACQUISITION_FAILED'));
+                    });
+                }
+                $scope.queryUserFun()
+                $scope.queryPerson = function () {
+                    $scope.queryUserFun($scope.objs.searchPerson);
+                }
+                $scope.personCheckedArray = [];
+                $scope.personSendArray = [];
+                //邮件通知选择联系人
+                $scope.checkPersonFun = function (person) {
+                    $scope.personCheckedArray.push(person);
+                    $scope.personSendArray.push(person.userCode);
+                    $scope.$emit("automaticperson", $scope.personSendArray);
+                }
+                $scope.removeCheckedFun = function (item, $index) {
+                    $scope.personCheckedArray.splice($index, 1);
+                    $scope.personSendArray.splice($index, 1);
+                    $scope.$emit("automaticperson", $scope.personSendArray);
+                }
+                $scope.influence = {};
+                $scope.influence.value = 0;
+                $scope.severityClass = {};
+                $scope.severityClass.value = 0;
+                $scope.$watch("objs.mailContentString", function () {
+                    $scope.$emit("automaticDescrible", $scope.objs.mailContentString);
+                })
+                $scope.$emit("automaticDescrible", $scope.objs.mailContentString);
+                $scope.$emit("automaticInfluence", $scope.influence.value);
+                $scope.$emit("automaticSeverityClass", $scope.severityClass.value);
+                $scope.$emit("automaticperson", $scope.personSendArray);
+                $scope.$emit("automatictitle", $scope.objs.adtitle);
+                $scope.$watch("objs.adtitle", function () {
+                    $scope.$emit("automatictitle", $scope.objs.adtitle);
+                })
+                $scope.mailContentFun = function (e, flag) {
+                    var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+                    //console.log(window.event)
+                    if ((window.event.shiftKey) && (keycode === 52 || keycode === 229)) {
+                        if (flag === 'title') {
+                            $scope.titleContentFlag = true;
+                        } else if (flag === 'mail') {
+                            $scope.mailContentFlag = true;
+                        }
+
+                        //console.log($scope.mailContentFlag)
+                        $timeout(
+                            function () {
+                                $($('.mailContentli')[0]).addClass('active');
+                            }
+                        )
+
+
+                    } else {
+                        if (keycode !== 13 && keycode !== 38 && keycode !== 40) {
+                            if (flag === "mail") {
+                                $scope.mailContentFlag = false;
+                                $timeout(function () {
+                                    $scope.mailtextareaVal = $('.mail-notice .mailContent').val()
+                                    $scope.objs.mailContentString = $scope.mailtextareaVal;
+                                })
+                            } else if (flag === "title") {
+                                $scope.titleContentFlag = false;
+                                $timeout(function () {
+                                    $scope.mailtextareaVal = $('.aD-title .mailContent').val()
+                                    $scope.objs.adtitle = $scope.mailtextareaVal;
+                                })
+                            }
+
+
+                        }
+                    }
+
+                    if (keycode === 38) {
+                        e.preventDefault();
+                        hintListCtrl($('.aD-title .mailContentlist'), 'UP');
+                        hintListCtrl($('.mail-notice .mailContentlist'), 'UP');
+                    } else if (keycode === 40) {
+                        e.preventDefault();
+                        hintListCtrl($('.aD-title .mailContentlist'), 'DOWN');
+                        hintListCtrl($('.mail-notice .mailContentlist'), 'DOWN');
+                    } else if (keycode === 13) {
+                        e.preventDefault();
+                        // $scope.objs.mailContentString+='${'+$('.mailContentlist .active span').text()+'}';
+                        // $('.mailContent').val($scope.objs.mailContentString)
+                        // $(".mailContentli").removeClass("active")
+                        // $scope.mailContentFlag=false;
+                        if (flag === "mail") {
+                            $scope.objs.mailContentString += '${' + $('.mail-notice .mailContentlist .active span').text() + '}';
+                            $('.mail-notice .mailContent').val($scope.objs.mailContentString)
+                            $(".mail-notice .mailContentli").removeClass("active")
+                            $scope.mailContentFlag = false;
+                        } else if (flag === "title") {
+                            $scope.objs.adtitle += '${' + $('.aD-title .mailContentlist .active span').text() + '}';
+                            $('.aD-title .mailContent').val($scope.objs.adtitle)
+                            $(".aD-title .mailContentli").removeClass("active")
+                            $scope.titleContentFlag = false;
+                        }
+
+
+                    }
+
+
+                }
+                $scope.checkedInforFun = function (li, flag) {
+                    if (flag === 'mail') {
+                        $scope.objs.mailContentString += li.display;
+                        $('.mail-notice .mailContent').val($scope.objs.mailContentString)
+                        $(".mail-notice .mailContentli").removeClass("active")
+                        $scope.mailContentFlag = false;
+                    } else if (flag === 'title') {
+                        $scope.objs.adtitle += li.display;
+                        $('.aD-title .mailContent').val($scope.objs.adtitle)
+                        $(".aD-title .mailContentli").removeClass("active")
+                        $scope.titleContentFlag = false;
+                    }
+
+
+                }
+                function hintListCtrl(hint_wrap, direction) {
+                    var hint_List = hint_wrap.find('.mailContentli'),
+                        hint_Active = hint_wrap.find('.mailContentli.active');
+                    var wrapHeight = hint_wrap.height();
+                    if (hint_List.hasClass('active')) {
+                        var length = hint_List.length;
+                        var index = hint_Active.index();
+                        if (direction === 'UP') {
+                            index === 0 ? index = length - 1 : index--;
+                        } else if (direction === 'DOWN') {
+                            index === length - 1 ? index = 0 : index++;
+                        }
+                        hint_List.removeClass('active');
+                        var select_hint = hint_List.eq(index);
+                        select_hint.addClass('active');
+                        var posTop = select_hint.position().top;
+                        var childrenHeight = hint_Active.height();
+                        var srcollTop = hint_wrap.scrollTop();
+                        posTop >= wrapHeight ? hint_wrap.scrollTop(srcollTop + posTop - wrapHeight + childrenHeight) : '';
+                        posTop <= 0 ? hint_wrap.scrollTop(srcollTop + posTop) : '';
+                    } else {
+                        if (direction === 'UP') {
+                            hint_List.last().addClass('active');
+                        } else if (direction === 'DOWN') {
+                            hint_List.first().addClass('active');
+                        }
+                    }
+                }
+
+
+
+
+            }]
+        };
+    });
+
+})(nameSpace.reg('graph'));

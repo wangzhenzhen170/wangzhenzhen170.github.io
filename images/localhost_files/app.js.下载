@@ -1,0 +1,303 @@
+/* global angular */
+/* global mxRectangleShape */
+/* global Editor */
+/* global IMAGE_PATH */
+/* global mxLog */
+
+
+
+(function (graph) {
+
+    'use strict';
+
+    // if(typeof mxRectangleShape === 'object'){
+    // 	// mxRectangleShape.prototype.crisp = true;
+    // }
+
+    var waitElement = document.querySelector('#waiting');
+    if (waitElement) {
+        document.body.removeChild(waitElement);
+    }
+
+    if (typeof window.mxLog === 'object') {
+        window.mxLog.WARN = false;
+        window.DEBUG = false;
+    }
+    graph.app = angular.module('graph', [
+        // 'frapontillo.bootstrap-switch',
+        //'toastr',
+        'ui.router',
+        'ui.bootstrap',
+        'ui.bootstrap.datetimepicker',
+        'graphToolbar',
+        'ljwGraphToolbar',
+        'ljwColorPicker',
+        'ljwSaveTags',
+        'graphViewtree',
+        'graphInfo',
+        'graphTable',
+        'treeControl',
+        'angular-md5',
+        'colorpicker.module',
+        'ngTable',
+        'ngFileUpload',
+        'ngSanitize',
+        'rzModule',
+        'ngJoyRide',
+        'ngRightClick',
+        'datetime',
+        'ngAnimate',
+        'ngCookies',
+        'ExtandMx',
+        'pascalprecht.translate',
+        'infinite-scroll',
+        'ngTagsInput',
+        'emv.colorPicker',
+        'ngTableResize',
+        'ui.sortable',
+        'angular-loading-bar',
+    ]);
+    graph.languageList = ['zh', 'en'];
+    graph.currentLanguage = (function () {
+        var currentLanguage = window.localStorage.getItem('language') ? window.localStorage.getItem('language') : window.navigator.language;
+        currentLanguage = currentLanguage.indexOf('zh') === 0 ? 'zh' : 'en';
+        if (currentLanguage === 'zh') {
+            bootbox.setLocale('zh_CN');
+            L.setDefaultLanguage('zh')
+        } else {
+            bootbox.setLocale('en');
+            L.setDefaultLanguage('en')
+        }
+        return currentLanguage;
+    })();
+
+    graph.languages = (function () {
+        var o = {
+            zh: {},
+            en: {}
+        };
+        return o;
+    })();
+
+    // graph.translate = function (key) {
+    //     var left = '{';
+    //     var right = '}';
+    //     var arr = key.split('{n}');
+    //     if (graph.languages[graph.currentLanguage][arr[0]]) {
+    //         var value = graph.languages[graph.currentLanguage][arr[0]];
+    //         if (arr[1]) {
+    //             try {
+    //                 var params = JSON.parse(arr[1]);
+    //                 for (var i = 0; i < params.length; i++) {
+    //                     value = value.replace(new RegExp('\\' + left + i + '\\' + right, 'g'), params[i]);
+    //                 }
+    //             } catch (e) { }
+    //         }
+
+    //         return value;
+    //     }
+
+    //     return arr[0];
+    // };
+
+    graph.stateUrl = function (url) {
+        return 'app/state' + url;
+    };
+
+
+
+
+    graph.app.config(function ($stateProvider, $urlRouterProvider, $httpProvider, $translateProvider, cfpLoadingBarProvider) {
+
+        graph.languageList.forEach(function (key) {
+            $translateProvider.translations(key, graph.languages[key]);
+        });
+
+        $translateProvider.preferredLanguage(graph.currentLanguage);
+        $translateProvider.useSanitizeValueStrategy();
+
+        $urlRouterProvider.otherwise('/tarsier/monitoring/events');
+
+        cfpLoadingBarProvider.includeSpinner = false;
+
+        //添加默认的请求类型为ajax
+        $httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+        $httpProvider.interceptors.push('HttpInterceptor');
+        //设置头部语言
+        $httpProvider.defaults.headers.post['language'] = localStorage.getItem('language') ? localStorage.getItem('language') : 'zh';
+
+        //$stateProvider
+        // .state('home', {
+        // 	data: {
+        // 		title: 'ITVOP'
+        // 	},
+        // 	url: '/',
+        // 	templateUrl: graph.stateUrl('/main/main.html'),
+        // 	controller: 'MainCtrl'
+        // })
+        // .state('test', {
+        // 	url: '/debug',
+        // 	templateUrl: graph.stateUrl('/test/test.html'),
+        // 	controller: 'TestCtrl1'
+        // })
+        // .state('test.log', {
+        // 	data: {
+        // 		title: 'LogPage'
+        // 	},
+        // 	url: '/log',
+        // 	templateUrl: graph.stateUrl('/test/log/log.html'),
+        // 	controller: 'LogCtrl'
+        // });
+
+    });
+
+	/**
+	 * 获取url参数值
+	 */
+    function getQueryString(name) {
+        var reg = new RegExp("(\\W+)" + name + "=(.*?)(\\W|$)", "i");
+        var r = window.location.href.match(reg);
+        if (r != null) return unescape(r[2]);
+        return null;
+    }
+	/**
+	 * 使用url中的token值认证登录，如果没有token则跳转到登录页面
+	 */
+    function loginWithToken($http, UserAuth, $cookies) {
+        var token;
+
+        // 获取url中的token值
+        token = getQueryString('token');
+        if (token) {
+            if (!$cookies.get('token')) {
+                $cookies.put('token', token, { path: '/' });
+            }
+            window.location.href = window.location.href.replace(/(\?|&)token=.+?(\W|$)/i, '$2');
+        } else if (!$cookies.get('token')) {
+            UserAuth.gotoLogin();
+        }
+    }
+
+    graph.app.run(['$rootScope', '$state', '$timeout', '$http', 'UserAuth', '$templateRequest', '$templateCache', '$cookies', 'MonitoringService', 'Unit', function ($rootScope, $state, $timeout, $http, UserAuth, $templateRequest, $templateCache, $cookies, MonitoringService, Unit) {
+        MonitoringService.getLogosByType({}, 'LOGO_PATH_FAV').success(function (result) {
+            if (result.success) {
+                $('link[rel = "shortcut icon"]').attr('href', result.data.varValue)
+            }
+
+
+        })
+        switch (parseInt(Unit.getUrlParam('nav'))) {
+            case 1:
+                $rootScope.menuLeftFlag = true;
+                $rootScope.menuTopFlag = true;
+                break;
+
+            case 2:
+                $rootScope.menuLeftFlag = false;
+                $rootScope.menuTopFlag = false;
+                break;
+
+            case 3:
+                $rootScope.menuLeftFlag = false;
+                $rootScope.menuTopFlag = true;
+                break;
+
+            case 4:
+                $rootScope.menuLeftFlag = true;
+                $rootScope.menuTopFlag = false;
+                break;
+
+            default:
+                $rootScope.menuLeftFlag = true;
+                $rootScope.menuTopFlag = true;
+
+        }
+        loginWithToken($http, UserAuth, $cookies);
+        UserAuth.fetchUserInfo();
+        window.addEventListener('message', function (e) {
+            if (e.data && e.data.tag === 0) {
+                $rootScope.$broadcast('createTags', e.data);
+            }
+        }, false);
+
+        $templateRequest(graph.stateUrl('/canvas/template/tree.html')).then(function (template) {
+            $templateCache.put('canvas-tree-template.html', template);
+            // $compile($("#my-element").html(template).contents())($scope);
+        });
+
+        $rootScope.$state = $state;
+        $rootScope._refresh = function () {
+            if (!$rootScope.$$phase) {
+                $rootScope.$apply();
+            }
+        };
+
+        $rootScope.bHistoryState = [];
+        $rootScope.fHistoryState = [];
+
+        $rootScope.$on('$stateChangeStart', function (event, toState, toParams, from, fromParams) {
+
+
+            $rootScope.L = L;
+            $rootScope.languageList = L.getLanguageList();
+            //console.log($rootScope.languageList)
+            $rootScope.defaultLanguage = localStorage.getItem('language');
+            console.log($rootScope.defaultLanguage)
+            //若页面设置了语言，并且包含在语言列表中则设置语言，否则按浏览器默认
+            //$rootScope.languageList.includes($rootScope.defaultLanguage) && L.setDefaultLanguage($rootScope.defaultLanguage);
+            if ($rootScope.languageList.includes($rootScope.defaultLanguage)) {
+                L.setDefaultLanguage($rootScope.defaultLanguage);
+                } else {
+                L.setDefaultLanguage('zh');
+
+            }
+
+            //L.setDefaultLanguage('en');
+            $rootScope.previousState = from;
+            $rootScope.previousParams = fromParams;
+            if ($rootScope.bHistoryState.length === 0 || toState !== $rootScope.bHistoryState[$rootScope.bHistoryState.length - 1].state) {
+                if ($rootScope.fHistoryState.length === 0 || toState !== $rootScope.fHistoryState[$rootScope.fHistoryState.length - 1].state) {
+                    $rootScope.fHistoryState = [];
+                } else {
+                    $rootScope.fHistoryState.splice($rootScope.fHistoryState.length - 1, 1);
+                }
+                $rootScope.bHistoryState.push({
+                    state: from,
+                    params: fromParams
+                });
+            } else {
+                $rootScope.fHistoryState.push({
+                    state: from,
+                    params: fromParams
+                });
+                $rootScope.bHistoryState.splice($rootScope.bHistoryState.length - 1, 1);
+            }
+
+            $timeout(function () {
+                var arr = [];
+                if (Array.isArray($state.$current.path)) {
+                    $.each($state.$current.path, function () {
+                        var o = this;
+                        if (o.data && o.data.title && o.data.hasOwnProperty('title')) {
+                            arr.unshift(o.data.title);
+                        }
+                    });
+                }
+
+                $rootScope._TITLE = arr.length ? arr.join(' - ') : '';
+            }, 1000);
+        });
+    }]);
+
+
+    graph.app.config(function (tagsInputConfigProvider) {
+        tagsInputConfigProvider
+            .setDefaults('tagsInput', {
+                placeholder: '',
+                minLength: 1,
+                addOnEnter: true
+            })
+            .setDefaults('autoComplete', {})
+    });
+
+})(nameSpace.reg('graph'));

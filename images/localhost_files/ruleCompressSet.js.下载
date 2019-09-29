@@ -1,0 +1,146 @@
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('ruleCompressSet', function() {
+		return {
+			restrict : 'AE',
+			replace : true,
+            scope: {
+				ruleType : '@ruleType'
+			},
+			templateUrl: 'app/directive/ruleFilterEvent/ruleCompressSet.html',
+			controller: ['$scope', '$timeout', '$state','Unit','uDialog','DefinedEventsService','MonitoringService','$uibModal',function($scope, $timeout,$state,Unit,uDialog,DefinedEventsService,MonitoringService,$uibModal){
+				MonitoringService.getModelCode({"function": true,ruleType:0}).success(function(result) {
+					console.log(result.data)
+					$scope.classList=result.data;
+				}).error(function() {
+
+				});
+				$scope.L = L;
+				$scope.event$flag=[];
+				$scope.event$rule=[
+							{
+								"title": L.get('EMV_SOURCE_EVENT_SYS_NUMBER'),
+								"name": "SourceEventID"
+
+							},
+							{
+								"title": L.get('EMV_EVENT_DESCRIPTION_INFORMATION'),
+								"name": "Summary"
+
+							},
+							{
+								"title": L.get('COMMON_EVENT_LEVEL'),
+								"name": "Severity"
+
+							},
+							{
+								"title": L.get('COMMON_LAST_TIME'),
+								"name": "LastOccurrence"
+
+							},
+							{
+								"title": L.get('COMMON_EVENT_TITLE'),
+								"name": "EventTitle"
+
+							},
+							{
+								"title": L.get('EMV_ORIGINAL_EVENT_LEVEL'),
+								"name": "SourceSeverity"
+
+							},
+							{
+								"title": L.get('EMV_ORIGINAL_EVENT_DESCRIPTION'),
+								"name": "SourceSummary"
+
+							}
+						];
+				
+				//更新字段事件
+		$scope.updateInformaFun=function(eventflag){
+			
+			//$('.new-filed').css('border-color','#ddd');
+			$.each($scope.event$rule,function(index,item){
+				item.bdcolor=false;
+			})
+			$.each($scope.overUpdateword,function(index,item){
+				item.bdcolor=true;
+			})
+			eventflag.bdcolor=true;
+		};
+		$scope.updateInformaFun1=function(word){
+			console.log(word)
+			
+			// console.log(1)
+			//$('.new-filed').css('border-color','#ddd');
+			$.each($scope.event$rule,function(index,item){
+				item.bdcolor=false;
+			})
+			$.each($scope.overUpdateword,function(index,item){
+				item.bdcolor=true;
+			})
+			word.bdcolor=false;
+		};
+				$scope.overUpdateword=[];
+				$scope.newOverUpdateFun=function(){
+					console.log($scope.event$rule)
+					for(var i=0;i<$scope.event$rule.length;i++){
+						//console.log($scope.event$rule[i].bdcolor)
+						if($scope.event$rule[i].bdcolor==true){
+							$scope.overUpdateword.push($scope.event$rule[i])
+							$scope.event$rule.splice(i,1);
+							console.log($scope.event$rule)
+							$scope.$emit('overUpdateword',$scope.overUpdateword)
+
+						}
+					}
+
+
+				};
+				$scope.overNewUpdateFun=function(){
+					for(var i=0;i<$scope.overUpdateword.length;i++){
+						if($scope.overUpdateword[i].bdcolor==false){
+							$scope.event$rule.push($scope.overUpdateword[i])
+							$scope.overUpdateword.splice(i,1);
+							$scope.$emit('overUpdateword',$scope.overUpdateword)
+						}
+					}
+				};
+
+
+				//事件压缩标识选择框
+				$scope.event$flagFun=function(value){
+					$scope.event$flag.push(value.display);
+					$scope.$emit('event$flag',$scope.event$flag)
+				};
+
+				console.log($scope.event$flag);
+				console.log($scope.overUpdateword)
+				$scope.$emit('event$flag',$scope.event$flag);
+				$scope.$emit('overUpdateword',$scope.overUpdateword);
+				//事件压缩标识删除
+				$scope.removeeventflagFun=function(e){
+					var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+					if (keycode == 8) {
+						e.preventDefault();
+						if($scope.event$flag.length>0){
+							$scope.event$flag[$scope.event$flag.length-1];
+							$scope.event$flag.splice($scope.event$flag.length-1,1);
+							$scope.$emit('event$flag',$scope.event$flag);
+						}
+
+					}
+					if(keycode!=8){
+						$(".select-choice1").attr("contenteditable",false)
+					}
+					$(".select-choice1").attr("contenteditable",true);
+					
+
+				}
+
+			}]
+		};
+	});
+
+})(nameSpace.reg('graph'));

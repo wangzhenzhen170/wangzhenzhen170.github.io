@@ -1,0 +1,98 @@
+
+(function(graph){
+
+	'use strict';
+
+	document.addEventListener('click', function(){
+		$('.tree-menu-1').remove();
+		$('.a6').css('border', '0');
+	});
+
+	graph.app.directive('opTree', ['$document', '$parse', function($document, $parse) {
+
+		var createMenuTreeDiv = function() {
+			return '<div class="tree-menu-1">' +
+				'<ul>' +
+				'<li class="create-tree-cate"><span>' + graph.translate('CREATE_CHILD_CATEGORY') + '</span></li>' +
+				'<li class="rename-tree-cate"><span>' + graph.translate('RENAME') + '</span></li>' +
+				'<li class="delete-tree-cate"><span>' + graph.translate('DELETE_CATEGORY') + '</span></li>' +
+				// '<li class="moveroot-tree-cate"><span>' + graph.translate('MOVE_TO_ROOT') + '</span></li>' +
+				'<li class="refresh-tree-cate"><span>' + graph.translate('REFRESH') + '</span></li>' +
+				'</ul></div>';
+		};
+		var createMenuTreeRoot = function() {
+			return '<div class="tree-menu-1">' +
+				'<ul>' +
+				'<li class="create-tree-root"><span>' + graph.translate('CREATE_ROOT_CATEGORY') + '</span></li>' +
+				'<li class="create-tree-cate"><span>' + graph.translate('CREATE_CHILD_CATEGORY') + '</span></li>' +
+				'<li class="rename-tree-cate"><span>' + graph.translate('RENAME') + '</span></li>' +
+				'<li class="delete-tree-cate"><span>' + graph.translate('DELETE_CATEGORY') + '</span></li>' +
+				'<li class="refresh-tree-cate"><span>' + graph.translate('REFRESH') + '</span></li>' +
+				'</ul></div>';
+		};
+		var createMenuTreeDivForView = function() {
+			return '<div class="tree-menu-1">' +
+				'<ul>' +
+				'<li class="rename-tree-cate"><span>' + graph.translate('RENAME') + '</span></li>' +
+				'<li class="delete-tree-cate"><span>' + graph.translate('DELETE_VIEW') + '</span></li>' +
+				'</ul></div>';
+		};
+
+		return function(scope, element, attrs){
+
+			var node = $parse(attrs.opTree)(scope, { $event: event });
+
+			element.bind('contextmenu', function(e) {
+				var menuDom;
+
+				$('.a6').css('border', '0');
+				element.parent('.a6').css('border', '1px dashed gray');
+				$('.tree-menu-1').remove();
+
+				if (scope.treeData.indexOf(node) !== -1) {
+					menuDom = $(createMenuTreeRoot());
+				} else if (node.children) {
+					menuDom = $(createMenuTreeDiv());
+				} else {
+					menuDom = $(createMenuTreeDivForView());
+				}
+
+				menuDom.css('top', e.pageY + 'px');
+				menuDom.css('left', e.pageX + 'px');
+
+				$document.find('body').append(menuDom);
+
+				// 新建根节点分类
+				menuDom.find('ul .create-tree-root').click(function() {
+					scope.showInputCate();
+				});
+
+				// 新建分类
+				menuDom.find('ul .create-tree-cate').click(function() {
+					scope.showInputCate(node);
+				});
+
+				// 重命名
+				menuDom.find('ul .rename-tree-cate').click(function() {
+					scope.rename(node);
+				});
+
+				// 删除节点
+				menuDom.find('ul .delete-tree-cate').click(function() {
+					scope.deleteNode(node);
+				});
+
+				// 刷新树
+				menuDom.find('ul .refresh-tree-cate').click(function() {
+					scope.reloadTree();
+				});
+
+				menuDom.find('ul .moveroot-tree-cate').click(function() {
+					scope.reloadTree();
+				});
+			});
+		};
+	}]);
+
+
+})(nameSpace.reg('graph'));

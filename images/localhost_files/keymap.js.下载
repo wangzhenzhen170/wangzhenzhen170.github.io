@@ -1,0 +1,45 @@
+
+(function(graph){
+
+	'use strict';
+
+
+	graph.app.factory('Keymap', function(KeyCode){
+		var map = {
+			'ctrl + s': 'save',
+			'ctrl + a': 'selectAll',
+			'ctrl + c': 'copy',
+			'ctrl + v': 'paste',
+			// 'ctrl + shift + c': 'winCopy',
+			// 'ctrl + shift + v': 'winPaste',
+			// 'ctrl + alt + c': 'copy',
+			// 'ctrl + alt + v': 'paste',
+			'ctrl + x': 'cut',
+			'ctrl + u': 'update',
+			'ctrl + z': 'undo',
+			'ctrl + y': 'redo',
+			'ctrl + e': 'clear',
+			'ctrl + o': 'open',
+			'ctrl + l': 'linkEdit',
+			'alt + n': 'create',
+			'alt + c': 'zoomCenter',
+			'alt + i': 'zoomIn',
+			'alt + o': 'zoomOut',
+			'alt + u': 'orderUp',
+			'alt + d': 'orderDown',
+			'alt + f': 'font',
+			'alt + l': 'toggleAutoLayout',
+			'alt + e': 'toggleAutoLine',
+			'delete' : 'removeCells',
+            'left': 'offsetLeft',
+			'right': 'offsetRight',
+			'down': 'offsetBottom',
+			'up': 'offsetTop'
+		};
+
+		return function(editor, dom){
+			new KeyCode(dom || editor.graph.container, map, editor.action, ['ctrl + c', 'ctrl + v', 'left', 'right', 'down', 'up']);
+		};
+	});
+
+})(nameSpace.reg('graph'));

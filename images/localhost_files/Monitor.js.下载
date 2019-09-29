@@ -1,0 +1,29 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('Monitor', function($rootScope, $window, $interval, ViewCateService){
+
+		var self = {};
+
+		self.start = function() {
+			ViewCateService.getMonitorTask().success(function(result) {
+				$rootScope.$broadcast('MONITORDATA', result);
+			});
+			self.timmer = $interval(function() {
+				ViewCateService.getMonitorTask().success(function(result) {
+					$rootScope.$broadcast('MONITORDATA', result);
+				});
+			}, 60000);
+			return self;
+		};
+
+		self.cancel = function() {
+			$interval.cancel(self.timmer);
+		};
+
+		return self;
+	});
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,1167 @@
+(function(graph, self){
+
+    'use strict';
+
+	graph.app.controller('GroupViewCtrl', ['$scope',
+                                           '$state',
+                                           'GroupService',
+                                           'ViewService',
+                                           'Unit',
+                                           'Const',
+                                           '$timeout',
+                                           'Editor',
+                                           'CiMonitorService',
+                                           '$templateCache',
+                                           'ContextLibs',
+                                           'GraphContextMenu',
+                                           'emxEffects',
+                                           'emxExpandMxShape',
+                                           'uControlPanel',
+                                           function($scope, $state, GroupService, ViewService,
+                                                     Unit, Const, $timeout, Editor, CiMonitorService,
+                                                     $templateCache, ContextLibs, GraphContextMenu,
+                                                     emxEffects, emxExpandMxShape, uControlPanel) {
+
+		$scope.$on('$stateChangeStart', function () {
+			$timeout.cancel($scope.timer1);
+		});
+
+
+		var viewId = $state.params.id;
+		$scope.groupId = viewId;
+		$scope.timer1 = null;
+		$scope.cateList = [];
+		$scope.history = [];
+		$scope.forSceneInfoDetail = {};
+		$scope.isShowGroupFooter = false;
+		$scope.paramsIds = [];
+		$scope.isShowViewList = false;
+
+		$scope.filterTableData = function(item){
+			return item.length > 0 && item[0].cate === $scope.currentCate.cate ? item : null;
+		};
+
+		$scope.switchTheme = function(){
+			self.editor.isFull = !self.editor.isFull;
+			$scope.updateTheme();
+		};
+
+		$scope.updateTheme = function(){
+			// var edges = self.editor.graph.getDepEdges();
+			var cells = self.editor.graph.getDepCells();
+			var nodes = [];
+
+			var $body = $('body');
+
+			$.each(self.editor.graph.getDepVertexs(), function(){
+				if(!this.assistItem && this.parent.id === '1'){
+					nodes.push(this);
+				}
+			});
+
+			if(self.editor.isFull){
+
+				$scope.hideShowGroupFooter();
+
+				if($scope.isShowGroupInfo){
+					$scope.switchGroupInfo();
+				}
+
+				$body.addClass('graph-full');
+				self.editor.graph.container.style.position = 'fiexd';
+
+				var swimlanes = [];
+				var vertexs = [];
+				var minSwimlanes = [];
+
+				$.each(cells, function(){
+					var cell = this;
+
+					if(!cell.isTableMode){
+						if(typeof cell.style === 'string' && cell.style.indexOf('swimlane') >= 0 && self.editor.graph.model.isCollapsed(cell)){
+							minSwimlanes.push(cell);
+						}else{
+							if(self.editor.graph.isSwimlane(cell)){
+								swimlanes.push(cell);
+							}else{
+								vertexs.push(cell);
+							}
+						}
+					}
+				});
+
+				self.editor.graph.container.style.background = '#2e3540';
+				// self.editor.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'white', edges);
+				self.editor.graph.setCellStyles(mxConstants.STYLE_LABEL_BACKGROUNDCOLOR, 'none', vertexs);
+				self.editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_LABEL_BACKGROUNDCOLOR, 'none', minSwimlanes);
+
+				if(self.editor.highlightCells){
+					var filterResult = [];
+					$.each(self.editor.highlightCells, function(){
+						if(this.parent.id === '1'){
+							filterResult.push(this);
+						}
+					});
+					self.editor.graph.setCellStyles(mxConstants.STYLE_FONTCOLOR, 'rgba(255, 255, 255, 1)', filterResult);
+
+
+				}else{
+					self.editor.graph.setCellStyles(mxConstants.STYLE_FONTCOLOR, 'rgba(255, 255, 255, 1)', nodes);
+				}
+
+				self.editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_FONTCOLOR, 'white', minSwimlanes);
+				self.editor.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'white', swimlanes);
+				self.editor.graph.refresh();
+			}else{
+				self.editor.graph.container.style.background = 'rgb(244, 244, 244)';
+				$body.removeClass('graph-full');
+
+				$.each(cells, function(){
+					var cell = this;
+
+					if(cell.originStyle && !cell.isTableMode){
+						if(typeof cell.style === 'string' && cell.style.indexOf('swimlane') >= 0 && self.editor.graph.model.isCollapsed(cell)){
+							cell.setUtAttr('minstyle', cell.minStyle);
+							self.editor.graph.setCellAttr(cell, 'minstyle', cell.minStyle);
+						}else{
+							cell.style = cell.originStyle;
+						}
+					}
+				});
+
+				// $.each(edges, function(){
+				// 	var cell = this;
+                //
+				// 	if(typeof cell.originStyle === 'string'){
+				// 		cell.style = cell.originStyle;
+				// 	}
+				// });
+
+				self.editor.graph.refresh();
+			}
+		};
+
+		$scope.getCisState = function(){
+			$timeout.cancel($scope.timer1);
+
+			GroupService.getGroupMonitorTotal(viewId)
+				.success(function(result){
+
+					$scope.viewList.forEach(function(view){
+						if(result.data[view.id]){
+							view.monitor = result.data[view.id];
+						}
+					});
+				});
+
+
+			var ids = [];
+			var cells = self.editor.graph.getDepCells();
+			$.each(cells, function(){
+				var cell = this;
+
+				if(cell.ciId){
+					ids.push(cell.ciId);
+				}
+			});
+
+			CiMonitorService.getWarningByCis(ids)
+				.success(function (result) {
+
+					$scope.cateTableData = [];
+
+					$.each(cells, function(){
+						if(this.ciId && result.data[this.ciId] && result.data[this.ciId].length > 0){
+
+							$scope.cateTableData.push(result.data[this.ciId]);
+
+							this.tableData = result.data[this.ciId];
+                            //  uDataLabel使用的数据
+                            this.uDataLabel = {
+                                collapseState: 'main'
+                            };
+                            var that = this;
+                            this.uDataLabel.transData = this.tableData.map(function (d) {
+                                return {
+                                    item: d.kpi,
+                                    value: d.value,
+                                    unit: '',
+                                    normal: true,
+                                    kpiId: d.kpiId,
+                                    ciId: that.ciId
+                                };
+                            });
+
+							var has = false;
+
+							for(var i = 0; i < $scope.cateList.length; i++){
+								if($scope.cateList[i].cate === result.data[this.ciId][0].cate){
+									$scope.cateList[i].count++;
+									has = true;
+									break;
+								}
+							}
+
+							if(!has){
+								$scope.cateList.push({
+									cate: result.data[this.ciId][0].cate,
+									icon: Unit.static(result.data[this.ciId][0].icon),
+									count: 1
+								});
+							}
+
+
+							$scope.currentCate = $scope.cateList[0];
+						}
+					});
+
+					$scope.updateCellInfo();
+				});
+
+			CiMonitorService.getMonitorByCis($scope.paramsIds, $scope.currentView.id)
+				.success(function (result) {
+					$.each(result.data, function () {
+						if(self.editor.graph.model.cells[this.id]){
+							self.editor.graph.model.cells[this.id].monitorData = this;
+						}
+					});
+
+					$scope.updateCellInfo();
+
+					$scope.timer1 = $timeout($scope.getCisState, Const.MONITOR_TIMEOUT);
+				})
+				.error(function () {
+					$scope.timer1 = $timeout($scope.getCisState, Const.MONITOR_TIMEOUT);
+				});
+		};
+
+		$scope.updateCellInfo = function(){
+			$.each(self.editor.graph.getDepCells(), function(){
+				var cell = this;
+
+				// cell.monitorData.label = Unit.randint(3, 5);
+				// cell.monitorData.count = Unit.randint(1, 10);
+
+				if(cell.monitorData){
+					if(cell.monitorData.count){
+						var colorObj = Unit.getLevelColor(cell.monitorData.label);
+
+//						cell.tipCell.visible = true;
+//						cell.tipCell.value = cell.monitorData.count;
+//						self.editor.graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, colorObj.bg, [cell.tipCell]);
+//						self.editor.graph.setCellStyles(mxConstants.STYLE_FONTCOLOR, colorObj.fc, [cell.tipCell]);
+
+                        self.effect.script.createEffect(cell, colorObj.bg, cell.monitorData.count);
+
+						if(cell.monitorData.label > 2){
+							$scope.addMarke(cell);
+						}else{
+							$scope.removeMarke(cell);
+						}
+					}else{
+//						cell.tipCell.visible = false;
+                        self.effect.script.clear(cell);
+					}
+
+				}
+
+//				if(cell.isTableMode){
+//					cell.setValue(cell.template(cell));
+//				}
+			});
+
+			self.editor.graph.refresh();
+		};
+
+		$scope.clearHistory = function(){
+			$scope.history = [];
+		};
+
+		$scope.switchSelectCurrent = function(view){
+			$scope.selectListCurrent = view;
+		};
+
+		$scope.addMarke = function(cell){
+
+//			if(self.editor.markerCellMapping[cell.id]){
+//				markeCell = self.editor.markerCellMapping[cell.id];
+//				var html = '<div class="cell-node-animate cell-node-animate-'+ cell.monitorData.label +'"></div>';
+//				markeCell.setValue(html);
+//			}else{
+//				var size = 10;
+//
+//				markeCell = self.editor.graph.insertVertex(
+//					cell.getParent(),
+//					'',
+//					'<div class="cell-node-animate cell-node-animate-'+ cell.monitorData.label +'"></div>',
+//					cell.geometry.x + ((cell.geometry.width - size) / 2),
+//					cell.geometry.y + ((cell.geometry.height - size) / 2),
+//					size,
+//					size,
+//					'html=1;fillColor=none;strokeWidth=0;strokeColor=none;overflow=fill;'
+//				);
+//
+//				markeCell.assistItem = true;
+//				self.editor.markerCellMapping[cell.id] = markeCell;
+//				self.editor.graph.orderCells(true, [markeCell]);
+//			}
+
+            var colorObj = Unit.getLevelColor(cell.monitorData.label);
+
+            self.effect.background.clear(cell);
+            self.effect.alarm.clear(cell);
+            if ((cell.children && !cell.collapsed) || cell.isTableMode){
+
+                self.effect.background.createEffect(cell, colorObj.bg);
+                self.effect.background.runAnimate();
+
+            } else {
+
+                self.effect.alarm.createEffect(cell, colorObj.bg);
+                self.effect.alarm.runAnimate();
+
+            }
+
+            cell.needMarker = true;
+
+		};
+
+		$scope.removeMarke = function(cell){
+//			if(cell){
+//				if(self.editor.markerCellMapping[cell.id]){
+//					self.editor.graph.removeCells([self.editor.markerCellMapping[cell.id]]);
+//				}
+//			}else{
+//				var cells = [];
+//				$.each(self.editor.markerCellMapping, function(){
+//					cells.push(this);
+//				});
+//				self.editor.graph.removeCells(cells);
+//			}
+            self.effect.alarm.clear(cell);
+            self.effect.background.clear(cell);
+
+            cell.needMarker = false;
+		};
+
+        $scope.refreshMarker = function (cell) {
+            var cells = cell ? [cell] : self.editor.graph.getDepCells();
+            cells.forEach(function (cell) {
+                if (cell.needMarker) {
+                    $scope.addMarke(cell);
+                }
+            });
+        };
+
+		$scope.switchView = function(view){
+
+			$timeout.cancel($scope.timer1);
+
+			if($scope.currentView && $scope.currentView.id === view.id){
+				return false;
+			}
+
+			self.editor.hasHighlight = false;
+			self.editor.highlightEdges = null;
+			self.editor.highlightCells = null;
+            self.clearControlPanel();
+            self.effect &&  self.effect.clear();
+            self._cellOpacity = null;
+
+			self.editor.markerCellMapping = {};
+
+			$scope.history.push(view);
+			$scope.cateList = [];
+			$scope.cateTableData = [];
+
+			$scope.currentView = view;
+			$scope.paramsIds = [];
+
+			self.editor.action.openView(view);
+
+			$.each(self.editor.graph.getDepEdges(), function(){
+				this.originStyle = this.style;
+
+			});
+
+			$.each(self.editor.graph.getDepVertexs(), function(){
+				var cell = this;
+				var viewid = self.editor.graph.getCellAttr(cell, 'view');
+
+				cell.originSize = {
+					x: cell.geometry.x,
+					y: cell.geometry.y,
+					w: cell.geometry.width,
+					h: cell.geometry.height
+				};
+
+				cell.relationViewId = viewid;
+				cell.name = typeof cell.value === 'object' ? cell.getAttribute('label') : cell.value;
+				cell.originStyle = cell.style;
+				cell.originWidth = cell.geometry.width;
+				cell.originHeight = cell.geometry.height;
+
+				if(typeof cell.style === 'string' && cell.style.indexOf('swimlane') >= 0 && self.editor.graph.model.isCollapsed(cell)){
+					cell.minStyle = self.editor.graph.getCellAttr(cell, 'minstyle');
+				}
+
+				cell.mouseenter = function(){
+					if(!(cell.ciId || cell.relationViewId)){
+						return;
+					}
+
+					window.clearTimeout(cell.toolCreateSet);
+					cell.toolCreateSet = window.setTimeout(function(){
+//						var w = 50;
+//						var h = 10;
+//
+//						cell.toolTemplate = Handlebars.compile(Unit.trimCellHtml($templateCache.get('cell/tool')));
+//
+//						cell.toolCell = self.editor.graph.insertVertex(
+//							cell.getParent(),
+//							null,
+//							cell.toolTemplate({
+//								id: cell.id,
+//								isHasView: !!cell.relationViewId,
+//								isCi: !!Unit.getCiIdByCell(cell)
+//							}),
+//							cell.geometry.x,
+//							cell.geometry.y - h,
+//							w, h,
+//							'html=1;fillColor=none;strokeWidth=0;strokeColor=none;overflow=fill;'
+//						);
+//
+//                        cell.toolCell.assistItem = true;
+//
+//						self.editor.graph.orderCells(false, [cell.toolCell]);
+//
+//						cell.toolCell.mouseleave = function(){
+//							window.clearTimeout(cell.toolRemoveSet);
+//
+//							cell.toolRemoveSet = window.setTimeout(function(){
+//								self.editor.graph.removeCells([cell.toolCell]);
+//								cell.toolCell = null;
+//								cell.toolTemplate = null;
+//								cell.toolRemoveSet = null;
+//							}, 500);
+//						};
+//
+//						cell.toolCell.mouseenter = function(){
+//							window.clearTimeout(cell.toolRemoveSet);
+//						};
+//
+//						self.editor.graph.refresh();
+//
+						cell.switchModeHandle = function(){
+							var ciId = Unit.getCiIdByCell(cell);
+							if(!cell.isTableMode){
+								self.editor.graph.orderCells(false, [cell]);
+								self.editor.graph.orderCells(false, [cell.toolCell]);
+
+								if(!cell.tableData){
+									CiMonitorService.getWarningByCis([ciId])
+										.success(function (result) {
+											cell.tableData = result.data[ciId];
+//											self.editor.action.switchTable(cell);
+//                                            $scope.refreshMarker(cell);
+                                            $scope.switchTableMode(cell);
+										});
+								}else{
+//									self.editor.action.switchTable(cell);
+//                                    $scope.refreshMarker(cell);
+                                    $scope.switchTableMode(cell);
+								}
+
+							}else{
+//								self.editor.action.switchClassic(cell);
+//                                $scope.refreshMarker(cell);
+                                $scope.switchIconMode(cell);
+							}
+						};
+
+						cell.openRelationHandle = function(){
+							ViewService.getView(cell.relationViewId)
+								.success(function(result){
+									$scope.switchView(result.data);
+								});
+						};
+
+                        // 控制面板
+                        self.toolPanels || (self.toolPanels = {});
+                        if (!self.toolPanels[cell.id]) {
+							var actions = [];
+
+							if (cell.ciId) {
+								actions.push({
+									title: graph.translate('TOGGLE_MODE'),
+									callBack: cell.switchModeHandle
+								});
+							}
+
+                            if (cell.relationViewId) {
+                                actions.push({
+                                    title: graph.translate('DRILL_DOWN'),
+                                    callBack: cell.openRelationHandle
+                                });
+                            }
+
+                            self.toolPanels[cell.id] = new uControlPanel([{
+                                sceneId: 'test',
+                                actions: actions
+                            }], cell, self.editor.graph);
+
+                            self.toolPanels[cell.id].appendTo(self.editor.graph.container);
+                        }
+                        self.toolPanels[cell.id].show();
+
+					}, 500);
+
+				};
+
+				cell.mouseleave = function(){
+					if(cell.toolCreateSet){
+						window.clearTimeout(cell.toolCreateSet);
+						cell.toolCreateSet = null;
+					}
+//
+//					if(cell.toolCell){
+//						window.clearTimeout(cell.toolRemoveSet);
+//
+//						cell.toolRemoveSet = window.setTimeout(function(){
+//							self.editor.graph.removeCells([cell.toolCell]);
+//							cell.toolCell = null;
+//							cell.toolTemplate = null;
+//							cell.toolRemoveSet = null;
+//						}, 500);
+//					}
+
+                    if (self.toolPanels && self.toolPanels[cell.id]) {
+
+                        self.toolPanels[cell.id].hide();
+                    }
+				};
+
+				if(viewid || Unit.isCiCell(cell)){
+
+					cell.ciId = Unit.getCiIdByCell(cell);
+
+					$scope.paramsIds.push({
+						viewid: viewid,
+						id: cell.ciId,
+						cellid: cell.id
+					});
+
+					self.editor.graph.model.beginUpdate();
+					try{
+//						cell.tipCell = self.editor.graph.insertVertex(cell, null, 0, g.width - size, -1 * (size/2), size, size, Const.GRAPH_MONITOR_TIPS_STYLE + ';cursor=pointer;');
+//						cell.tipCell.visible = false;
+//						cell.tipCell.assistItem = true;
+//						cell.tipCell.click = function(){
+//							$scope.forSceneInfoDetail.id = cell.ciId;
+//							$scope.forSceneInfoDetail.viewid = viewid;
+//							$scope.isShowGroupFooter = true;
+//							$scope._refresh();
+//						};
+
+						cell.click = function(){
+
+//							self.editor.graph.removeLight();
+////							self.editor.graph.addLight(cell);
+                            self.effect.sel.clear();
+                            self.effect.sel.createEffect(cell);
+
+							$scope.selectionCiId = cell.ciId;
+                            $scope.selectionCell = cell;
+							$scope.forSceneInfoDetail.id = cell.ciId;
+							$scope.forSceneInfoDetail.viewid = viewid;
+							$scope._refresh();
+						};
+
+					}finally {
+						self.editor.graph.model.endUpdate();
+					}
+
+				}
+
+			});
+
+			$scope.updateTheme();
+			self.editor.graph.refresh();
+			$timeout.cancel($scope.timer1);
+			$scope.getCisState();
+			$scope._refresh();
+		};
+
+        // 切换成指标模式
+        $scope.switchTableMode = function (cell) {
+
+            self.runWithinUpdate(function(){
+
+                self.editor.action.switchTable(cell);
+                $scope.updateTheme();
+
+            });
+
+            $scope.refreshMarker();
+        };
+
+        // 切换成图标模式
+        $scope.switchIconMode = function (cell) {
+
+            self.runWithinUpdate(function(){
+
+                self.editor.action.switchClassic(cell);
+                $scope.updateTheme();
+
+            });
+
+            $scope.refreshMarker();
+        };
+
+
+
+		$scope.switchTableAndIcon = function(){
+            self.editor.isFullTable = !self.editor.isFullTable;
+            self.editor.isFullTable ? $scope.switchTableMode() : $scope.switchIconMode();
+//            self.editor.graph.model.beginUpdate()
+//            try {
+//
+//                self.editor.isFullTable = !self.editor.isFullTable;
+//                self.editor.isFullTable ? self.editor.action.switchTable() : self.editor.action.switchClassic();
+//                $scope.updateTheme();
+//            } finally {
+//                self.editor.graph.model.endUpdate();
+//            }
+//
+//            $scope.refreshMarker();
+
+//			if(!self.editor.isFullTable){
+//				$timeout(function(){
+//					$scope.updateTheme();
+//				}, 500);
+//			}
+
+			// self.editor.graph.refresh();
+		};
+
+		$scope.isShowTable = false;
+		$scope.showTable = function(){
+			$scope.isShowTable = !$scope.isShowTable;
+		};
+
+        $scope.showSceneGraph = function(){
+            $scope.isShowTable = false;
+        };
+        $scope.showSceneData = function(){
+            $scope.isShowTable = true;
+        };
+
+
+		$scope.editGroupView = function(){
+			$state.go('home.group.edit', {id: viewId});
+		};
+
+		$scope.isShowGroupInfo = true;
+		$scope.switchGroupInfo = function(){
+			$scope.isShowGroupInfo = !$scope.isShowGroupInfo;
+			var $graph = $('.graph');
+			var $info = $('.group-info');
+
+			if($scope.isShowGroupInfo){
+				$graph.css('width', 'calc(100% - 300px)');
+				$info.css('right', '0');
+			}else{
+				$graph.css('width', '100%');
+				$info.css('right', '-300px');
+			}
+		};
+
+		$scope.layout = function(){
+			self.editor.action.layoutVertical();
+		};
+
+		$scope.showGroupFooter = function(){
+			$scope.isShowGroupFooter = true;
+			$scope._refresh();
+		};
+
+		$scope.hideShowGroupFooter = function(){
+			$scope.isShowGroupFooter = false;
+			$scope._refresh();
+		};
+
+		$scope.toggleShowViewList = function(){
+			$scope.isShowViewList = false;
+			var $dom = $('.views-list-select-dropmenu');
+			$dom.is(':visible') ? $dom.hide() : $dom.show();
+		};
+
+		$scope.highlight = function(cell){
+			var cells = self.editor.graph.getDepCells();
+			var toCells = [];
+			var reCells = [];
+			var toEdge = [];
+			var reEdge = [];
+			var arr = [];
+
+			var filter = function(arr){
+				var cells = [];
+				$.each(arr, function(){
+					if(!this.assistItem){
+						cells.push(this);
+					}
+				});
+				return cells;
+			};
+
+			if(cell && cell.assistItem){
+				return;
+			}
+
+			if(!(cell && cell.vertex ) && !self.editor.hasHighlight){
+				return;
+			}
+
+            if (!self._cellOpacity) {
+                self._cellOpacity = {};
+                cells.forEach(function (c) {
+                    var state = self.editor.graph.view.getState(c);
+                    if (state && state.style) {
+                        self._cellOpacity[c.id] = state.style.opacity;
+                    }
+                });
+            }
+
+			if(cell){
+				arr.push(cell.id);
+				toCells.push(cell);
+				$.each(self.editor.graph.model.getDescendants(cell), function(){
+					toCells.push(this);
+					arr.push(this.id);
+				});
+
+				if(Array.isArray(cell.edges)){
+					$.each(cell.edges, function(){
+						var edgeCell = this;
+						toCells.push(edgeCell);
+						arr.push(edgeCell.id);
+						toEdge.push(edgeCell);
+
+						if(edgeCell.source && edgeCell.source.id !== cell.id){
+							toCells.push(edgeCell.source);
+							arr.push(edgeCell.source.id);
+
+							$.each(self.editor.graph.model.getDescendants(edgeCell.source), function(){
+								toCells.push(this);
+								arr.push(this.id);
+							});
+						}
+
+						if(edgeCell.target && edgeCell.target.id !== cell.id){
+							toCells.push(edgeCell.target);
+							arr.push(edgeCell.target.id);
+
+							$.each(self.editor.graph.model.getDescendants(edgeCell.target), function(){
+								toCells.push(this);
+								arr.push(this.id);
+							});
+						}
+					});
+				}
+
+				$.each(cells, function(){
+					var dCell = this;
+
+					if(arr.indexOf(dCell.id) === -1){
+						reCells.push(dCell);
+
+						if(dCell.edge){
+							reEdge.push(dCell);
+						}
+					}
+				});
+			}else{
+				toCells = cells;
+
+				$.each(cells, function(){
+					var dCell = this;
+					if(dCell.edge){
+						reEdge.push(dCell);
+					}
+				});
+
+                self.effect.lineLight.clear();
+			}
+
+			self.editor.graph.model.beginUpdate();
+			try{
+				var rgba;
+
+				if(reCells.length){
+//					rgba = self.editor.isFull ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+
+					self.editor.hasHighlight = true;
+					self.editor.graph.setCellStyles(mxConstants.STYLE_OPACITY, 5, reCells);
+//					self.editor.graph.setCellStyles(mxConstants.STYLE_FONTCOLOR, rgba, filter(reCells));
+//                    self.editor.graph.uHideCellLabels(reCells);
+				}else{
+					self.editor.hasHighlight = false;
+				}
+
+				if(toCells.length){
+					self.editor.highlightCells = toCells;
+//					rgba = self.editor.isFull ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)';
+//					self.editor.graph.setCellStyles(mxConstants.STYLE_OPACITY, self._cellOpacity, toCells);
+                    toCells.forEach(function (tc) {
+                        var op = self._cellOpacity[tc.id] == void 0 ? 100 : self._cellOpacity[tc.id];
+                        self.editor.graph.setCellStyles(mxConstants.STYLE_OPACITY, op, [tc]);
+                    });
+//                    self.editor.graph.uShowCellLabels(toCells);
+//					if(self.editor.isFull){
+//						var resultFilter = [];
+//						$.each(filter(toCells), function(){
+//							if(this.parent.id === '1'){
+//								resultFilter.push(this);
+//							}
+//						});
+//						self.editor.graph.setCellStyles(mxConstants.STYLE_FONTCOLOR, rgba, resultFilter);
+//					}else{
+//						$.each(filter(toCells), function(){
+//							var cell = this;
+//							if(cell.originStyle && !cell.isTableMode){
+//								cell.setStyle(cell.originStyle);
+//							}
+//						});
+//
+//					}
+				}else{
+					self.editor.highlightCells = null;
+				}
+
+				if(toEdge.length){
+					self.editor.highlightEdges = toEdge;
+//					rgba = self.editor.isFull ? 'rgba(255, 255, 255, 1)' : 'rgba(0, 0, 0, 1)';
+//					self.editor.graph.setCellStyles(mxConstants.STYLE_FONTCOLOR, rgba, toEdge);
+                    self.editor.graph.uShowCellLabels(toEdge);
+				}else{
+					self.editor.highlightEdges = null;
+				}
+
+				if(reEdge.length){
+//					rgba = self.editor.isFull ? 'rgba(255, 255, 255, 0)' : 'rgba(0, 0, 0, 0)';
+//					self.editor.graph.setCellStyles(mxConstants.STYLE_FONTCOLOR, rgba, reEdge);
+                    self.editor.graph.uHideCellLabels(reEdge);
+
+				}
+
+				$.each(self.editor.markerCellMapping, function(){
+					var cell = this;
+					cell.setVisible(!self.editor.hasHighlight);
+				});
+
+			}finally {
+				self.editor.graph.model.endUpdate();
+			}
+
+            // 先清空原光点
+            self.effect.lineLight.clear();
+            if (self.editor.highlightEdges) {
+
+                self.effect.lineLight.createEffect(self.editor.highlightEdges, 'lightblue', false, 3);
+                self.effect.lineLight.runAnimate(1000);
+            }
+		};
+
+		GroupService.get(viewId).success(function(result) {
+
+			document.querySelector('#graph').addEventListener('click', function(event){
+				var ciId, cell;
+
+				if($('.views-list-select-dropmenu').is(':visible')){
+					$scope.toggleShowViewList();
+				}
+
+				if(event.srcElement && typeof event.srcElement.className === 'string'){
+					if(event.srcElement.className.indexOf('cell-tool-btn-switch-mode') >= 0){
+						ciId = $(event.srcElement).parent()[0].id;
+						cell = self.editor.graph.getCellById(ciId);
+
+						if(cell.switchModeHandle){
+							cell.switchModeHandle();
+						}
+					}
+
+					if(event.srcElement.className.indexOf('cell-tool-btn-relation-view') >= 0){
+						ciId = $(event.srcElement).parent()[0].id;
+						cell = self.editor.graph.getCellById(ciId);
+
+						if(cell.openRelationHandle){
+							cell.openRelationHandle();
+						}
+					}
+
+				}
+			});
+
+
+			self.editor = new Editor(document.querySelector('#graph'));
+			self.editor.action.disabled();
+			self.editor.graph.container.style.backgroundImage = 'none';
+			self.editor.graph.setCellsMovable(true);
+			self.editor.isFull = false;
+
+            // 容器背景改为白色
+            var gss = self.editor.graph.getStylesheet();
+            gss.styles.swimlane && (gss.styles.swimlane[mxConstants.STYLE_SWIMLANE_FILLCOLOR] = "white");
+
+//             默认隐藏连线的label
+            if (gss.styles.defaultEdge) {
+                gss.styles.defaultEdge[mxConstants.uSTYLE_HIDELABEL] = 1;
+            }
+
+			self.editor.graph.getModel().addListener(mxEvent.CHANGE, function(sender, evt){
+			    var changes = evt.getProperty('edit').changes;
+
+			    // 设置动画效果
+			    mxEffects.animateChanges(self.editor.graph, changes, function(){
+			        // 动画执行完后执行的内容
+
+			        // 触发完成变化动画的事件
+			        self.editor.graph.fireEvent(new mxEventObject('DONECHANGEANI', 'changes', changes));
+			    });
+			});
+
+			self.editor.graph.addListener(mxEvent.CLICK, function(sender, evt){
+				var e, cell;
+
+				e = evt.getProperty('event');
+				cell = evt.getProperty('cell');
+
+				if (cell && e.which === 1) {
+
+					if(cell.ciId){
+						$scope.highlight(cell);
+					}
+
+					if(cell.click){
+						cell.click(e);
+					}
+				}else{
+					$scope.highlight();
+
+//					self.editor.graph.removeLight();
+                    self.effect.sel.clear();
+
+					$scope.forSceneInfoDetail = {};
+					$scope.selectionCiId = null;
+                    $scope.selectionCell = null;
+
+                    $scope.hideShowGroupFooter();
+				}
+
+				evt.consume();
+			});
+
+			self.editor.graph.addListener(mxEvent.FOLD_CELLS, function(sender, evt){
+				var cell = evt.getProperty('cells')[0];
+
+				self.editor.graph.orderCells(false, [cell]);
+
+				if(self.editor.isFull){
+					if(self.editor.graph.model.isCollapsed(cell)){
+						self.editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_LABEL_BACKGROUNDCOLOR, 'none', [cell]);
+						self.editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_FONTCOLOR, 'white', [cell]);
+					}else{
+						self.editor.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'white', [cell]);
+					}
+				}else{
+					if(self.editor.graph.model.isCollapsed(cell)){
+						cell.setUtAttr('minstyle', cell.minStyle);
+						self.editor.graph.setCellAttr(cell, 'minstyle', cell.minStyle);
+					}else{
+						cell.style = cell.originStyle;
+					}
+				}
+				evt.consume();
+			});
+
+
+			self.editor.graph.addMouseListener({
+				currentCell: null,
+				mouseMove: function(sender, me){
+					if(this.currentCell && (!me.state || me.state.cell !== this.currentCell)){
+						if(typeof this.currentCell.mouseleave === 'function'){
+							this.currentCell.mouseleave();
+						}
+
+						this.currentCell = null;
+					}
+
+					if ( me.state && me.state.cell && me.state.cell !== this.currentCell){
+						this.currentCell = me.state.cell;
+
+						if(typeof this.currentCell.mouseenter === 'function'){
+							this.currentCell.mouseenter();
+						}
+					}
+
+				},
+				mouseUp: function(sender, me) { },
+				mouseDown: function(sender, me) { }
+			});
+
+            /**
+             * 在mx的beginUpdate与endUpdate中执行方法
+             * 如果方法中需要使用this，需要用bind绑定对象
+             * @param {function} fct    - 需要执行的方法
+             * @param {Array}    params - 给执行方法的参数列表
+             */
+            self.runWithinUpdate = function (fct, params) {
+                self.editor.graph.model.beginUpdate();
+                try {
+
+                    fct.apply(null, params);
+
+                } finally {
+
+                    self.editor.graph.model.endUpdate();
+
+                }
+            };
+
+            // 扩展形状
+            new emxExpandMxShape(self.editor.graph);
+            // 初始化特效
+            self.effect = new emxEffects(self.editor.graph);
+
+            // 清空控制面板
+            self.clearControlPanel = function () {
+                if (self.toolPanels) {
+                    $.each(self.toolPanels, function () {
+                        this.hide();
+                        $(this.el).remove();
+                    });
+                }
+                self.toolPanels = {}
+            };
+
+            // 重写cellRenderer的redrawLabel方法
+            self.editor.graph.cellRenderer.redrawLabel = function(state){
+    //            console.log(arguments);
+                mxCellRenderer.prototype.redrawLabel.apply(this, arguments);
+
+                var cell = state.cell;
+                if (cell && cell.isTableMode) {
+                    var $element = $('#' + cell.id);
+                    var shape = state.shape;
+
+                    var scale = shape.scale;
+                    var w = shape.bounds.width / scale;
+                    var h = shape.bounds.height / scale;
+
+                    $element.css({'height': h + 'px', width: w + 'px'});
+    //                console.log($element[0]);
+
+                    // 重新绘制数据
+                    if (cell.tableData && cell.template) {
+                        var dataBody = $(cell.template({
+                                name: cell.name,
+                                id: cell.id,
+                                ciId: cell.ciId,
+                                tableData: cell.tableData
+                            })).children('.graph_cell_table_body');
+
+                        $element.children('.graph_cell_table_body').remove();
+                        $element.append(dataBody);
+                    }
+                }
+            };
+
+            // 点击CI指标事件
+//            $('#graph').delegate('.graph_cell_table_item', 'click', function(e){
+//                e.preventDefault();
+//                e.stopPropagation();
+//                var $t = $(this);
+//
+//                if ($t.attr('ug-kpiid')) {
+//                    $scope.$broadcast('CLICKED_CI_PERF', {ciId: $t.attr('ug-ciid'), kpiId: $t.attr('ug-kpiid')});
+//                }
+//            });
+            $('#graph').delegate('svg text[data-kpiid]', 'click', function(e){
+                // 点击指标模式中的kpi事件
+                e.preventDefault();
+                e.stopPropagation();
+                var $t = $(this);
+
+                if ($t.attr('data-kpiid')) {
+                    $scope.$broadcast('CLICKED_CI_PERF', {ciId: $t.attr('data-ciid'), kpiId: $t.attr('data-kpiid')});
+                }
+            })
+            .delegate('svg .effect-script [data-cellid]', 'click', function (e) {
+                // 点击告警角标事件
+                e.preventDefault();
+                e.stopPropagation();
+
+                $scope.showGroupFooter();
+                $scope.$broadcast('SCENEDETAIL_REFRESH_ALARM');
+            });
+
+
+
+
+			// new GraphContextMenu(self.editor, {
+			// 	vertex: [
+			// 		{ name: Const.MENU_VIEW_RELATION_OPEN, fun: function(evt, cell){
+			// 			ViewService.getView(cell.relationViewId)
+			// 				.success(function(result){
+			// 					$scope.switchView(result.data);
+			// 				});
+			// 		}},
+			// 		Const.MENU_NODE_SWITCH_TABLE,
+			// 		Const.MENU_NODE_SWITCH_CLASSIC
+			// 	],
+			// 	edge: [],
+			// 	canvas: [],
+			// 	libs: ContextLibs
+			// });
+
+
+			var content = typeof result.data.content === 'string' ? JSON.parse(result.data.content) : result.data.content;
+			result.data.content = content;
+			$scope.groupView = result.data;
+
+			ViewService.getByIds({'viewIds': content.views}).success(function (result) {
+
+				// var viewDataByIds = [];
+				// for (var j = 0; j < params.length; j++) {
+				//     for (var k = 0; k < result.data.length; k++) {
+				//         if (result.data[k].id === params[j]) {
+				//             viewDataByIds.push(result.data[k]);
+				//         }
+				//     }
+				// }
+
+				$scope.viewList = result.data;
+				$scope.switchView(result.data[0]);
+				$scope.switchSelectCurrent(result.data[0]);
+			});
+		});
+
+		$scope.$on('CLOSE_EVENT', function(){
+			$scope.getCisState();
+		});
+
+		$scope.$on('sceneShowAlarm', function(){
+			$scope.isShowGroupFooter = !$scope.isShowGroupFooter;
+			$scope._refresh();
+
+			if($scope.isShowGroupFooter){
+				$scope.$broadcast('SCENEDETAIL_REFRESH_ALARM');
+			}
+		});
+
+
+	}]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.groupView'));

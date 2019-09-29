@@ -1,0 +1,106 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxSelRainEffect', ['emxSelEffect', function (emxSelEffect) {
+        return emxSelEffect.extend({
+            /**
+             * 创建元素被选中的特效
+             * @param {Array<mxCell|String>|mxCell|String} cells
+             */
+            createEffect: function (cells) {
+                cells = cells instanceof Array ? cells : [cells];
+                var cell, i, g;
+                for (i in cells) {
+                    cell = this.getCell(cells[i]);
+                    if (cell && !this.cellEffects[cell.id]) {
+                        g = this.cellEffects[cell.id] = this.createSvg('g');
+                        // 遮罩矩形
+                        g.appendChild(this.createSvg('rect', {
+                            fill: 'rgba(255, 234, 0, 0.1)',
+                            "stroke-width": "1",
+                            stroke: "rgba(203, 203, 203, 1)",
+                            "class": "rain-selected-rect"
+                        }));
+
+                        // 4角
+                        g.appendChild(this.createSvg('path', {
+                            d: "",
+                            "stroke-width": 3,
+                            stroke: "rgb(177, 177, 177)",
+                            fill: "none",
+                            class: "rain-selected-cornor"
+                        }));
+                    }
+                    if (cell) {
+                        this.syncEffect(cell);
+                    }
+
+                    this.pushToCell(cell);
+                }
+
+                // fade in
+                this._animate_opacity = 0;
+                this._animate_lasttime = 0;
+                this.runAnimate();
+            },
+
+            /**
+             * @param {mxCell|String} cell
+             */
+            syncEffect: function (cell) {
+                cell = this.getCell(cell);
+                var geo = this.getCellGeo(cell),
+                    v = cell.isCollapsed() || !cell.children ? "visible" : "hidden",
+                    g, dash, size, x, y, rsw, csw;
+
+                g = this.cellEffects[cell.id];
+                if (!g) return;
+
+                //        size = Math.max(geo.width, geo.height) + 8;
+                size = {
+                    w: geo.width + 8,
+                    h: geo.height + 8
+                };
+                dash = Math.max(size.w, size.h) / 20;
+                x = geo.x - (size.w - geo.width) / 2;
+                y = geo.y - (size.h - geo.height) / 2;
+                rsw = Math.max(Math.max(size.w, size.h) / 80, 1);
+                csw = Math.max(Math.max(size.w, size.h) / 80 * 3, 3);
+
+                this.attr(g, {
+                    visibility: v
+                });
+                this.attr(g.childNodes[0], {
+                    x: x,
+                    y: y,
+                    width: size.w,
+                    height: size.h,
+                    "stroke-width": rsw,
+                    "stroke-dasharray": dash + ", " + (dash / 2)
+                });
+
+                this.attr(g.childNodes[1], {
+                    d: [
+                'M', x + size.w - dash * 2, y,
+                'h', dash * 2,
+                'v', dash * 2,
+                'M', x + size.w, y + size.h - dash * 2,
+                'v', dash * 2,
+                'h', -dash * 2,
+                'M', x + dash * 2, y + size.h,
+                'h', -dash * 2,
+                'v', -dash * 2,
+                'M', x, y + dash * 2,
+                'v', -dash * 2,
+                'h', dash * 2
+               ].join(" "),
+                    "stroke-width": csw
+                });
+
+                this.toCellBack(g, cell);
+            }
+        });
+
+
+    }]);
+})();

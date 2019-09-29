@@ -1,0 +1,28 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('KpiCateService', ['$http', 'Unit', '$q', function($http, Unit, $q){
+
+		var o = {};
+
+		// 获取KPI分类
+		o.get = function(){
+			return $http.get(Unit.api('/kpicate'));
+		};
+
+		// 根据KPI分类获取KPI
+		o.getKpi = function(data) {
+			var deferred = $q.defer();
+			var $promise = $http.post(Unit.api('/kpi/owner'), data, {timeout: deferred.promise});
+			$promise.cancel = function() {
+				deferred.resolve('cancelled!');
+			};
+			return $promise;
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

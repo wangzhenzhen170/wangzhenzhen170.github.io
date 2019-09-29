@@ -1,0 +1,125 @@
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.factory('FoldingShape', [function(){
+        return function(editor){
+            editor.graph.expandedImage = new mxImage(mxClient.imageBasePath + '/expandedDown.png', 9, 10);
+            editor.graph.collapsedImage = new mxImage(mxClient.imageBasePath + '/collapsedUp.png', 9, 10);
+
+            editor.graph.cellRenderer.getControlBounds = function(state, w, h) {
+                if (state.control != null)
+                {
+                    var s = state.view.scale;
+                    var cx = state.getCenterX();
+                    var cy = state.getCenterY();
+
+                    if (!state.view.graph.getModel().isEdge(state.cell))
+                    {
+                        cx = state.x + w * s;
+                        cy = state.y + h * s;
+
+                        if (state.shape != null)
+                        {
+                            // TODO: Factor out common code
+                            var rot = state.shape.getShapeRotation();
+
+                            if (this.legacyControlPosition)
+                            {
+                                rot = mxUtils.getValue(state.style, mxConstants.STYLE_ROTATION, 0);
+                            }
+                            else
+                            {
+                                if (state.shape.isPaintBoundsInverted())
+                                {
+                                    var t = (state.width - state.height) / 2;
+                                    cx += t;
+                                    cy -= t;
+                                }
+                            }
+
+                            if (rot != 0)
+                            {
+                                var rad = mxUtils.toRadians(rot);
+                                var cos = Math.cos(rad);
+                                var sin = Math.sin(rad);
+
+                                var point = mxUtils.getRotatedPoint(new mxPoint(cx, cy), cos, sin,
+                                    new mxPoint(state.getCenterX(), state.getCenterY()));
+                                cx = point.x;
+                                cy = point.y;
+                            }
+                        }
+                    }
+
+                    return (state.view.graph.getModel().isEdge(state.cell)) ?
+                        new mxRectangle(Math.round((cx + state.width) - w / 2 * s), Math.round(cy - h / 2 * s), Math.round(w * s), Math.round(h * s))
+                        : new mxRectangle(Math.round((cx + state.width) - w / 2 * s), Math.round(cy - h / 2 * s), Math.round(w * s), Math.round(h * s));
+                }
+
+                return null;
+            };
+
+            editor.graph.cellRenderer.createControl = function (state) {
+                // console.log(state);
+                var graph = state.view.graph;
+                var image = graph.getFoldingImage(state);
+
+                if (graph.foldingEnabled && image != null) {
+                    if (state.control == null) {
+                        var b = new mxRectangle(0, 0, image.width, image.height);
+                        // state.control = new mxImageShape(b, image.src);
+                        // console.log(state);
+                        // debugger;
+                        state.control = new mxTestShapeShape(state, b, '#fff', image.src);
+                        state.control.preserveImageAspect = false;
+                        state.control.dialect = graph.dialect;
+
+                        this.initControl(state, state.control, true, this.createControlClickHandler(state));
+                    }
+                } else if (state.control != null) {
+                    state.control.destroy();
+                    state.control = null;
+                }
+            };
+
+            editor.graph.cellRenderer.createControlClickHandler = function (state) {
+                var graph = state.view.graph;
+
+                return mxUtils.bind(this, function (evt) {
+                    if (this.forceControlClickHandler || graph.isEnabled()) {
+                        var collapse = !graph.isCellCollapsed(state.cell);
+                        graph.foldCells(collapse, false, [state.cell], null, evt);
+                        mxEvent.consume(evt);
+                    }
+                });
+            };
+
+            editor.graph.cellRenderer.redraw = function(state, force, rendering)
+            {
+                var _this = this;
+                var shapeChanged = this.redrawShape(state, force, rendering);
+
+                if (state.shape != null && (rendering == null || rendering))
+                {
+                    this.redrawLabel(state, shapeChanged);
+                    this.redrawCellOverlays(state, shapeChanged);
+                    if(Promise){
+                        var promise = new Promise(function(resolve){
+                            resolve(state);
+                        });
+                        promise.then(function(value){
+                            if((value.cell.getStyle() || (value.cell.getStyle() && value.cell.getStyle().indexOf('swimlane') === -1)) && !value.invalid){
+                                _this.redrawControl(value, shapeChanged);
+                            }
+                        }).catch(function(error){
+                            console.error(error);
+                        });
+                    }
+                }
+            };
+        }
+    }]);
+
+})(nameSpace.reg('graph'));

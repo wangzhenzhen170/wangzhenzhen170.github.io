@@ -1,0 +1,1807 @@
+/* global mxConstants */
+
+(function() {
+
+    'use strict';
+
+    var timer;
+
+    var labelMap = {
+        save: '保存',
+        refresh: '更新',
+        //		search: 'ACTUAL',
+        //		zoomOut: '缩小',
+        //		zoomIn: '放大',
+        orderUp: '置顶',
+        orderDown: '置底',
+        alignExpand: '排列',
+        undo: '撤销',
+        redo: '恢复',
+        trash: '删除',
+        link: '设置链接',
+        paint: '形状填充',
+        border: '形状轮廓',
+        shadow: '阴影',
+        fontExpand: '字体样式',
+        lineExpand: '线条',
+        grid: '启用或禁用网格',
+        assistLine: '启用或禁用辅助线',
+        imageExpand: '背景',
+        penExpand: '标记CI',
+        autoLayout: '自动布局关闭',
+        autoLine: '自动布局开启',
+        searchExpand: '搜索',
+        tableExpand: 'DISPLAY_MODLE',
+        background: '背景图片',
+        backgroundColor: '背景颜色',
+        backgroundImage: '插入背景',
+        image: '上传图片',
+        noimage: '删除背景图片',
+        paintPanel: '绘画面板',
+        clearPaintPanel: '清除面板',
+        pen: '高亮CI',
+        nopen: '取消高亮CI',
+        newFile: '新建',
+        folder: '打开',
+        searchClear: '取消高亮',
+        searchNode: '搜索',
+        threshold: '阈值设置',
+        layout: '布局',
+        layoutHorizontal: '水平布局',
+        layoutVertical: '垂直布局',
+        layoutCircle: '环形布局',
+        layoutOrganic: '有机布局',
+        layoutStackHorizontal: '堆叠水平布局',
+        layoutStackVertical: '堆叠垂直布局',
+        setCellColor: 'SET_CELL_COLOR',
+        setStrokeColor: 'SET_STROKE_COLOR',
+        setFontColor: 'SET_FONT_COLOR',
+        setEdgeColor: 'SET_EDGE_COLOR',
+        setBackgroundColor: 'SET_BACKGROUND_COLOR',
+        fontFamily: '字体',
+        fontSize: '字号',
+        fontStyle: '字体样式',
+        fontLayout: '字体布局',
+        toggleUnderline: '下划线',
+        toggleItalic: '斜体',
+        toggleBold: '加粗',
+        alignLeft: '左对齐',
+        alignRight: '右对齐',
+        alignCenter: '水平居中',
+        alignTop: '顶部对齐',
+        alignMiddle: '垂直居中',
+        alignBottom: '底部对齐',
+        alignDistributeHorizontal: '横向分布',
+        alignDistributeVertical: '纵向分布',
+        edgeDashed: '线条虚线',
+        edgeDashed0: '线条实线',
+        edgeStyle: '线条样式',
+        edgeStart: '开始箭头',
+        edgeEnd: '箭头',
+        edgeSize: '线条宽度',
+        edgeShape: '线条类型',
+        alignLeftFont: '左边对齐',
+        alignCenterFont: '中间对齐',
+        alignRightFont: '右边对齐',
+        alignTopFont: '顶部对齐',
+        alignMiddleFont: '中部对齐',
+        alignBottomFont: '底部对齐',
+        onePx: '1px',
+        twoPx: '2px',
+        threePx: '3px',
+        fourPx: '4px',
+        fivePx: '5px',
+        sixPx: '6px',
+        eightPx: '8px',
+        tenPx: '10px',
+        wryh: '微软雅黑',
+        songti: '宋体',
+        heiti: '黑体',
+        arial: 'Arial',
+        helvetica: 'Helvetica',
+        verdana: 'Verdana',
+        timesNewRoman: 'Times New Roman',
+        garamond: 'Garamond',
+        comicSansms: 'Comic Sans MS',
+        courierNew: 'Courier New',
+        georgia: 'Georgia',
+        impact: 'Impact',
+        lucidaConsole: 'Lucida Console',
+        tahoma: 'Tahoma',
+        sansSerif: 'sans-serif',
+        fontSize6: '6',
+        fontSize8: '8',
+        fontSize9: '9',
+        fontSize10: '10',
+        fontSize11: '11',
+        fontSize12: '12',
+        fontSize14: '14',
+        fontSize18: '18',
+        fontSize24: '24',
+        fontSize36: '36',
+        propertyShow: '属性显示',
+        relationShow: '关系显示',
+        history: '历史版本',
+        saveAs: '另存为',
+        createFile: '新建',
+        openFile: '打开',
+        releaseurl: '发布URL地址'
+    };
+
+
+    var Action = function(editor) {
+
+        var ac = editor.action;
+
+        this.grid = function() {
+            ac.grid();
+        };
+
+        this.assistLine = function() {
+            ac.assistLine();
+        };
+
+        this.save = function() {
+            ac.save();
+        };
+
+        this.refresh = function() {
+            ac.update();
+        };
+
+        this.newFile = function() {
+            ac.create();
+        };
+
+        this.folder = function() {
+            ac.open();
+        };
+
+        this.shadow = function() {
+            ac.shadow();
+        };
+
+        this.link = function() {
+            ac.linkEdit();
+        };
+
+        this.zoomOut = function() {
+            ac.zoomOut();
+        };
+
+        this.zoomIn = function() {
+            ac.zoomIn();
+        };
+
+        this.search = function() {
+            ac.zoomActual();
+        };
+
+        this.orderUp = function() {
+            ac.orderUp();
+        };
+
+        this.orderDown = function() {
+            ac.orderDown();
+        };
+
+        this.alignLeft = function() {
+            ac.alignCells(mxConstants.ALIGN_LEFT);
+        };
+
+        this.alignCenter = function() {
+            ac.alignCells(mxConstants.ALIGN_CENTER);
+        };
+
+        this.alignRight = function() {
+            ac.alignCells(mxConstants.ALIGN_RIGHT);
+        };
+
+        this.alignTop = function() {
+            ac.alignCells(mxConstants.ALIGN_TOP);
+        };
+
+        this.alignMiddle = function() {
+            ac.alignCells(mxConstants.ALIGN_MIDDLE);
+        };
+
+        this.alignBottom = function() {
+            ac.alignCells(mxConstants.ALIGN_BOTTOM);
+        };
+
+        this.alignDistributeHorizontal = function() {
+            ac.alignDistribute(true);
+        };
+
+        this.alignDistributeVertical = function() {
+            ac.alignDistribute(false);
+        };
+
+        this.lineStraight = function() {
+            ac.edgeClearStyle();
+        };
+
+        this.lineEntityRelation = function() {
+            ac.edgeStyleAsCur('entityRelationEdgeStyle');
+        };
+
+        this.lineElbowHorizontal = function() {
+            ac.edgeStyleAsCur('elbowHorizontal');
+        };
+
+        this.lineElbowVertical = function() {
+            ac.edgeStyleAsCur('elbowVertical');
+        };
+
+        this.lineSegment = function() {
+            ac.edgeStyleAsCur('segmentEdgeStyle');
+        };
+
+        this.lineOrthogonal = function() {
+            ac.edgeStyleAsCur('orthogonalEdgeStyle');
+        };
+
+        this.startNoarrow = function() {
+            ac.startArrow(mxConstants.NONE);
+        };
+
+        this.startClassic = function() {
+            ac.startArrowFill(mxConstants.ARROW_CLASSIC);
+        };
+
+        this.startOpen = function() {
+            ac.startArrowFill(mxConstants.ARROW_OPEN);
+        };
+
+        this.startBlock = function() {
+            ac.startArrowFill(mxConstants.ARROW_BLOCK);
+        };
+
+        this.startOval = function() {
+            ac.startArrowFill(mxConstants.ARROW_OVAL);
+        };
+
+        this.startDiamond = function() {
+            ac.startArrowFill(mxConstants.ARROW_DIAMOND);
+        };
+
+        this.startThinDiamond = function() {
+            ac.startArrowFill(mxConstants.ARROW_DIAMOND_THIN);
+        };
+
+        this.startClassicTrans = function() {
+            ac.startArrow(mxConstants.ARROW_CLASSIC);
+        };
+
+        this.startBlockTrans = function() {
+            ac.startArrow(mxConstants.ARROW_BLOCK);
+        };
+
+        this.startOvalTrans = function() {
+            ac.startArrow(mxConstants.ARROW_OVAL);
+        };
+
+        this.startDiamondTrans = function() {
+            ac.startArrow(mxConstants.ARROW_DIAMOND);
+        };
+
+        this.startThinDiamondTrans = function() {
+            ac.startArrow(mxConstants.ARROW_DIAMOND_THIN);
+        };
+
+        this.endNoarrow = function() {
+            ac.endArrow(mxConstants.NONE);
+        };
+
+        this.endClassic = function() {
+            ac.endArrowFill(mxConstants.ARROW_CLASSIC);
+        };
+
+        this.endOpen = function() {
+            ac.endArrowFill(mxConstants.ARROW_OPEN);
+        };
+
+        this.endBlock = function() {
+            ac.endArrowFill(mxConstants.ARROW_BLOCK);
+        };
+
+        this.endOval = function() {
+            ac.endArrowFill(mxConstants.ARROW_OVAL);
+        };
+
+        this.endDiamond = function() {
+            ac.endArrowFill(mxConstants.ARROW_DIAMOND);
+        };
+
+        this.endThinDiamond = function() {
+            ac.endArrowFill(mxConstants.ARROW_DIAMOND_THIN);
+        };
+
+        this.endClassicTrans = function() {
+            ac.endArrow(mxConstants.ARROW_CLASSIC);
+        };
+
+        this.endBlockTrans = function() {
+            ac.endArrow(mxConstants.ARROW_BLOCK);
+        };
+
+        this.endOvalTrans = function() {
+            ac.endArrow(mxConstants.ARROW_OVAL);
+        };
+
+        this.endDiamondTrans = function() {
+            ac.endArrow(mxConstants.ARROW_DIAMOND);
+        };
+
+        this.endThinDiamondTrans = function() {
+            ac.endArrow(mxConstants.ARROW_DIAMOND_THIN);
+        };
+
+        this.trash = function() {
+            ac.removeCells();
+        };
+
+        // this.paint = function () {
+        // 	ac.cellFillColor();
+        // };
+        //
+        // this.border = function () {
+        // 	ac.cellStrokeColor();
+        // };
+        //
+        // this.fontExpand = function () {
+        // 	ac.font();
+        // };
+
+        this.createFile = function() {
+            ac.createFile();
+        };
+
+        this.openFile = function() {
+            ac.openFile();
+        };
+
+        this.pen = function() {
+            ac.hightLightCi();
+        };
+
+        this.nopen = function() {
+            ac.clearHight();
+        };
+
+        this.autoLayout = function() {
+            ac.toggleAutoLayout();
+        };
+
+        this.autoLine = function() {
+            ac.toggleAutoLine();
+        };
+
+        this.table = function() {
+            ac.showCiTable();
+        };
+
+        this.sitemap = function() {
+            ac.hideCiTable();
+        };
+
+        this.threshold = function() {
+            ac.threshold();
+        };
+
+        this.searchNode = function() {
+            ac.searchNode();
+        };
+
+        this.searchPath = function() {
+            ac.searchPath();
+        };
+
+        this.searchClear = function() {
+            ac.clearHight();
+        };
+
+        // 画板
+        this.paintPanel = function() {
+            ac.paintPanel();
+        };
+        // 清除画板
+        this.clearPaintPanel = function() {
+            ac.clearPaintPanel();
+        };
+        //水平布局
+        this.layoutHorizontal = function() {
+            ac.layoutHorizontal();
+        };
+        //垂直布局
+        this.layoutVertical = function() {
+            ac.layoutVertical();
+        };
+        //环形布局
+        this.layoutCircle = function() {
+            ac.layoutCircle();
+        };
+        // 有机布局
+        this.layoutOrganic = function() {
+            ac.layoutOrganic();
+        };
+        // 堆叠水平布局
+        this.layoutStackHorizontal = function() {
+            ac.layoutStackHorizontal();
+        };
+        // 堆叠垂直布局
+        this.layoutStackVertical = function() {
+            ac.layoutStackVertical();
+        };
+
+        // 属性显示
+        this.propertyShow = function() {
+            $('.sidebar-model').remove();
+            ac.setAttrShow();
+        };
+    };
+
+    var TbAction = function(action, uibModal, Unit) {
+
+        var ac = action;
+
+        var $modal = uibModal;
+
+        //设置填充样式
+        this.setCellColor = function(color) {
+            ac.setCellColor(color);
+        };
+        this.setStrokeColor = function(color) {
+            ac.setStrokeColor(color);
+        };
+        // this.fontFamily=function () {
+        // 	ac.fontFamily();
+        // };
+        // this.fontSize=function () {
+        // 	ac.fontSize();
+        // }
+        this.setFontColor = function(color) {
+            ac.setFontColor(color);
+        };
+        this.setEdgeColor = function(color) {
+            ac.setEdgeColor(color);
+        };
+        this.setBackgroundColor = function(color) {
+            ac.setBackgroundColor(color);
+        };
+
+        this.toggleUnderline = function() {
+            ac.toggleUnderline();
+        };
+
+        this.toggleItalic = function() {
+            ac.toggleItalic();
+        };
+
+        this.toggleBold = function() {
+            ac.toggleBold();
+        };
+
+        this.alignLeftFont = function() {
+            ac.alignLeftFont();
+        };
+
+        this.alignCenterFont = function() {
+            ac.alignCenterFont();
+        };
+
+        this.alignRightFont = function() {
+            ac.alignRightFont();
+        };
+
+        this.alignTopFont = function() {
+            ac.alignTopFont();
+        };
+
+        this.alignMiddleFont = function() {
+            ac.alignMiddleFont();
+        };
+
+        this.alignBottomFont = function() {
+            ac.alignBottomFont();
+        };
+
+        this.edgeDashed = function() {
+            ac.edgeDashed(1);
+        };
+
+        this.edgeDashed0 = function() {
+            ac.edgeDashed(0);
+        };
+
+        this.lineSolid = function() {
+            ac.edgeDashed(0);
+        };
+
+        this.lineDashed = function() {
+            ac.edgeDashed(1);
+        };
+
+        this.onePx = function() {
+            ac.onePx('onePx');
+        };
+
+        this.twoPx = function() {
+            ac.twoPx('twoPx');
+        };
+
+        this.threePx = function() {
+            ac.threePx('threePx');
+        };
+
+        this.fourPx = function() {
+            ac.fourPx('fourPx');
+        };
+
+        this.fivePx = function() {
+            ac.fivePx('fivePx');
+        };
+
+        this.sixPx = function() {
+            ac.sixPx('sixPx');
+        };
+
+        this.eightPx = function() {
+            ac.eightPx('eightPx');
+        };
+
+        this.tenPx = function() {
+            ac.tenPx('tenPx');
+        };
+
+        this.save = function() {
+            ac.save();
+        };
+
+        this.saveAs = function() {
+            ac.save(true);
+        };
+
+        this.backgroundImage = function() {
+            ac.backgroundImage();
+        };
+
+        this.image = function() {
+            ac.insertImage();
+        };
+
+        this.noimage = function() {
+            ac.clearBackgroundImage();
+        };
+
+
+        this.wryh = function() {
+            ac.setFontFamily('微软雅黑');
+        };
+        this.songti = function() {
+            ac.setFontFamily('宋体');
+        };
+        this.heiti = function() {
+            ac.setFontFamily('黑体');
+        };
+        this.sansSerif = function() {
+            ac.setFontFamily('sans-serif');
+        };
+        this.arial = function() {
+            ac.setFontFamily('Arial');
+        };
+        this.verdana = function() {
+            ac.setFontFamily('Verdana');
+        };
+        this.timesNewRoman = function() {
+            ac.setFontFamily('Times New Roman');
+        };
+        this.garamond = function() {
+            ac.setFontFamily('Garamond');
+        };
+        this.comicSansms = function() {
+            ac.setFontFamily('Comic Sans MS');
+        };
+        this.courierNew = function() {
+            ac.setFontFamily('Courier New');
+        };
+        this.georgia = function() {
+            ac.setFontFamily('Georgia');
+        };
+        this.lucidaConsole = function() {
+            ac.setFontFamily('Lucida Console');
+        };
+        this.tahoma = function() {
+            ac.setFontFamily('Tahoma');
+        };
+        this.sansSerif = function() {
+            ac.setFontFamily('sans-serif');
+        };
+        this.helvetica = function() {
+            ac.setFontFamily('Helvetica');
+        };
+        this.impact = function() {
+            ac.setFontFamily('Impact');
+        };
+
+        this.fontSize6 = function() {
+            ac.fontSize6(6);
+        };
+        this.fontSize8 = function() {
+            ac.fontSize8(8);
+        };
+        this.fontSize9 = function() {
+            ac.fontSize9(9);
+        };
+        this.fontSize10 = function() {
+            ac.fontSize10(10);
+        };
+        this.fontSize11 = function() {
+            ac.fontSize11(11);
+        };
+        this.fontSize12 = function() {
+            ac.fontSize12(12);
+        };
+        this.fontSize14 = function() {
+            ac.fontSize14(14);
+        };
+        this.fontSize18 = function() {
+            ac.fontSize18(18);
+        };
+        this.fontSize24 = function() {
+            ac.fontSize24(24);
+        };
+        this.fontSize36 = function() {
+            ac.fontSize36(36);
+        };
+
+        this.redo = function() {
+            ac.redo();
+        };
+
+        this.undo = function() {
+            ac.undo();
+        };
+
+        this.setHistory = function() {
+            ac.setHistory();
+        };
+        this.history = function() {
+            $('.sidebar-model').remove();
+            ac.history();
+        };
+
+        this.releaseurl = function() {
+            ac.releaseurl();
+        }
+
+    };
+
+    var app = angular.module('ljwGraphToolbar', []);
+
+    app.factory('LjwGraphToolbar', ['ToolbarAction', 'DiagramCIClassService', '$uibModal', 'Unit', function(ToolbarAction, DiagramCIClassService, $uibModal, Unit) {
+
+        return function(settings, params) {
+            //var self = this;
+            // console.log(settings)
+            // var self=this;
+            // self.classP = {
+            // 	propertyClass: [],
+            // 	classNames: []
+            // };
+            //
+            // settings.editor.graph.addListener(mxEvent.CELLS_ADDED, function (graph, e) {
+            // 	var editor=settings.editor;
+            // 	console.log(e);
+            // 	var data = {
+            // 		ciIds: editor.action.getCisId(),
+            // 		tagIds: editor.action.getTagsId()
+            // 	};
+            //
+            // 	if (data.ciIds.length > 0 || data.tagIds.length > 0) {
+            // 		DiagramCIClassService.queryCiClassByCiIdAndTagId(data).success(function (result) {
+            // 			// console.log(result.data);
+            // 			var datas = result.data;
+            //
+            // 			for (var i = 0; i < datas.length; i++) {
+            // 				self.classP.propertyClass.push(datas[i]);
+            // 				self.classP.classNames.push(datas[i].ciClass.className)
+            // 			}
+            // 		})
+            // 	}
+            // 	graph.refresh();
+            //
+            // 	console.log(self.classP);
+            // 	return self;
+            // });
+
+            this.toolbarGroup = [
+                ['createFile', 'openFile'],
+                ['saveAs', 'save'],
+                ['undo', 'redo', 'trash'],
+                ['orderUp', 'orderDown', 'alignExpand', 'layout'],
+                ['paint', 'border', 'shadow'],
+                ['fontFamily', 'fontSize', 'fontExpand'],
+                ['lineExpand'],
+                //				['search', 'zoomOut', 'zoomIn'],
+                // ['grid', 'assistLine'],
+                ['background'],
+                ['releaseurl']
+                // ['autoLayout', 'autoLine'],
+                // ['pen', 'searchNode', 'searchClear'],
+                //['pen', 'searchClear'],
+                // ['threshold']
+            ];
+
+            this.dropdown = {
+                alignExpand: [
+                    'alignLeft', 'alignRight',
+                    'alignTop', 'alignBottom', 'alignCenter', 'alignMiddle',
+                    'alignDistributeHorizontal', 'alignDistributeVertical'
+                ],
+                // lineExpand: [
+                // 	[
+                // 		'lineStraight', 'lineEntityRelation', 'lineElbowHorizontal',
+                // 		'lineElbowVertical', 'lineSegment', 'lineOrthogonal'
+                // 	],
+                //
+                // 	'-',
+                //
+                // 	[
+                // 		'startNoarrow', 'startClassic', 'startOpen',
+                // 		'startBlock', 'startOval', 'startDiamond',
+                // 		'startThinDiamond', 'startClassicTrans', 'startBlockTrans',
+                // 		'startOvalTrans', 'startDiamondTrans', 'startThinDiamondTrans'
+                // 	],
+                //
+                // 	'-',
+                //
+                // 	[
+                // 		'endNoarrow', 'endClassic', 'endOpen',
+                // 		'endBlock', 'endOval', 'endDiamond',
+                // 		'endThinDiamond', 'endClassicTrans', 'endBlockTrans',
+                // 		'endOvalTrans', 'endDiamondTrans', 'endThinDiamondTrans'
+                // 	]
+                // ],
+                tableExpand: [
+                    'sitemap',
+                    'threshold'
+                ],
+                searchExpand: [
+                    'searchNode',
+                    'searchPath'
+                ],
+                layout: [
+                    'layoutHorizontal',
+                    'layoutVertical',
+                    'layoutCircle',
+                    'layoutOrganic',
+                    'layoutStackHorizontal',
+                    'layoutStackVertical'
+                ],
+                paint: [
+                    'setCellColor'
+                ],
+                border: [
+                    'setStrokeColor'
+                ],
+                fontFamily: [
+                    'arial',
+                    'comicSansms',
+                    'courierNew',
+                    'garamond',
+                    'georgia',
+                    'helvetica',
+                    'impact',
+                    'lucidaConsole',
+                    'tahoma',
+                    'timesNewRoman',
+                    'sansSerif',
+                    'verdana',
+                    'divider',
+                    'songti',
+                    'wryh',
+                    'heiti'
+                ],
+                fontSize: [
+                    'fontSize6',
+                    'fontSize8',
+                    'fontSize9',
+                    'fontSize10',
+                    'fontSize11',
+                    'fontSize12',
+                    'fontSize14',
+                    'fontSize18',
+                    'fontSize24',
+                    'fontSize36'
+                ],
+                fontExpand: [
+                    'setFontColor',
+                    'fontStyle',
+                    'fontLayout'
+                ],
+                lineExpand: [
+                    'setEdgeColor',
+                    // 'edgeDashed',
+                    // 'edgeDashed0',
+                    'edgeStyle',
+                    // 'edgeStart',
+                    'edgeEnd',
+                    'edgeSize',
+                    'edgeShape'
+                ],
+                // propertyShow: [
+                // 	'sortSelect'
+                // ],
+                relationShow: [
+                    'asfeas',
+                    'asefasef'
+                ],
+                background: [
+                    'setBackgroundColor',
+                    'image',
+                    'backgroundImage',
+                    'noimage',
+                    'paintPanel',
+                    'clearPaintPanel'
+                ]
+            };
+
+            this.rightMenu = {
+                fontStyle: [
+                    'toggleUnderline',
+                    'toggleItalic',
+                    'toggleBold'
+                ],
+                fontLayout: [
+                    'alignLeftFont',
+                    'alignCenterFont',
+                    'alignRightFont',
+                    'alignTopFont',
+                    'alignMiddleFont',
+                    'alignBottomFont'
+                ],
+                // edgeDashed:[
+                //
+                // ],
+                edgeStyle: [
+                    'lineSolid', 'lineDashed'
+                ],
+                edgeStart: [
+                    'startNoarrow', 'startClassic', 'startBlockTrans',
+                    'startOpen', 'startThinDiamond', 'startThinDiamondTrans',
+                    'startOval', 'startOvalTrans', 'startDiamondTrans'
+                ],
+                edgeEnd: [
+                    'endNoarrow', 'endClassic', 'endBlockTrans',
+                    'endOpen', 'endThinDiamond', 'endThinDiamondTrans',
+                    'endOval', 'endOvalTrans', 'endDiamondTrans'
+                ],
+                edgeSize: [
+                    'onePx', 'twoPx', 'threePx', 'fourPx', 'fivePx',
+                    'sixPx', 'eightPx', 'tenPx'
+                ],
+                edgeShape: [
+                    'lineStraight', 'lineEntityRelation', 'lineElbowHorizontal',
+                    'lineElbowVertical', 'lineSegment', 'lineOrthogonal'
+                ]
+            };
+
+            this.sidebar = ['history', 'propertyShow']
+                //
+                // this.sortSelectDown={
+                // 	sortSelect:[
+                // 		'分类1',
+                // 		'分类2',
+                // 		'分类3'
+                // 	]
+                // };
+
+            this.settings = function(settings) {
+                var _this = this;
+
+                if (settings) {
+
+                    if (settings.toolbarGroup) {
+                        _this.toolbarGroup = settings.toolbarGroup;
+                    }
+
+                    if (settings.disabledMap) {
+                        $.each(settings.disabledMap, function() {
+                            _this.disabledMap[this] = true;
+                        });
+                    }
+
+                    if (settings.editor) {
+                        _this.editor = settings.editor;
+                        _this.action = new Action(_this.editor);
+                        _this.tbAction = new TbAction(new ToolbarAction(_this.editor, settings.params || {}, settings.editFun), $uibModal, Unit);
+                    }
+                }
+            };
+
+            this.triggerAction = function(action, $event) {
+                // console.log(action);
+                // if (action === ('fontSize' || 'fontFamily')) {
+                // 	return;
+                // }
+
+                if (this.tbAction[action]) {
+
+                    this.tbAction[action]($event.target);
+                    this.editor.graph.refresh();
+                    this.refresh();
+                } else if (this.action[action]) {
+                    this.action[action]($event.target);
+                    this.editor.graph.refresh();
+                    this.refresh();
+                }
+            };
+
+            this.refresh = function() {
+                if (!this.editor || !this.editor.state) {
+                    return false;
+                }
+
+                this.statusMap.autoLayout = !!this.editor.state.isAutoLayout;
+                this.statusMap.autoLine = !!this.editor.state.isAutoLine;
+                this.statusMap.grid = !!this.editor.state.isShowGrid;
+                this.statusMap.assistLine = !!this.editor.state.isAssistLine;
+            };
+
+            this.statusMap = {};
+            this.disabledMap = {};
+
+            this.settings(settings);
+            this.refresh();
+
+            return this;
+        };
+    }]);
+
+
+    app.controller('LjwDirectiveGraphToolbarCtrl', ['$scope', '$element', '$attrs', '$compile', '$parse', 'LjwGraphToolbar', 'Event',
+        '$interval', 'UserInfo', '$state', 'Editor', 'ToolbarAction', 'DiagramCIClassService', 'DiagramCIService', '$timeout', 'Unit', 'Const',
+        function($scope, $element, $attrs, $compile, $parse, GraphToolbar, Event, $interval, UserInfo, $state,
+            Editor, ToolbarAction, DiagramCIClassService, DiagramCIService, $timeout, Unit, Const) {
+
+            if (!$scope.hasOwnProperty('params')) {
+                $scope.params = new GraphToolbar();
+            }
+
+            this.setupBindingsToInternalScope = function(toolbarParamsExpr) {
+                var toolbarParamsGetter = $parse(toolbarParamsExpr);
+
+                $scope.$watch(toolbarParamsGetter, function(params) {
+                    if (angular.isUndefined(params)) {
+                        return;
+                    }
+
+                    $scope.params = params;
+                }, false);
+            };
+
+            $scope.curEdgeStyleClass = 'toolbar-icon-line-straight';
+            $scope.getCurEdgeClass = function(edgeStyle) {
+                var editor = $scope.params.editor
+
+                $scope.curEdgeStyleClass = edgeStyle ? 'toolbar-icon-' + $scope.actionTransferClass(edgeStyle) : 'toolbar-icon-line-straight';
+            }
+
+            $scope.sidebarCurrent = function(btn){
+                $('.toolbar-sidebar').find('[data-action='+btn+']').addClass('active').siblings().removeClass('active');
+            }
+
+            $scope.actionTransferClass = function(name) {
+                var arr = name.split(''),
+                    i;
+
+                for (i = 0; i < arr.length; i++) {
+                    if (i && arr[i] === arr[i].toUpperCase()) {
+                        arr[i] = '-' + arr[i].toLowerCase();
+                    }
+                }
+
+                return arr.join('');
+            };
+
+            $scope.actionTransferLabel = function(name) {
+                return labelMap[name];
+            };
+
+            $scope.isShow = function(obj) {
+                console.log(obj);
+            };
+
+            $scope.isRight = function(something) {
+                if (something === 'fontLayout' ||
+                    something === 'fontStyle'
+                    // || something === 'edgeDashed'
+                    ||
+                    something === 'edgeStyle' ||
+                    something === 'edgeStart' ||
+                    something === 'edgeEnd' ||
+                    something === 'edgeSize' ||
+                    something === 'edgeShape'
+                ) {
+                    return true;
+                }
+            };
+
+            $scope.isColor = function(something) {
+                if (something === 'setCellColor' ||
+                    something === 'setStrokeColor' ||
+                    something === 'setFontColor' ||
+                    something === 'setBackgroundColor' ||
+                    something === 'setEdgeColor') {
+                    return true;
+                }
+            };
+
+            $scope.isTrue = function(something) {
+                // console.log(something)
+                var color = $scope.isColor(something);
+                if (color) {
+                    return true;
+                }
+            };
+
+            $scope.isString = function(something) {
+                var color = $scope.isColor(something);
+                if (color) {
+                    return false;
+                }
+                return angular.isString(something);
+            };
+
+            $scope.isArray = function(something) {
+                var color = $scope.isColor(something);
+                if (color) {
+                    return false;
+                }
+                return angular.isArray(something);
+            };
+
+            $scope.showPopover = function($event) {
+                if (!$($event.currentTarget).hasClass('disabled')) {
+                    $($event.currentTarget).popover('show');
+                }
+            };
+
+            $scope.hidePopover = function($event) {
+                $($event.currentTarget).popover('hide');
+            };
+
+            $scope.isDisabled = function(action) {
+                var rel = false;
+
+                var userInfo = UserInfo.get();
+                var editor = $scope.params.editor;
+
+                if (!editor || $scope.params.disabledMap[action]) {
+                    return true;
+                }
+
+                if (action === 'refresh' && (!editor.state.view ||
+                        (editor.state.view && userInfo && userInfo.loginName !== editor.state.view.userName))) {
+                    rel = true;
+                }
+
+                if (action === 'searchClear' && !editor.graph.lights.length) {
+                    return true;
+                }
+
+                if (!$scope.params.editor.graph.getSelectionCell() && (
+                        action === 'orderUp' ||
+                        action === 'orderDown' ||
+                        action === 'alignExpand' ||
+                        action === 'fontExpand' ||
+                        action === 'trash' ||
+                        action === 'link' ||
+                        action === 'paint' ||
+                        action === 'border' ||
+                        action === 'shadow' ||
+                        action === 'lineExpand' ||
+                        // action === 'layout' ||
+                        action === 'fontFamily' ||
+                        action === 'fontSize' ||
+                        action === 'setFontColor'
+                    )) {
+                    rel = true;
+                }
+
+                if (!$scope.params.editor.graph.getDepCells().length && (
+                        action === 'searchExpand'
+                    )) {
+                    rel = true;
+                }
+
+                if (!$scope.params.editor.action.getCis().length && (
+                        action === 'tableExpand' ||
+                        action === 'pen' ||
+                        action === 'nopen'
+                    )) {
+                    rel = true;
+                }
+
+                if (!$scope.params.editor.undoManager.history.length && (
+                        action === 'redo' ||
+                        action === 'undo'
+                    )) {
+                    rel = true;
+                }
+
+                //TODO 尝试修改，隐藏掉绘图模块中的阈值按钮
+                if ($state.current.name === 'home.edit' && action === 'threshold') {
+                    return true;
+                }
+                // console.log(rel);
+                return rel;
+            };
+
+            $scope.hideOutFloat = function() {
+                $('.toolbar .toolbar-group').each(function() {
+                    var pos = $(this).position();
+                    var opacity = pos.top >= 10 ? 0 : 1;
+                    $(this).css('opacity', opacity);
+                });
+
+                return true;
+            };
+
+            $scope.familyBoo = function(something) {
+                if (something === 'wryh' ||
+                    something === 'songti' ||
+                    something === 'heiti' ||
+                    something === 'arial' ||
+                    something === 'impact' ||
+                    something === 'helvetica' ||
+                    something === 'verdana' ||
+                    something === 'timesNewRoman' ||
+                    something === 'garamond' ||
+                    something === 'comicSansms' ||
+                    something === 'courierNew' ||
+                    something === 'georgia' ||
+                    something === 'lucidaConsole' ||
+                    something === 'tahoma' ||
+                    something === 'sansSerif') {
+                    return true;
+                }
+            };
+
+            $scope.sizeBoo = function(something) {
+                if (something === 'fontSize6' ||
+                    something === 'fontSize8' ||
+                    something === 'fontSize9' ||
+                    something === 'fontSize10' ||
+                    something === 'fontSize11' ||
+                    something === 'fontSize12' ||
+                    something === 'fontSize14' ||
+                    something === 'fontSize18' ||
+                    something === 'fontSize24' ||
+                    something === 'fontSize36') {
+                    return true;
+                }
+            };
+
+            $scope.isFontFamily = function(something) {
+                if ($scope.familyBoo(something)) {
+                    return true;
+                }
+            };
+            $scope.isFontSize = function(something) {
+                if ($scope.sizeBoo(something)) {
+                    return true;
+                }
+            };
+
+            $scope.isArrow = function() {
+
+            };
+
+            $scope.font = {
+                size: '12px',
+                family: '微软雅黑'
+            };
+
+            $scope.familyClick = function(something) {
+                if ($scope.familyBoo(something)) {
+                    var something = something.replace(/^(\w)(\w+)/, function(v, v1, v2) {
+                        return v1.toUpperCase() + v2.toLowerCase()
+                    });
+
+                    if (something === 'Wryh') {
+                        something = '微软雅黑';
+                    }
+                    if (something === 'Heiti') {
+                        something = '黑体';
+                    }
+                    if (something === 'Songti') {
+                        something = '宋体';
+                    }
+
+                    $scope.font.family = something;
+                }
+            };
+
+            $scope.sizeClick = function(something) {
+                if ($scope.sizeBoo(something)) {
+                    $scope.font.size = something.slice(8) + 'px';
+                }
+            };
+
+            $scope.haveTriangle = function(something) {
+                if (something === 'alignExpand' ||
+                    something === 'layout' ||
+                    something === 'paint' ||
+                    something === 'border' ||
+                    something === 'fontFamily' ||
+                    something === 'fontSize' ||
+                    something === 'fontExpand' ||
+                    something === 'lineExpand' ||
+                    something === 'background' ||
+                    something === 'propertyShow') {
+                    return true;
+                }
+            };
+
+            $scope.haveTriangle2 = function(something) {
+                if (something === 'fontStyle' ||
+                    something === 'fontLayout' ||
+                    something === 'edgeStyle' ||
+                    something === 'edgeStart' ||
+                    something === 'edgeEnd' ||
+                    something === 'edgeShape' ||
+                    something === 'edgeSize') {
+                    return true;
+                }
+            };
+
+            // console.log($scope)
+
+            var choiceValues = [];
+            // $scope.dmClick = function ($event, choice, choiceValue, obj) {
+            // 	var graph = $scope.params.editor.graph;
+            // 	var cells = $scope.params.editor.graph.getDepVertexs();
+            //
+            // 	var ciCells = [];
+            //
+            // 	var i;
+            // 	for (i = 0; i < cells.length; i++) {
+            // 		if (Unit.isCiCellByDataId(cells[i])) {
+            // 			ciCells.push(cells[i]);
+            // 		}
+            // 	}
+            //
+            // 	$event.stopPropagation();
+            //
+            // 	for (i = 0; i < ciCells.length; i++) {
+            //
+            // 		var attrDefs = ciCells[i].attrDefs;
+            // 		if ($scope.name === ciCells[i].className) {
+            //
+            // 			for (var j = 0; j < attrDefs.length; j++) {
+            //
+            // 				if (choice === attrDefs[j].proStdName) {
+            //
+            // 					if (attrDefs[j].isCiDisp === 0) {
+            // 						attrDefs[j].isCiDisp = 1;
+            // 						$event.currentTarget.children[0].style.display = 'block';
+            //
+            // 						if (ciCells[i].classAttrs === undefined) {
+            // 							ciCells[i].classAttrs = [];
+            // 						}
+            //
+            // 						ciCells[i].classAttrs.push(obj);
+            // 						ciCells[i].attrs = [];
+            // 						ciCells[i].index = i;
+            // 						ciCells[i].attrs.push(ciCells[i].classAttrs);
+            //
+            // 						ciCells[i].choiceValues += ',' + choiceValue;
+            //
+            // 						if (ciCells[i].choiceValues.substring(0, 9) === 'undefined') {
+            // 							ciCells[i].choiceValues = ciCells[i].choiceValues.substring(9);
+            // 						}
+            //
+            // 						graph.setCellAttr(ciCells[i], 'label', ciCells[i].choiceValues);
+            // 					}
+            // 					else if (attrDefs[j].isCiDisp === 1) {
+            // 						attrDefs[j].isCiDisp = 0;
+            // 						$event.currentTarget.children[0].style.display = 'none';
+            //
+            // 						ciCells[i].classAttrs.pop();
+            // 						ciCells[i].attrs.pop();
+            // 						var length1 = ciCells[i].choiceValues.length;
+            // 						var length2 = choiceValue.length;
+            // 						ciCells[i].choiceValues = ciCells[i].choiceValues.substr(0, length1 - length2 - 1);
+            //
+            // 						graph.setCellAttr(ciCells[i], 'label', '');
+            // 						graph.setCellAttr(ciCells[i], 'label', ciCells[i].choiceValues);
+            // 					}
+            // 				}
+            // 			}
+            // 		}
+            // 	}
+            // };
+
+            $scope.sort = '';
+            $scope.classIds = [];
+            $scope.classNames = [];
+            $scope.classNamess = [];
+            $scope.proNamess = [];
+            $scope.name = '';
+
+            // $scope.getClassNames = function () {
+            // 	var ciIds = $scope.params.editor.action.getCisIdByCiId();
+            // 	$scope.proNamess = [];
+            //
+            // 	var data2 = {};
+            //
+            // 	if (ciIds.length === 1 && ciIds.length > 0) {
+            // 		var ciId = ciIds[0];
+            //
+            // 		data2 = {
+            // 			cdt: {
+            // 				ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+            // 				id: ciId
+            // 			}
+            // 		};
+            // 	}
+            //
+            // 	if (ciIds.length >= 2) {
+            // 		data2 = {
+            // 			cdt: {
+            // 				ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+            // 				ids: ciIds
+            // 			}
+            // 		};
+            // 	}
+            //
+            // 	if (ciIds.length > 0) {
+            // 		DiagramCIService.queryList(data2).success(function (result) {
+            // 			// console.log(result);
+            // 			var datas = result.data;
+            // 			$scope.classList = result.data;
+            //
+            // 			console.log($scope.classList);
+            //
+            // 			var cells = $scope.params.editor.graph.getDepVertexs();
+            //
+            // 			var ciCells = [];
+            //            var i;
+            //
+            //            for (i = 0; i < cells.length; i++) {
+            // 				if (Unit.isCiCellByDataId(cells[i])) {
+            // 					ciCells.push(cells[i]);
+            // 				}
+            // 			}
+            //
+            // 			for (i = 0; i < datas.length; i++) {
+            // 				var ciClass = datas[i].ciClass;
+            // 				var ci = datas[i].ci;
+            //
+            // 				$scope.classIds.push(ci.classId);
+            // 				$scope.classNames.push(ciClass.className);
+            // 				$scope.proNamess.push(datas[i].attrs);
+            // 			}
+            //
+            // 			if($scope.name===''){
+            // 				$scope.name = ciCells[0].className;
+            // 				$scope.proNames = ciCells[0].attrss;
+            //
+            // 				$timeout(function () {
+            //
+            // 					var tick = $('.tick');
+            // 					var proName = $('.proName');
+            //
+            // 					ciCells[0].classAttrs = [];
+            // 					var attrDefs = ciCells[0].attrDefs;
+            // 					var attrss = ciCells[0].attrss;
+            // 					if(!angular.isArray(attrDefs)){
+            //                        attrDefs = [];
+            // 					}
+            // 					for (var j = 0; j < attrDefs.length; j++) {
+            // 						for (var k = 0; k < proName.length; k++) {
+            // 							if (attrDefs[j].proStdName === proName[k].innerText) {
+            //
+            // 								if (attrDefs[j].isCiDisp === 1) {
+            // 									tick[k].style.display = 'block';
+            //
+            // 									ciCells[0].classAttrs.push({proName: attrDefs[j].proStdName})
+            //
+            // 									ciCells[0].attrs = [];
+            // 									ciCells[0].attrs.push(ciCells[0].classAttrs);
+            //
+            // 									if(ciCells[0].choiceStatu===0){
+            // 										for (var key in attrss) {
+            // 											if (key === attrDefs[j].proStdName) {
+            // 												choiceValues[0] += ',' + attrss[key];
+            // 											}
+            // 										}
+            // 										if (choiceValues[0].substring(0, 9) === 'undefined') {
+            // 											choiceValues[0] = choiceValues[0].substring(9);
+            // 										}
+            // 									}
+            // 								}
+            // 							}
+            // 						}
+            // 					}
+            // 					ciCells[0].choiceStatu=1;
+            // 				});
+            // 			}else {
+            //                $timeout(function () {
+            //                    for(i = 0 ;i<ciCells.length;i++){
+            //                        if($scope.name===ciCells[i].className){
+            //                            $scope.proNames = ciCells[i].attrss;
+            //
+            //                                var tick = $('.tick');
+            //                                var proName = $('.proName');
+            //                                if(ciCells[i].classAttrs===undefined){
+            //                                    ciCells[i].classAttrs = [];
+            //                                }
+            //
+            //                                var attrDefs = ciCells[i].attrDefs;
+            //                                var attrss = ciCells[i].attrss;
+            //                                if(angular.isArray(attrDefs)){
+            //                                    for (var j = 0; j < attrDefs.length; j++) {
+            //                                        for (var k = 0; k < proName.length; k++) {
+            //                                            if (attrDefs[j].proStdName === proName[k].innerText) {
+            //
+            //                                                if (attrDefs[j].isCiDisp === 1) {
+            //                                                    tick[k].style.display = 'block';
+            //
+            //                                                    ciCells[i].classAttrs.push({proName: attrDefs[j].proStdName})
+            //
+            //                                                    ciCells[i].attrs = [];
+            //                                                    ciCells[i].attrs.push(ciCells[i].classAttrs);
+            //
+            //                                                    if(ciCells[i].choiceStatu===0){
+            //                                                        for (var key in attrss) {
+            //                                                            if (key === attrDefs[j].proStdName) {
+            //                                                                choiceValues[i] += ',' + attrss[key];
+            //                                                            }
+            //                                                        }
+            //                                                        if (choiceValues[i].substring(0, 9) === 'undefined') {
+            //                                                            choiceValues[i] = choiceValues[i].substring(9);
+            //                                                        }
+            //                                                    }
+            //                                                }
+            //                                            }
+            //                                        }
+            //                                    }
+            // 								}
+            //
+            //                                ciCells[0].choiceStatu=1;
+            //                        }
+            //                    }
+            // 				});
+            //
+            // 			}
+            //
+            //
+            // 			function removeDuplicatedItem(ar) {
+            // 				var ret = [], j;
+            //
+            // 				for (i = 0, j = ar.length; i < j; i++) {
+            // 					if (ret.indexOf(ar[i]) === -1) {
+            // 						ret.push(ar[i]);
+            // 					}
+            // 				}
+            //
+            // 				return ret;
+            // 			}
+            //
+            // 			$scope.classIds = removeDuplicatedItem($scope.classIds);
+            // 			$scope.classNames = removeDuplicatedItem($scope.classNames);
+            //
+            // 		})
+            // 	}
+            // };
+
+            $scope.class = {
+
+            };
+
+            $scope.checkClass = function(id) {
+                var i, len = $scope.classList.length,
+                    res;
+
+                for (i = 0; i < len; i++) {
+                    if (Number($scope.classList[i].ciClass.id) === Number(id)) {
+                        res = true;
+                        break;
+                    }
+                }
+
+                return res;
+            };
+
+            $scope.getClassNames = function() {
+                var ciIds = $scope.params.editor.action.getCisIdByCiId();
+                $scope.proNamess = [];
+
+                var data2 = {};
+
+                if (ciIds.length === 1 && ciIds.length > 0) {
+                    var ciId = ciIds[0];
+
+                    data2 = {
+                        cdt: {
+                            ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+                            id: ciId
+                        }
+                    };
+                }
+
+                if (ciIds.length >= 2) {
+                    data2 = {
+                        cdt: {
+                            ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+                            ids: ciIds
+                        }
+                    };
+                }
+
+                if (ciIds.length > 0) {
+                    DiagramCIService.queryList(data2).success(function(result) {
+                        $scope.classList = [];
+                        $scope.ciList = result.data;
+                        angular.forEach(result.data, function(item) {
+                            if (!$scope.checkClass(item.ciClass.id)) {
+                                $scope.classList.push(item);
+                            }
+                        });
+                    });
+                }
+            };
+
+            $scope.checkS = function() {
+                if (angular.isObject($scope.class.classItem)) {
+                    $scope.keyNameList = [];
+                    angular.forEach($scope.ciList, function(item) {
+                        if (Number(item.ciClass.id) === Number($scope.class.classItem.ciClass.id)) {
+                            var cell = $scope.params.editor.graph.getCellByDataId(Const.CI_PREFIX + item.ci.id);
+                            var labelList = cell.getUtAttr('data-label-list');
+                            if (labelList && labelList.length) {
+                                angular.forEach(labelList, function(label) {
+                                    if ($scope.keyNameList.indexOf(label) === -1) {
+                                        $scope.keyNameList.push(label);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+
+            };
+
+            $scope.dmClick = function(attrDefsItem) {
+                var add;
+                if ($scope.keyNameList.indexOf(attrDefsItem.proStdName) === -1) {
+                    add = true;
+                }
+
+                if (angular.isObject($scope.class.classItem)) {
+                    $scope.params.editor.graph.model.beginUpdate();
+                    try {
+                        angular.forEach($scope.ciList, function(item) {
+                            if (Number(item.ciClass.id) === Number($scope.class.classItem.ciClass.id)) {
+                                var cell = $scope.params.editor.graph.getCellByDataId(Const.CI_PREFIX + item.ci.id);
+                                var labelList = cell.getUtAttr('data-label-list');
+                                var value;
+                                if(cell.getUtAttr('data-values')){
+                                    value = cell.getUtAttr('data-values');
+                                }else {
+                                    value = [];
+                                }
+                                // if (angular.isFunction(cell.getValue().getAttribute)) {
+                                //     value = cell.getValue().getAttribute('label');
+                                // } else {
+                                //     value = cell.getValue();
+                                // }
+                                //
+                                // if (value) {
+                                //     value = value.split(Const.CI_NAME_JOIN);
+                                // } else {
+                                //     value = [];
+                                // }
+
+                                if (!angular.isArray(labelList)) {
+                                    labelList = [];
+                                }
+
+                                if (add) {
+                                    labelList.push(attrDefsItem.proStdName);
+                                    if (item.attrs[attrDefsItem.proStdName]) {
+                                        value.push(item.attrs[attrDefsItem.proStdName]);
+                                    }
+                                } else {
+                                    if (value.indexOf(item.attrs[attrDefsItem.proStdName]) !== -1) {
+                                        value.splice(value.indexOf(item.attrs[attrDefsItem.proStdName]), 1);
+                                    }
+
+                                    labelList.splice(labelList.indexOf(attrDefsItem.proStdName), 1);
+                                }
+
+                                if (angular.isFunction(cell.getValue().setAttribute)) {
+                                    cell.getValue().setAttribute('label', value.join(Const.CI_NAME_JOIN));
+                                } else {
+                                    cell.setValue('label', value.join(Const.CI_NAME_JOIN));
+                                }
+
+                                cell.setUtAttr('data-values', value);
+                                cell.setUtAttr('data-label-list', labelList);
+                                var valObj = {};
+                                if (angular.isArray(labelList)) {
+                                    angular.forEach(labelList, function(uitem) {
+                                        valObj[uitem] = item.attrs[uitem];
+                                    });
+                                }
+                                cell.setUtAttr('data-label-val', valObj);
+                                cell.setUtAttr('data-label-val-obj', item.attrs);
+                                $scope.params.editor.uvAttrShow[$scope.class.classItem.ciClass.id] = labelList;
+                                $scope.params.editor.graph.refresh(cell);
+                            }
+                        });
+                    } finally {
+                        $scope.params.editor.graph.model.endUpdate();
+                    }
+                }
+            };
+
+            // $scope.checkS = function (name) {
+            //
+            // 	var length = $scope.classNames.length;
+            // 	for (var i = 0; i < length; i++) {
+            //
+            // 		if (name === $scope.classNames[i]) {
+            // 			$scope.proNames = $scope.proNamess[i];
+            // 		}
+            // 	}
+            //
+            // 	$scope.name = name;
+            //
+            // 	$scope._refresh();
+            //
+            // 	$timeout(function () {
+            // 		var cells = $scope.params.editor.graph.getDepVertexs();
+            //
+            // 		var ciCells = [];
+            //
+            // 		for (var i = 0; i < cells.length; i++) {
+            // 			if (Unit.isCiCellByDataId(cells[i])) {
+            // 				ciCells.push(cells[i]);
+            // 			}
+            // 		}
+            // 		var tick = $('.tick');
+            // 		for (var i = 0; i < tick.length; i++) {
+            // 			tick[i].style.display = 'none';
+            // 		}
+            //
+            // 		var proName = $('.proName');
+            //
+            // 		for (var i = 0; i < ciCells.length; i++) {
+            // 			ciCells[i].classAttrs = [];
+            // 			ciCells[i].choiceValues='';
+            //
+            // 			if (name === ciCells[i].className) {
+            // 				var attrDefs = ciCells[i].attrDefs;
+            // 				var attrss = ciCells[i].attrss;
+            // 				for (var j = 0; j < attrDefs.length; j++) {
+            // 					for (var k = 0; k < proName.length; k++) {
+            // 						if (attrDefs[j].proStdName === proName[k].innerText) {
+            // 							if (attrDefs[j].isCiDisp === 1) {
+            //
+            // 								tick[k].style.display = 'block';
+            //
+            // 								ciCells[i].classAttrs.push({proName: attrDefs[j].proStdName});
+            //
+            // 								ciCells[i].attrs = [];
+            // 								ciCells[i].attrs.push(ciCells[i].classAttrs);
+            //
+            // 								for (var key in attrss) {
+            // 									if (key === attrDefs[j].proStdName) {
+            // 										ciCells[i].choiceValues += attrss[key];
+            // 									}
+            // 								}
+            // 							}
+            // 						}
+            // 					}
+            // 				}
+            // 			}
+            // 		}
+            // 	});
+            //
+            // 	// $timeout(function () {
+            // 	// 	var cells = $scope.params.editor.graph.getDepVertexs();
+            //    //
+            // 	// 	var ciCells = [];
+            //    //
+            // 	// 	for (var i = 0; i < cells.length; i++) {
+            // 	// 		if (cells[i].id.substr(0, 2) === 'ci') {
+            // 	// 			ciCells.push(cells[i]);
+            // 	// 		}
+            // 	// 	}
+            // 	// 	var tick = $('.tick');
+            // 	// 	// console.log(tick)
+            // 	// 	// for (var i = 0; i < tick.length; i++) {
+            // 	// 	// 	tick[i].style.display = 'none';
+            // 	// 	// }
+            // 	// 	var proName = $('.proName');
+            // 	// 	// console.log(proName)
+            // 	// 	for (var i = 0; i < tick.length; i++) {
+            // 	// 		// debugger;
+            // 	// 		for (var k = 0; k < ciCells.length; k++) {
+            //    //
+            // 	// 			if (ciCells[k].attrs) {
+            // 	// 				// debugger;
+            // 	// 				if (ciCells[k].attrs[0] && name === ciCells[k].className) {
+            //    //
+            // 	// 					for (var j = 0; j < ciCells[k].attrs[0].length; j++) {
+            // 	// 						if (ciCells[k].attrs[0][j].proName === proName[i].innerText) {
+            // 	// 							// console.log(i)
+            // 	// 							tick[i].style.display = 'block';
+            // 	// 						}
+            // 	// 					}
+            // 	// 				}
+            // 	// 			}
+            // 	// 			if (ciCells[k].attrs === undefined) {
+            // 	// 				tick[i].style.display = 'none';
+            // 	// 			}
+            // 	// 		}
+            // 	// 	}
+            // 	// });
+            // };
+
+            // var selectDiv=$('.selectDiv');
+            // var selectUl=$('.selectUl');
+            // console.log(selectUl)
+            // var lis=selectUl.children;
+            // console.log(lis)
+            // selectDiv.onfocus=function(){
+            // 	selectUl.style.display='block';
+            // };
+            // selectDiv.onblur=function(){
+            // 	setTimeout(function(){
+            // 		selectUl.style.display='none';
+            // 	},200)
+            //
+            // };
+            // //模拟option点击事件
+            // for(var i=0;i<lis.length;i++){
+            // 	lis[i].onclick=function(){
+            // 		selectDiv.value=this.innerText;
+            // 	}
+            // }
+
+            if (timer) {
+                $interval.cancel(timer);
+            }
+
+            timer = $interval(function() {
+                $scope._refresh();
+            }, 1000);
+
+        }
+    ]);
+
+    app.directive('ljwGraphToolbar', ['$q', '$parse', function() {
+
+        return {
+            restrict: 'A',
+            priority: 1001,
+            scope: true,
+            templateUrl: 'app/directive/ljwToolbar/toolbar.html',
+            controller: 'LjwDirectiveGraphToolbarCtrl',
+            compile: function() {
+                return function(scope, element, attrs, controller) {
+
+                    controller.setupBindingsToInternalScope(attrs.ljwGraphToolbar);
+
+                };
+            }
+        };
+
+    }]);
+
+})(nameSpace.reg('graph'));

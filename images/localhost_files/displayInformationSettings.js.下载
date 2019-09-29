@@ -1,0 +1,251 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('displayInformationSettingsCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+
+        $scope.sourceId = 0;
+        MonitoringService.getSelectorCodes({ codeType: 1, add: [{ name: L.get('COMMON_DEFAULT'), value: 0, codeType: 1 }] }).success(function (result) {
+            if (result.success == true) {
+                //console.log(result)
+                $scope.selectArray = result.data;
+                //console.log($scope.selectArray)
+                $.each($scope.selectArray, function (index, item) {
+                    if (index == 0) {
+                        item.hover = true;
+                    }
+
+                });
+
+
+            } else {
+
+            }
+        }).error(function () {
+
+        });
+        $scope.seachExprent = function (e) {
+            if (e.keyCode == "13") {
+                $scope.searchFn();
+            }
+
+        }
+        $scope.noSearch = function () {
+            if (!$scope.keyLikeVal) {
+                $scope.searchFn();
+            }
+        }
+        $scope.searchFn = function () {
+            $scope.hasSearchNum = false;
+            if (Array.isArray($scope.listArry) && $scope.listArry.length) {
+                $scope.listArry.forEach(function (item) {
+                    if ($scope.keyLikeVal) {
+                        if ((item.eventCode && item.eventCode.toUpperCase().indexOf($scope.keyLikeVal.toUpperCase()) !== -1) || (item.eventName && item.eventName.toUpperCase().indexOf($scope.keyLikeVal.toUpperCase()) !== -1)) {
+                            item.hasSearchFlag = true;
+                            $scope.hasSearchNum = true;
+                        } else {
+                            item.hasSearchFlag = false;
+                        }
+                    } else {
+                        item.hasSearchFlag = false;
+                        $scope.hasSearchNum = true;
+                    }
+
+                });
+
+            }
+            if (!$scope.hasSearchNum) {
+                Unit.error(L.get('DCV_NO_RELEVANT_CONTENT_IS_FOUND'));
+
+            }
+        }
+        $scope.getModelFun = function (sourceId) {
+            $scope.sourceId = sourceId;
+            //console.log($scope.sourceId)
+            MonitoringService.queryEventModel({ sourceId: sourceId }).success(function (result) {
+                if (result.success == true) {
+                    //	console.log(result)
+                    $scope.listArry = result.data;
+                    $scope.searchFn();
+
+
+                } else {
+
+                }
+            }).error(function () {
+
+            });
+        }
+
+        /*默认列表拖动排序*/
+        $scope.sortOptions = {
+            stop: function () {
+                $scope.listArry.forEach(function (item, i) {
+                    item.serialNo = i + 1;
+
+                })
+                $scope.saveFun({}, true);
+            }
+        };
+        var dataWatcher = $scope.$watchCollection('listArry', function () {
+            //销毁监听器
+            dataWatcher();
+        });
+
+
+        $scope.getModelFun(0);
+
+
+
+        $scope.bgBlueFun = function (item, $index) {
+            $.each($scope.selectArray, function (index, item) {
+
+                if ($index == index) {
+                    item.hover = true;
+                } else {
+                    item.hover = false;
+                }
+            });
+
+
+        }
+
+        $scope.moveListFun = function (flag, item, $index, $event) {
+            $event.stopPropagation();
+            item.move = false;
+            if (flag === 1) {
+                var li = item
+                $scope.listArry.splice($index, 1);
+                $scope.listArry.unshift(li);
+
+            }
+            if (flag === 2) {
+                var li = item
+                $scope.listArry.splice($index, 1);
+                $scope.listArry.push(li);
+
+            }
+            if (flag === 3) {
+                var li = item
+                $scope.listArry.splice($index, 1);
+                $scope.listArry.splice($index - 1, 0, item);
+
+            }
+            if (flag === 4) {
+                var li = item
+                $scope.listArry.splice($index, 1);
+                $scope.listArry.splice($index + 1, 0, item);
+
+            }
+            $.each($scope.listArry, function (index, item) {
+                item.serialNo = index + 1;
+            })
+            $scope.saveFun(item, true);
+
+
+
+        };
+        $scope.deleteExtraFun = function (item) {
+
+            if (item.identical) {
+                item.identical = !item.identical;
+                MonitoringService.delEventModelSourceId({ id: item.id }).success(function (result) {
+                    if (result.success == true) {
+                        $scope.getModelFun($scope.sourceId);
+
+                    } else {
+
+                    }
+                }).error(function () {
+
+                });
+            } else {
+                item.identical = !item.identical;
+                item.edit = true;
+                delete item.id;
+            }
+
+
+        }
+        $scope.saveFun = function (item, moveFlag) {
+
+            if (!item.eventName && !moveFlag) {
+                Unit.error(L.get('COMMON_CHINESE_NAME_CANNOT_BE_EMPTY'));
+
+            } else {
+                if ($scope.sourceId == 0) {
+                    MonitoringService.updateBatchEventModel(
+                        $scope.listArry
+                    ).success(function (result) {
+                        if (result.success == true) {
+                            MonitoringService.queryEventModel({}).success(function (result) {
+                                if (result.success == true) {
+                                    $scope.listArry = result.data;
+                                    !moveFlag && $scope.searchFn();
+
+                                } else {
+
+                                }
+                            }).error(function () {
+
+                            });
+                            if (item.edit) {
+                                item.edit = !item.edit;
+                            }
+
+                        }
+                    })
+                } else {
+                    if (!item.identical) {
+                        delete item.id
+                    }
+                    MonitoringService.saveEventModelSourceId(
+                        item
+                    ).success(function (result) {
+                        if (result.success == true) {
+                            MonitoringService.queryEventModel({ sourceId: $scope.sourceId }).success(function (result) {
+                                if (result.success == true) {
+                                    console.log(result)
+                                    $scope.listArry = result.data;
+                                } else {
+
+                                }
+                            }).error(function () {
+
+                            });
+                            if (item.edit) {
+                                item.edit = !item.edit;
+                            }
+
+                        }
+                    })
+                }
+
+            }
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }]);
+
+
+})(nameSpace.reg('graph'));

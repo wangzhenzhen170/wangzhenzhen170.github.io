@@ -1,0 +1,142 @@
+/* global mxEditor */
+/* global mxUtils */
+/* global mxConnectionHandler */
+/* global mxEvent */
+/* global mxGraph */
+
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('MxEditor', ['$rootScope', 'Unit', 'Event', function($rootScope, Unit, Event){
+
+		return function(paramEditor){
+
+			//var modelGetStyle = paramEditor.graph.model.getStyle;
+			//var editor = new mxEditor(mxUtils.load(STENCIL_PATH + '/keyhandler-commons.xml').getDocumentElement());
+			var editor = new mxEditor();
+
+			editor.graph = paramEditor.graph;
+
+
+			//editor.hoverIcons = new HoverIcons(editor.graph);
+
+			editor.installDblClickHandler(editor.graph);
+			editor.installUndoHandler(editor.graph);
+			editor.installDrillHandler(editor.graph);
+			editor.installChangeHandler(editor.graph);
+			editor.installInsertHandler(editor.graph);
+
+			editor.graph.panningHandler.factoryMethod = mxUtils.bind(editor, function (menu, cell, evt) {
+				return this.createPopupMenu(menu, cell, evt);
+			});
+
+			editor.graph.connectionHandler.factoryMethod = mxUtils.bind(editor, function (source, target) {
+				return this.createEdge(source, target);
+			});
+
+			editor.createLayoutManager(editor.graph);
+
+
+			// clone
+			editor.graph.connectionHandler.createTargetVertex = function () {
+				return mxConnectionHandler.prototype.createTargetVertex.apply(editor.graph.connectionHandler, arguments);
+
+				//return clone;
+			};
+
+			// click
+			editor.graph.addListener(mxEvent.CLICK, function (sender, evt) {
+				var e, cell;
+
+				e = evt.getProperty('event');
+				cell = evt.getProperty('cell');
+
+				// click cell
+				if (cell && e.which === 1) {
+
+					$rootScope.$broadcast(Event.GRAPH_CELL_CLICK, Unit.eventData({
+						editor: paramEditor,
+						cell: cell
+					}));
+
+					if(Unit.isCiCell(cell)){
+						$rootScope.$broadcast(Event.GRAPH_CI_CELL_CLICK, Unit.eventData({
+							editor: paramEditor,
+							cell: cell
+						}));
+					}
+				}
+
+				// click canvas
+				if(!cell){
+					$rootScope.$broadcast(Event.GRAPH_CANVAS_CLICK, Unit.eventData({
+						editor: paramEditor
+					}));
+					$rootScope.$emit(Event.GRAPH_CANVAS_CLICK, Unit.eventData({
+						editor: paramEditor
+					}));
+				}
+
+				// 阻止事件冒泡
+				// evt.consume();
+			});
+
+			// style
+			editor.graph.model.getStyle = function(cell) {
+				if (cell !== null) {
+					var style = cell.style;
+
+					if( typeof style === 'string' && style.indexOf('swimlane') >= 0){
+						if (this.isCollapsed(cell)){
+
+							style = editor.graph.getCellAttr(cell, 'minstyle');
+							if(typeof cell.value === 'string'){
+								cell.geometry.height = 80;
+								cell.geometry.width = 80;
+							}
+
+							if(Unit.isTagsCell(cell)){
+                                // cell.geometry.height = editor.graph.getCellAttr(cell, 'minwidth') || 80;
+                                // cell.geometry.width = editor.graph.getCellAttr(cell, 'minheight') || 80;
+								var width, height;
+                                width = Number(editor.graph.getCellAttr(cell, 'minwidth'));
+                                height = Number(editor.graph.getCellAttr(cell, 'minheight'));
+
+                                height += 30;
+
+                                cell.geometry.height = width || 80;
+                                cell.geometry.width = height || 80;
+							}
+
+							style = style ? style : 'shape=image;image=' + Unit.diagramApi('/images/class_big.png') + ';verticalLabelPosition=bottom;verticalAlign=top;';
+						}
+					}
+
+					return style;
+
+				}
+				return null;
+			};
+
+
+			// Add push
+			editor.keyHandler.handler.enabled = false;
+			editor.graph.keyHandler = editor.keyHandler;
+
+			editor.graph.getCursorForCell = function (cell) {
+				var result;
+
+				result = mxGraph.prototype.getCursorForCell.apply(this, arguments);
+				if (cell && Unit.isCiIn(cell)) {
+					result = 'pointer';
+				}
+
+				return result;
+			};
+
+		};
+	}]);
+
+})(nameSpace.reg('graph'));

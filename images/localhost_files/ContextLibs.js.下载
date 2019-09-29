@@ -1,0 +1,196 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('ContextLibs', function(Const, Unit){
+
+		var self = {};
+
+		// =======
+		// VIEW
+		// =======
+		self[Const.MENU_VIEW_OPEN] = function(){
+			this.action.open();
+		};
+
+		self[Const.MENU_VIEW_UPDATE] = function(){
+			this.action.update();
+		};
+
+		self[Const.MENU_VIEW_NEW] = function(){
+			this.action.create();
+		};
+
+		self[Const.MENU_VIEW_SAVE] = function(){
+			this.action.save();
+		};
+
+		self[Const.MENU_VIEW_RELATION_BACK] = function(){
+			this.action.historyBack();
+		};
+
+		self[Const.MENU_GRAPH_CLEAR] = function(){
+			this.action.clear();
+		};
+
+		self[Const.MENU_ZOOM_IN] = function(){
+			this.action.zoomIn();
+		};
+
+		self[Const.MENU_ZOOM_OUT] = function(){
+			this.action.zoomOut();
+		};
+
+		self[Const.MENU_ZOOM_ACTUAL] = function(){
+			this.action.zoomActual();
+		};
+
+		self[Const.MENU_ZOOM_CENTER] = function(){
+			this.action.zoomCenter();
+		};
+		// =======
+		// VIEW END
+		// =======
+
+		// =======
+		// CELL
+		// =======
+		self[Const.MENU_CELL_COPY] = function(){
+			this.action.copy();
+		};
+
+		self[Const.MENU_CELL_CUT] = function(){
+			this.action.cut();
+		};
+
+		self[Const.MENU_CELL_PASTE] = function(){
+			this.action.paste();
+		};
+
+		self[Const.MENU_CELL_DELETE] = function(){
+			this.action.removeCells();
+		};
+
+		self[Const.MENU_OPACITY] = function(){
+			this.action.cellOpacity();
+		};
+
+		self[Const.MENU_STROKE_WIDTH] = function(){
+			this.action.cellStrokeSize();
+		};
+
+		self[Const.MENU_FONT_STYLE] = function(){
+			this.action.font();
+		};
+
+		self[Const.MENU_OPEN_URL] = function(){
+			this.action.openUrl();
+		};
+
+		self[Const.MENU_SHOW_CI_INFO] = function(evt, cell){
+			this.action.ciInfo(Unit.getCiIdByCell(cell));
+		};
+
+		self[Const.MENU_NODE_SWITCH_TABLE] = function(evt, cell){
+			this.action.switchTable(cell);
+		};
+
+		self[Const.MENU_NODE_SWITCH_CLASSIC] = function(evt, cell){
+			this.action.switchClassic(cell);
+		};
+
+		// =======
+		// CELL END
+		// =======
+
+
+		// =======
+		// EXPORT
+		// =======
+		self[Const.MENU_EXPORT_PNG] = function(){
+			this.action.exportPng();
+		};
+
+		self[Const.MENU_EXPORT_XML] = function(){
+			this.action.exportXml();
+		};
+
+		self[Const.MENU_EXPORT_PDF] = function(){
+			this.action.exportPdf();
+		};
+
+		self[Const.MENU_EXPORT_SVG] = function(){
+			this.action.exportSvg();
+		};
+
+		self[Const.MENU_EXPAND_NODE] = function(){
+			this.action.expandNode();
+		};
+
+		// =======
+		// EXPORT END
+		// =======
+
+
+		// ========
+		// LAYOUT
+		// ========
+
+		self[Const.MENU_LAYOUT_HORIZONTAL] = function(){
+			this.action.layoutHorizontal();
+		};
+
+		self[Const.MENU_LAYOUT_VERTICAL] = function(){
+			this.action.layoutVertical();
+		};
+
+		self[Const.MENU_LAYOUT_CIRCLE] = function(){
+			this.action.layoutCircle();
+		};
+
+		self[Const.MENU_LAYOUT_ORGANIC] = function(){
+			this.action.layoutOrganic();
+		};
+
+		self[Const.MENU_LAYOUT_PARALLEL] = function(){
+			this.action.layoutParallel();
+		};
+
+		self[Const.MENU_LAYOUT_STACK_HORIZONTAL] = function(){
+			this.action.layoutStackHorizontal();
+		};
+
+		self[Const.MENU_LAYOUT_STACK_VERTICAL] = function(){
+			this.action.layoutStackVertical();
+		};
+
+		// =========
+		// LAYOUT END
+		// ==========
+
+
+		// =========
+		// VIEW RELATION
+		// ==========
+		self[Const.MENU_VIEW_RELATION_SET] = function(){
+			this.action.relationViewSet();
+		};
+
+		self[Const.MENU_VIEW_RELATION_DELETE] = function(){
+			this.action.relationViewDelete();
+		};
+
+		self[Const.MENU_VIEW_RELATION_OPEN] = function(evt, cell){
+			this.action.relationViewOpen(cell);
+		};
+
+		// =========
+		// VIEW RELATION END
+		// ==========
+
+		return self;
+
+	});
+
+})(nameSpace.reg('graph'));

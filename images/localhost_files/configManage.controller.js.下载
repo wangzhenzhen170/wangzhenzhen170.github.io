@@ -1,0 +1,248 @@
+
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('configManageCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        //ciAppCatetoryApp：应用设置
+        //时光轴分层设置
+        $scope.timeKeys = ['timeAlixLevel1', 'timeAlixLevel2', 'timeAlixLevel3', 'timeAlixLevel4', 'timeAlixLevel5'];
+        //获取默认设置
+        MonitoringService.queryTimeAlixLevel().success(function (result) {
+            if (result.success) {
+                $scope.timeList = [];
+                //时光轴分层中所有已选的应用
+                $scope.allSelectedCis = [];
+                $scope.historyStorage = [];
+                if (Array.isArray(result.data) && result.data.length) {
+                    result.data.forEach(function (val) {
+                        if (val.key === 'ciAppCatetoryApp') {
+                            $scope.ciAppCatetoryApp = val;
+                        }
+                        if ($scope.timeKeys.indexOf(val.key) > -1) {
+                            $scope.timeList.push(val);
+                            if (Array.isArray(val.values) && val.values.length) {
+                                $scope.allSelectedCis = $scope.allSelectedCis.concat(val.values);
+                            }
+                        }
+                        if (val.key === 'recordStoreDaysForHistoryEvent') {
+                            $scope.historyStorage.push(val);
+                        }
+                        if (val.key === 'recordStoreDaysForLog') {
+                            $scope.historyStorage.push(val);
+                        }
+                        if (val.key === 'ackedNotcloseEventOverTime') {
+                            $scope.historyStorage.push(val);
+                            $scope.hour = parseInt(val.value / 60);
+                            $scope.minte = val.value % 60;
+                        }
+
+                    });
+                    //console.log($scope.allSelectedCis);
+                    $scope.getCiAppList();
+                }
+
+            } else {
+                console.log('error');
+            }
+        }).error(function (error) {
+            console.log(error);
+        });
+        //ci应用列表
+        $scope.getCiAppList = function () {
+            MonitoringService.getCiClassCodes().success(function (result) {
+                if (result.success) {
+                    $scope.listData = result.data;
+                    if ($scope.ciAppCatetoryApp !== null && typeof ($scope.ciAppCatetoryApp) === 'object' && Array.isArray($scope.listData) && $scope.listData.length) {
+                        $scope.listData.forEach(function (val) {
+                            if (val.className === $scope.ciAppCatetoryApp.name) {
+                                $scope.classId = val.id;
+                                $scope.getCiAttrList($scope.classId, 'first');
+                            }
+                        });
+                    }
+                } else {
+                    console.log('error');
+                }
+            }).error(function (error) {
+                console.log(error);
+            });
+        };
+
+        //分类应用
+        $scope.toggleCiList = function (e, name, type) {
+            e.stopPropagation();
+            if (type === 'ci') {
+                if (!$scope.appSetShow && Array.isArray($scope.listData) && $scope.listData.length) {
+                    $scope.listData.forEach(function (val) {
+                        val.selected = val.className === name;
+                    });
+                }
+                $scope.ciAttrFlag = false;
+                $scope.appSetShow = !$scope.appSetShow;
+            } else {
+                if (!$scope.ciAttrFlag && Array.isArray($scope.ciAttrList) && $scope.ciAttrList.length) {
+                    $scope.ciAttrList.forEach(function (val) {
+                        val.selected = val.proName === name;
+                    });
+                }
+                $scope.appSetShow = false;
+                $scope.ciAttrFlag = !$scope.ciAttrFlag;
+            }
+
+
+        };
+        //历史数据存储时长
+        $scope.togglestorage = function (e, type) {
+            e.stopPropagation();
+            if (type === 'history') {
+                $scope.historySetShow = !$scope.historySetShow;
+            } else if (type === 'log') {
+
+            }
+        };
+        //根据ciId获的ci属性
+        $scope.getCiAttrList = function (id, rank) {
+            MonitoringService.getCiAttrDefs({ 'classId': id }).success(function (result) {
+                if (result.success) {
+                    $scope.ciAttrList = result.data;
+                    if (!rank) {
+                        if (Array.isArray(result.data) && result.data.length) {
+                            $scope.ciAppCatetoryApp.value = result.data[0].proName;
+                        } else {
+                            $scope.ciAppCatetoryApp.value = '';
+                        }
+                    }
+                } else {
+                    console.log('error');
+                }
+            }).error(function (error) {
+                console.log(error);
+            });
+
+        };
+        //应用属性
+        $scope.getCis = function (e, ci, key) {
+            e.stopPropagation();
+            if (key === 'name') {
+                $scope.ciAppCatetoryApp.name = ci.className;
+                $scope.classId = ci.id;
+                $scope.getCiAttrList($scope.classId);
+                $scope.appSetShow = false;
+            } else {
+                $scope.ciAppCatetoryApp.value = ci.proName;
+                $scope.ciAttrFlag = false;
+            }
+
+        };
+        //时光轴分层设置
+        $scope.timeShowCi = function (e, list) {
+            e.stopPropagation();
+            if (!list.litShow && Array.isArray($scope.listData) && $scope.listData.length) {
+                $scope.listData.forEach(function (val) {
+                    val.selected = list.values.indexOf(val.className) > -1;
+                });
+
+            }
+            $scope.timeList.forEach(function (val) {
+                val.litShow = false;
+            });
+            list.litShow = !list.litShow;
+        };
+        $scope.isSelectCi = function (e, item, list) {
+            e.stopPropagation();
+            var isSelectIndex = $scope.allSelectedCis.indexOf(list.className);
+            var index = item.values.indexOf(list.className);
+            if (index > -1) {//本层已选中
+                item.values.splice(index, 1);
+                $scope.allSelectedCis.splice(isSelectIndex, 1);
+            } else {//本层未选中
+                if (isSelectIndex > -1) {//其他层已选中
+                    Unit.error(L.get('EMV_OTHER_LAYERS_HAVE_SELECTED_THIS'));//
+                    return;
+                } else {//都为选中
+                    item.values.push(list.className);
+                    $scope.allSelectedCis.push(list.className);
+                }
+
+            }
+
+            list.selected = !list.selected;
+        };
+        $scope.editTimeName = function (e, item) {
+            e.stopPropagation();
+            $scope.sameLeaveName = false;
+            if (item.showEditFlag) {
+                if (!item.name) {
+                    Unit.error(L.get('EMV_HIERARCHICAL_NAME_CANNOT_BE_EMPTY'));
+                    return;
+                } else {
+                    $scope.timeList.forEach(function (val) {
+                        if (val.id !== item.id && val.name === item.name) {
+                            $scope.sameLeaveName = true;
+                            return;
+                        }
+                    });
+                    if ($scope.sameLeaveName) {
+                        Unit.error(L.get('EMV_LAYERED_NAMES_CANNOT_BE_THE_SAME'));
+                        return;
+                    }
+                }
+            }
+
+
+            item.showEditFlag = !item.showEditFlag;
+
+
+        };
+        $scope.saveSet = function () {
+            $scope.canSave = true;
+            $scope.timeList.forEach(function (val) {
+                if (val.showEditFlag) {
+                    $scope.canSave = false;
+                }
+            });
+            if (!$scope.canSave) {
+                Unit.error(L.get('EMV_PLEASE_SAVE_THE_HIERARCHICAL_NAME_FIRST'));
+                return;
+            }
+            $scope.historyStorage[2].value = ($scope.hour * 60) + parseInt($scope.minte);
+            var parms = [$scope.ciAppCatetoryApp].concat($scope.timeList).concat($scope.historyStorage);
+            MonitoringService.modifyTimeAlixLevel(parms).success(function (result) {
+                if (result.success && result.data) {
+                    Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'));
+                } else {
+                    Unit.success(L.get('COMMON_SAVE_FAILED'));
+                }
+            }).error(function (error) {
+                console.log(error);
+            });
+        };
+        $scope.bodyFn = function () {
+            $scope.appSetShow = false;
+            $scope.ciAttrFlag = false;
+            $scope.timeList.forEach(function (val) {
+                val.litShow = false;
+            });
+        };
+
+
+    }]);
+    //自定义过滤
+    graph.app.filter('attrSearch', function () {
+        return function (item, sourceIdVal) {
+            if (!sourceIdVal) {
+                return item;
+            }
+            var result = [];
+            $.each(item, function () {
+                if (this.proName && (this.proName.toUpperCase().indexOf(sourceIdVal) !== -1 || this.proName.indexOf(sourceIdVal) !== -1)) {
+                    result.push(this);
+                }
+            });
+            return result;
+        };
+    });
+
+
+})(nameSpace.reg('graph'));

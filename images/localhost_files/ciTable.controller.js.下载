@@ -1,0 +1,116 @@
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, ciId, index, CiService, NgTableParams){
+
+		$scope.$modal = $uibModalInstance;
+		$scope.index = index ? index : 'monitor_event';
+
+		$scope.data = {
+			ciInfo: { name: 'Loading...' }
+		};
+
+		$scope.tabs = [
+			{active: false},
+			{active: false},
+			{active: false},
+			{active: false}
+		];
+
+		switch(index) {
+			case 'monitor_event':
+				$scope.tabs[0].active = true;
+				break;
+
+			case 'event_ticket':
+				$scope.tabs[1].active = true;
+				break;
+
+			case 'change_ticket':
+				$scope.tabs[2].active = true;
+				break;
+		}
+
+		$scope.tableParams = {};
+
+		$scope.tableParams.monitorEvent = new NgTableParams({
+			page: 1,
+			total: 0,
+			count: 10
+		}, {
+			total: 0,
+			counts: [],
+			getData: function($params){
+				if($scope.index === 'monitor_event'){
+					return CiService.getMonitorEvent(ciId, $params.page(), $params.count())
+						.then(function(result){
+							$params.total(result.data.data.total);
+							// Fix table pagination isn't display
+							result.data.data.length = result.data.data.total;
+							return result.data.data;
+						});
+				}
+			}
+		});
+
+		$scope.tableParams.eventTicket = new NgTableParams({
+			page: 1,
+			total: 0,
+			count: 10
+		}, {
+			total: 0,
+			counts: [],
+			getData: function($params){
+				if($scope.index === 'event_ticket'){
+					return CiService.getEventTicket(ciId, $params.page(), $params.count())
+						.then(function(result){
+							$params.total(result.data.data.total);
+							// Fix table pagination isn't display
+							result.data.data.length = result.data.data.total;
+							return result.data.data;
+						});
+				}
+			}
+		});
+
+
+		$scope.tableParams.changeTicket = new NgTableParams({
+			page: 1,
+			total: 0,
+			count: 10
+		}, {
+			total: 0,
+			counts: [],
+			getData: function($params){
+				if($scope.index === 'change_ticket'){
+					return CiService.getChangeTicket(ciId, $params.page(), $params.count())
+						.then(function(result){
+							$params.total(result.data.data.total);
+							// Fix table pagination isn't display
+							result.data.data.length = result.data.data.total;
+							return result.data.data;
+						});
+				}
+			}
+		});
+
+		$scope.update = function(index, key){
+			$scope.index = index;
+			$scope.tableParams[key].reload();
+		};
+
+		CiService.getCi(ciId)
+			.success(function(result){
+				$scope.data.ciInfo = result.data;
+			});
+
+	};
+
+	graph.app.controller('ModalCiTableCtrl', ['$scope', '$uibModalInstance', 'ciId', 'index', 'CiService', 'NgTableParams', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

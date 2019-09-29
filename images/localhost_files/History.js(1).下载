@@ -1,0 +1,85 @@
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('mineHistory',['mineService','Dialog', function(mineService,Dialog) {
+		return {
+			restrict : 'E',
+			replace : true,
+			templateUrl: 'app/directive/floatingHistory/history.html',
+			link: function($scope,element,attr){
+
+				$scope.queryDiagramVersionByDiagramIdFun=function(){
+					//$scope.checkedFun();
+					//console.log(data)
+					mineService.queryDiagramVersionByDiagramId(
+						attr.historyid
+
+						//118
+
+					).success(function(data){
+						//console.log(data.data)
+						$scope.historyView=data.data;
+					}).error(function(error){
+
+					});
+				}
+				$scope.L = L;
+				$scope.historyreviewFun=function(i){
+					//console.log(i)
+					var dlg = Dialog.confirm({title: '确认', content: $scope.L.get('EMV_WHETHER_TO_REVERT_TO_CURRENT_VERSION'),size:'mine'});
+					dlg.then(function(ret){ if(ret.ok) {
+						mineService.restoreDiagramVersionById(
+							i.id
+							//101
+						).success(function(data){
+
+							//alert('确定还原到该版本吗？')
+							$scope.queryDiagramVersionByDiagramIdFun();
+						}).error(function(error){
+
+						});
+					}})
+
+
+				}
+				$scope.historyDeleteFun=function(i){
+					var dlg = Dialog.confirm({title: $scope.L.get('COMMON_CONFIRM'), content: $scope.L.get('COMMON_PLEASE_CONFIRM_WHETHER_TO_DELETE'),size:'mine'});
+					dlg.then(function(ret){ if(ret.ok) {
+						mineService.removeDiagramVersionById(
+							i.id
+						).success(function(data){
+							//alert('确定删除该版本吗？')
+							$scope.queryDiagramVersionByDiagramIdFun();
+						}).error(function(error){
+
+						});
+					}})
+
+				}
+				$scope.openFun=function(){
+					$scope.queryDiagramVersionByDiagramIdFun();
+					angular.element('.history').css('right', 0);
+				}
+				$scope.closeHistory = function(){
+					//$scope.buttonShow(false);
+					//$scope.allcheck=false;
+					angular.element('.history').css('right', -400);
+				};
+
+   $scope.hty_check = function (i) {
+        i.checkTrbg = !i.checkTrbg;
+        if (i.checkTrbg) {
+            for (var j = 0; j < $scope.historyView.length; j++) {
+                if ($scope.historyView[j] == i) {
+                    continue;
+                }
+                $scope.historyView[j].checkTrbg = false;
+            }
+        }
+    }
+			}
+		};
+	}]);
+
+})(nameSpace.reg('graph'));

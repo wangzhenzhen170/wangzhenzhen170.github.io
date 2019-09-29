@@ -1,0 +1,35 @@
+
+(function(graph){
+
+    'use strict';
+
+    var controller = function($scope, $uibModalInstance, editor,$state){
+        $scope.$modal = $uibModalInstance;
+
+        $scope.cancel = function(){
+            $scope.close();
+            editor.graph.model.clear();
+            editor.action.syncGrid();
+
+            editor.graph.zoomActual();
+            editor.state.empty();
+            $state.go('canvas.edit', {type: $state.params.type, teamid: $state.params.teamid}, {reload: true, inherit: true});
+        };
+
+        $scope.ok = function(){
+            $scope.close();
+            editor.action.save(function(){
+                $scope.cancel();
+            });
+        };
+
+        $scope.close = function(){
+            $uibModalInstance.close();
+        };
+
+    };
+
+    graph.app.controller('ModalViewCreateFileCtrl', ['$scope', '$uibModalInstance', 'editor', '$state', controller]);
+
+
+})(nameSpace.reg('graph'));

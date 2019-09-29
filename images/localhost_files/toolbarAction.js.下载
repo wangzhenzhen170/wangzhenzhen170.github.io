@@ -1,0 +1,662 @@
+(function(graph) {
+
+    'use strict';
+
+    var factory = function($uibModal, uDialog, Unit, DiagramCIClassService, DiagramCIService, DiagramDiagramVersionService) {
+
+        var $modal = $uibModal;
+
+        return function(editor, params, editFun) {
+            var self = this;
+            //线条颜色填充
+            this.setEdgeColor = function(color) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, color, cells);
+            };
+
+            //颜色填充
+            this.setCellColor = function(color) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, color, cells);
+            };
+
+            //图形边填充
+            this.setStrokeColor = function(color) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, color, cells);
+            };
+
+            //文字颜色
+            this.setFontColor = function(color) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTCOLOR, color, cells);
+            };
+
+            // 背景颜色
+            this.setBackgroundColor = function(color) {
+                editor.graph.background = color;
+                editor.graph.container.style.backgroundColor = color;
+                editor.graph.view.validateBackground();
+            }
+
+            // this.fontFamily = function (ff) {
+            // 	var cells = editor.graph.getSelectionCells();
+            // 	editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            // };
+            //
+            // this.fontSize = function (fs) {
+            // 	console.log(fs);
+            // 	var cells = editor.graph.getSelectionCells();
+            // 	editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            // };
+
+            this.toggleUnderline = function() {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.toggleCellStyleFlags(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_UNDERLINE, cells);
+            };
+
+            this.toggleItalic = function() {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.toggleCellStyleFlags(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_ITALIC, cells);
+            };
+
+            this.toggleBold = function() {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.toggleCellStyleFlags(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD, cells);
+            };
+
+            this.alignLeftFont = function() {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_ALIGN, mxConstants.ALIGN_LEFT, cells);
+            };
+
+            this.alignCenterFont = function() {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_ALIGN, mxConstants.ALIGN_CENTER, cells);
+            };
+
+            this.alignRightFont = function() {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_ALIGN, mxConstants.ALIGN_RIGHT, cells);
+            };
+
+            this.alignTopFont = function() {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_VERTICAL_ALIGN, mxConstants.ALIGN_TOP, cells);
+            };
+
+            this.alignMiddleFont = function() {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_VERTICAL_ALIGN, mxConstants.ALIGN_MIDDLE, cells);
+            };
+
+            this.alignBottomFont = function() {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_VERTICAL_ALIGN, mxConstants.ALIGN_BOTTOM, cells);
+            };
+
+            this.edgeDashed = function(value) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_DASHED, value, cells);
+            };
+
+            // this.edgeSize = function (size) {
+            // 	console.log(size);
+            // 	var cells = editor.graph.getSelectionCells();
+            // 	editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, 0, cells);
+            // };
+
+            this.onePx = function(size) {
+                if (size === 'onePx') {
+                    size = 1;
+                }
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, size, cells);
+            };
+
+            this.twoPx = function(size) {
+                if (size === 'twoPx') {
+                    size = 2;
+                }
+                console.log(size);
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, size, cells);
+            };
+
+            this.threePx = function(size) {
+                if (size === 'threePx') {
+                    size = 3;
+                }
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, size, cells);
+            };
+
+            this.fourPx = function(size) {
+                if (size === 'fourPx') {
+                    size = 4;
+                }
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, size, cells);
+            };
+
+            this.fivePx = function(size) {
+                if (size === 'fivePx') {
+                    size = 5;
+                }
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, size, cells);
+            };
+
+            this.sixPx = function(size) {
+                if (size === 'sixPx') {
+                    size = 6;
+                }
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, size, cells);
+            };
+
+            this.eightPx = function(size) {
+                if (size === 'eightPx') {
+                    size = 8;
+                }
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, size, cells);
+            };
+
+            this.tenPx = function(size) {
+                if (size === 'tenPx') {
+                    size = 10;
+                }
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, size, cells);
+            };
+
+            // 设置font-family
+            this.setFontFamily = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.wryh = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.helvetica = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.verdan = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.timesNewRoman = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.garamond = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.comicSansms = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.courierNew = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.georgia = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.lucidaConsole = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.tahoma = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+            this.sansSerif = function(ff) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, ff, cells);
+            };
+
+            this.fontSize6 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+            this.fontSize8 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+            this.fontSize9 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+            this.fontSize10 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+            this.fontSize11 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+            this.fontSize12 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+            this.fontSize14 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+            this.fontSize18 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+            this.fontSize24 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+            this.fontSize36 = function(fs) {
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, fs, cells);
+            };
+
+            this.undo = function() {
+                editor.graph.stopEditing(false);
+                editor.undoManager.undo();
+            };
+
+            this.redo = function() {
+                editor.graph.stopEditing(false);
+                editor.undoManager.redo();
+            };
+
+            this.setHistory = function() {
+
+                if (params.id) {
+                    var diagramEles = [];
+                    angular.forEach(editor.action.getCisId(), function(id) {
+                        diagramEles.push({
+                            eleType: 1,
+                            eleId: id
+                        });
+                    });
+
+                    angular.forEach(editor.action.getTagsId(), function(id) {
+                        diagramEles.push({
+                            eleType: 2,
+                            eleId: id
+                        });
+                    });
+
+                    var data = {
+                        svg: mxUtils.getXml(editor.graph.getSvg()),
+                        xml: editor.action.getXml(),
+                        diagram: editor.state.view.diagram,
+                        diagramEles: diagramEles,
+                        tags: editor.state.view.tags
+                    };
+
+                    DiagramDiagramVersionService.saveDiagramVersion(data).success(function() {
+                        Unit.success('保存历史版本成功');
+                    });
+                } else {
+                    Unit.error('请先保存视图');
+                }
+            };
+
+            this.history = function() {
+                $modal.open({
+                    backdrop: false,
+                    animation: false,
+                    size: 'history',
+                    windowClass: 'sidebar-model',
+                    appendTo: $(".toolbar").find(".toolbar-sidebar").eq(0),
+                    templateUrl: 'app/modal/history/history.html',
+                    controller: 'historyModalCtrl',
+                    resolve: {
+                        editor: function(){
+                            return editor;
+                        }
+                    }
+                });
+            }
+
+            this.save = function(as) {
+                if (params.id && !as) {
+                    if (typeof editFun === 'function') {
+                        editFun();
+                    }
+                    return;
+                }
+                uDialog.dialog({
+                    class: 'md',
+                    templateUrl: 'app/modal/view/ljwSave.html',
+                    controller: 'LjwModalViewSaveCtrl',
+                    resolve: {
+                        editor: function() {
+                            return editor;
+                        },
+                        params: function() {
+                            return params;
+                        },
+                        configOptions: {
+                            as: as
+                        }
+                    }
+                });
+            };
+
+            /**
+             * 插入图片节点到画布
+             * @param newValue 图片路径
+             * @param w 图片宽度
+             * @param h 图片高度
+             */
+            function graphInsertImage(newValue, w, h) {
+                var graph = editor.graph;
+                var cells = graph.getSelectionCells(); // 获取所选择的元素
+
+                if (newValue != null) {
+                    var select = null;
+
+                    graph.getModel().beginUpdate();
+                    try {
+                        if (cells.length == 0) {
+                            cells = [graph.insertVertex(graph.getDefaultParent(), null, '', 0, 0, w, h,
+                                'shape=image;imageAspect=0;aspect=fixed;verticalLabelPosition=bottom;verticalAlign=top;')];
+                            select = cells;
+                        }
+                        graph.setCellStyles(mxConstants.STYLE_IMAGE, newValue, cells);
+                        var state = graph.view.getState(cells[0]);
+                        var style = (state != null) ? state.style : graph.getCellStyle(cells[0]);
+
+                        if (style[mxConstants.STYLE_SHAPE] != 'image' && style[mxConstants.STYLE_SHAPE] != 'label') {
+                            graph.setCellStyles(mxConstants.STYLE_SHAPE, 'image', cells);
+                        }
+
+                        if (graph.getSelectionCount() == 1) {
+                            if (w != null && h != null) {
+                                var cell = cells[0];
+                                var geo = graph.getModel().getGeometry(cell);
+
+                                if (geo != null) {
+                                    geo = geo.clone();
+                                    geo.width = w;
+                                    geo.height = h;
+                                    graph.getModel().setGeometry(cell, geo);
+                                }
+                            }
+                        }
+                    } finally {
+                        graph.getModel().endUpdate();
+                    }
+
+                    if (select != null) {
+                        graph.setSelectionCells(select);
+                        graph.scrollCellToVisible(select[0]);
+                    }
+                }
+            }
+
+            this.insertImage = function() {
+                uDialog.dialog({
+                    class: "graph-image",
+                    templateUrl: 'app/modal/image/ljwImage.html',
+                    controller: 'LjwModalImageCtrl',
+                    resolve: {
+                        fn: function() {
+                            return function(image) {
+                                var url = image.imgPath;
+                                var element = document.createElement('img');
+                                element.src = url;
+                                element.onload = function() {
+                                    graphInsertImage(url, this.width, this.height);
+                                    $(element).remove();
+                                };
+                            };
+                        }
+                    }
+                });
+            }
+            this.backgroundImage = function() {
+                uDialog.dialog({
+                    class: "graph-image",
+                    templateUrl: 'app/modal/image/ljwImage.html',
+                    controller: 'LjwModalImageCtrl',
+                    resolve: {
+                        fn: function() {
+                            return function(image) {
+                                var url = image.imgPath;
+                                // var element = document.createElement('img');
+                                // element.src = url;
+                                // element.onload = function () {
+                                // 	var img = new mxImage(url, this.width, this.height);
+                                // 	editor.graph.setBackgroundImage(img);
+                                // 	editor.graph.view.validate();
+                                // 	$(element).remove();
+                                // };
+                                var img = new mxImage(url, 0, 0); //隐藏画布内背景
+                                editor.graph.setBackgroundImage(img);
+                                editor.graph.view.validate();
+                                // 设置画布容器的背景
+                                $(editor.graph.container).css({ 'background-image': 'url(' + url + ')', 'background-repeat': 'no-repeat', 'background-size': 'cover' });
+                            };
+                        }
+                    }
+                });
+            };
+
+            this.clearBackgroundImage = function() {
+                editor.graph.setBackgroundImage(null);
+                editor.graph.view.validate();
+                var defaultUrl = 'assets/plugins/mxGraph/images/grid_bg.png';
+                $(editor.graph.container).css({ 'background-image': 'url(' + defaultUrl + ')', 'background-repeat': 'initial', 'background-size': 'initial' });
+            };
+
+            this.releaseurl = function(){
+                var reg = /^(?=.*\d.*\b)/; //判断字符串中是否含有数字；
+                var urlDetail; // 存储 URL 地址；
+                var subStrMine = 'mine';
+                var subStrTeam = 'team';
+                var subStrPublic = 'public';
+                var locationHash = window.location.hash;
+                var urlNum = locationHash.replace(/[^0-9]+/g, '');
+                var urlNumStr = urlNum.toString();
+                var url = location.href;
+                var getUrl = url.split('#')[0];
+                if ((locationHash.indexOf(subStrTeam) !== -1 && urlNumStr.length > 8) || (locationHash.indexOf(subStrMine) !== -1 && reg.test(locationHash)) || (locationHash.indexOf(subStrPublic) !== -1 && reg.test(locationHash))) {
+                    var urlDetail = getUrl + '#/tarsier/scenes/diagramDetail/' + parseInt(urlNumStr);
+                    uDialog.dialog({
+                        class: 'md',
+                        templateUrl: 'app/modal/releaseURL/releaseURL.html',
+                        controller: 'ModalreleaseURLCtrl',
+                        resolve: {
+                            title: function() {
+                                return '发布URL地址';
+                            },
+                            urlAddress: function() {
+                                urlDetail = getUrl + '#/tarsier/scenes/diagramDetail/' + parseInt(urlNumStr);
+                                // if(urlNumStr.length>4){
+                                //     urlDetail = getUrl+'#/canvas/view/'+parseInt(urlNumStr.substring(4,8))+'/team/'+parseInt(urlNumStr.substring(0,4))+'/';
+                                // }else{
+                                //     urlDetail = getUrl+'#/canvas/view/'+urlNum+'/mine//';
+                                //     if(locationHash.indexOf(subStrMine)!==-1){
+                                //         urlDetail = getUrl+'#/canvas/view/'+urlNum+'/mine//';
+                                //     }else{
+                                //         urlDetail = getUrl+'#/canvas/view/'+urlNum+'/public//';
+                                //     }
+                                // }
+                                return urlDetail;
+                            }
+                        }
+                    })
+                } else {
+                    Unit.error('请先保存视图!');
+                }
+            }
+
+            //调用colorPicker
+            // this.colorPicker=function () {
+            // 	$rootScope.showColor=true;
+            // };
+
+            editor.graph.addListener(mxEvent.CELLS_ADDED, function(graph, e) {
+                return;
+                var cells = e.properties.cells;
+                var ciIds = [];
+
+                for (var i = 0; i < cells.length; i++) {
+                    if (cells[i].id.substring(0, 3) === 'ci_') {
+                        ciIds.push(cells[i].id.substring(3));
+                    }
+                }
+
+                var data2 = {};
+
+                if (ciIds.length > 0 && ciIds.length === 1) {
+                    var ciId = ciIds[0];
+
+                    data2 = {
+                        cdt: {
+                            ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+                            id: ciId
+                        }
+                    };
+                }
+
+                if (ciIds.length >= 2) {
+                    data2 = {
+                        cdt: {
+                            ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+                            ids: ciIds
+                        }
+                    };
+                }
+                if (ciIds.length > 0) {
+                    DiagramCIService.queryList(data2).success(function(result) {
+                        var datas = result.data;
+                        // console.log(result);
+                        for (var f = 0; f < datas.length; f++) {
+                            var classId = datas[f].ci.classId;
+                            var className = datas[f].ciClass.className;
+                            var attrDefs = datas[f].attrDefs;
+                            var attrss = datas[f].attrs;
+                            var choiceStatu = 0;
+                            var classAttrs = [];
+                            var choiceValues = '';
+
+                            for (var i = 0; i < cells.length; i++) {
+                                cells[i].classId = classId;
+                                cells[i].className = className;
+                                cells[i].attrDefs = attrDefs;
+                                cells[i].attrss = attrss;
+                                cells[i].choiceStatu = choiceStatu;
+                                cells[i].classAttrs = classAttrs;
+                                cells[i].choiceValues = choiceValues;
+
+                                for (var z = 0; z < cells[i].attrDefs.length; z++) {
+                                    if (cells[i].attrDefs[z].isCiDisp === 1) {
+                                        for (var n in cells[i].attrss) {
+                                            if (cells[i].attrDefs[z].proStdName === n) {
+                                                cells[i].choiceValues += ',' + cells[i].attrss[n];
+                                            }
+                                        }
+                                    }
+                                }
+
+                                var verCells = editor.graph.getDepVertexs();
+
+                                var ciCells = [];
+
+                                for (var h = 0; h < verCells.length; h++) {
+                                    if (verCells[h].id.substr(0, 2) === 'ci') {
+                                        ciCells.push(verCells[h]);
+                                    }
+                                }
+
+                                for (var d = 0; d < ciCells.length; d++) {
+                                    cells[i].classAttrs = [];
+                                    cells[i].attrs = [];
+
+                                    var dd = d - cells.length;
+                                    if (d > 0 && cells[i].classId === ciCells[dd].classId) {
+                                        cells[i].attrDefs = attrDefs;
+                                        cells[i].choiceValues = '';
+
+                                        for (var m = 0; m < cells[i].attrDefs.length; m++) {
+                                            if (ciCells[dd].attrDefs[m].proStdName === cells[i].attrDefs[m].proStdName && ciCells[dd].attrDefs[m].isCiDisp === 1) {
+                                                cells[i].attrDefs[m].isCiDisp = 1;
+                                                for (var n in cells[i].attrss) {
+                                                    if (cells[i].attrDefs[m].proStdName === n) {
+                                                        cells[i].classAttrs.push({ proName: cells[i].attrDefs[m].proStdName });
+                                                        cells[i].choiceValues += ',' + cells[i].attrss[n];
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        cells[i].attrs.push(cells[i].classAttrs);
+                                        editor.graph.setCellAttr(cells[i], 'label', cells[i].choiceValues);
+                                    }
+                                }
+                            }
+                        }
+                    })
+                }
+            });
+
+            // editor.graph.addMouseListener({
+            // 	mouseDown: function (sender, evt) {
+            // 		// var state=editor.graph.view.getState(evt.getCell());
+            // 		//
+            // 		// if(state){
+            // 		// 	if(state.cell.edge===true){
+            // 		// 		state.style[mxConstants.STYLE_STROKEWIDTH]=6;
+            // 		// 		state.cell.setValue('aefaef');
+            // 		// 		state.shape.apply(state);
+            // 		// 		state.shape.redraw();
+            // 		// 	}
+            // 		// }
+            //
+            // 	},
+            // 	mouseMove: function (sender, event) {
+            // 		var state = editor.graph.view.getState(event.getCell());
+            // 		// console.log(event)
+            // 		var d = document.createElement('div');
+            // 		// d.style.position='absolute';
+            // 		// d.style.left='0px';
+            // 		// d.style.top='0px';
+            // 		d.style.minWidth='100px';
+            // 		d.style.minHeight='100px';
+            // 		d.style.backgroundColor='red';
+            // 		d.style.display='none';
+            // 		event.evt.target.appendChild(d);
+            //
+            // 		if (state) {
+            // 			if (state.cell.edge === true) {
+            // 				// console.log(this);
+            // 				state.style[mxConstants.STYLE_STROKEWIDTH] = 6;
+            // 				editor.graph.setCellAttr(state.cell, 'label', 'hehe');
+            // 				state.shape.apply(state);
+            // 				state.shape.redraw();
+            // 			}
+            // 			if(state.cell.hasOwnProperty('id') && state.cell.id.substr(0,2)==='ci'){
+            // 				d.style.display='block';
+            // 				// console.log(event)
+            // 			}
+            // 		}else{
+            // 			d.style.display='none';
+            // 		}
+            // 	},
+            // 	mouseUp: function (sender, evt) {
+            // 		// mxLog.debug('mouseUp');
+            // 	}
+            // });
+
+        };
+    };
+
+    graph.app.factory('ToolbarAction', ['$uibModal', 'uDialog', 'Unit', 'DiagramCIClassService', 'DiagramCIService', 'DiagramDiagramVersionService', factory]);
+
+})(nameSpace.reg('graph'));

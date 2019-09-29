@@ -1,0 +1,1372 @@
+(function (global, factory) {
+    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+    typeof define === 'function' && define.amd ? define(factory) :
+    (global.tarsier = factory());
+}(this, (function () { 'use strict';
+
+    /*! *****************************************************************************
+    Copyright (c) Microsoft Corporation. All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+    this file except in compliance with the License. You may obtain a copy of the
+    License at http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+    WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+    MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing permissions
+    and limitations under the License.
+    ***************************************************************************** */
+
+    var __assign = Object.assign || function __assign(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+        }
+        return t;
+    };
+
+    var ITEM_HEIGHT = 40;
+    var getTreeItemById = function (arr, id) {
+        for (var _i = 0, arr_1 = arr; _i < arr_1.length; _i++) {
+            var item = arr_1[_i];
+            if (item.id === id) {
+                return item;
+            }
+            if (Array.isArray(item.children)) {
+                var data = getTreeItemById(item.children, id);
+                if (data) {
+                    return data;
+                }
+            }
+        }
+        return null;
+    };
+    var getOpenMenus = function (arr, result) {
+        for (var _i = 0, arr_2 = arr; _i < arr_2.length; _i++) {
+            var item = arr_2[_i];
+            if (item.isOpen) {
+                result.push(item.id);
+            }
+            if (Array.isArray(item.children)) {
+                getOpenMenus(item.children, result);
+            }
+        }
+    };
+    var getSelectItem = function (arr, result) {
+        for (var _i = 0, arr_3 = arr; _i < arr_3.length; _i++) {
+            var item = arr_3[_i];
+            if (item.isSelect) {
+                result.push(item.id);
+            }
+            if (Array.isArray(item.children)) {
+                getSelectItem(item.children, result);
+            }
+        }
+    };
+    var getFavoriteItem = function (arr, result) {
+        for (var _i = 0, arr_4 = arr; _i < arr_4.length; _i++) {
+            var item = arr_4[_i];
+            if (item.isFavorite) {
+                result.push(item.id);
+            }
+            if (Array.isArray(item.children)) {
+                getFavoriteItem(item.children, result);
+            }
+        }
+    };
+    var getChildrenHeight = function (arr) {
+        var height = 0;
+        for (var _i = 0, arr_5 = arr; _i < arr_5.length; _i++) {
+            var item = arr_5[_i];
+            height += ITEM_HEIGHT;
+            if (Array.isArray(item.children) && item.isOpen) {
+                height += getChildrenHeight(item.children);
+            }
+        }
+        return height;
+    };
+    var getElementClass = function (element) {
+        var arr = [];
+        if (typeof element.className === 'string') {
+            var strArr = element.className.replace(/\n/igm, '').split(' ');
+            return strArr.filter(function (str) { return str !== ''; });
+        }
+        return arr;
+    };
+    var cleanHTML = function (html) {
+        return html.replace(/\n/img, '').replace(/>\s+</img, '><').trim();
+    };
+    var getMenuLevel = function (arr, id, level) {
+        if (level === void 0) { level = 10; }
+        for (var _i = 0, arr_6 = arr; _i < arr_6.length; _i++) {
+            var item = arr_6[_i];
+            if (item.id === id) {
+                return level;
+            }
+            if (Array.isArray(item.children)) {
+                var nlevel = getMenuLevel(item.children, id, level + 10);
+                if (nlevel) {
+                    return nlevel;
+                }
+            }
+        }
+        return null;
+    };
+    var scrollElement = function (parent, element, height) {
+        if (height === void 0) { height = 0; }
+        var elementHeight = height || element.scrollHeight;
+        var minScrollTop = element.offsetTop - (parent.clientHeight - elementHeight);
+        if (parent.scrollTop < minScrollTop) {
+            parent.scrollTop = minScrollTop;
+        }
+    };
+    var getTreeMenuHeight = function (li) {
+        var body = li.children[1];
+        return parseInt(body.style.maxHeight, 10) + ITEM_HEIGHT;
+    };
+    var makeRandomID = function () {
+        return Math.random().toString(36).substring(2);
+    };
+
+    var utility = /*#__PURE__*/Object.freeze({
+        ITEM_HEIGHT: ITEM_HEIGHT,
+        getTreeItemById: getTreeItemById,
+        getOpenMenus: getOpenMenus,
+        getSelectItem: getSelectItem,
+        getFavoriteItem: getFavoriteItem,
+        getChildrenHeight: getChildrenHeight,
+        getElementClass: getElementClass,
+        cleanHTML: cleanHTML,
+        getMenuLevel: getMenuLevel,
+        scrollElement: scrollElement,
+        getTreeMenuHeight: getTreeMenuHeight,
+        makeRandomID: makeRandomID
+    });
+
+    var CheckBrowser = (function () {
+        function CheckBrowser(options) {
+            this.className = 'tarsier-support-info';
+            this.continueCallback = [];
+            this.defaultOptions = {
+                allowIconClassName: 'ts ts-check-circle',
+                ChromeIconClassName: 'ts ts-chrome',
+                ChromeDownloadUrl: 'https://www.google.com/chrome/',
+                ChromeVersion: 50,
+                disallowIconClassName: 'ts ts-sad-face',
+                downloadChromeBtnLabel: '下载Chrome',
+                downloadIEBtnLable: '下载IE',
+                IEDownloadUrl: '',
+                IEIconClassName: 'ts ts-ie',
+                IEVersion: 11,
+                isAllowIE: false,
+                supportText: '您的浏览器完美支持Tarsier!',
+                supportTitle: '恭喜',
+                unsupportText: '您的浏览器不支持或者版本有点低, 请从以下链接下载最新版本',
+                unsupportTips: '如果继续使用Tarsier，其部分功能及体验可能会受影响。',
+                unsupportTitle: '抱歉',
+                ignoreBtnLabel: '继续使用',
+                closeBtnLabel: '关闭',
+            };
+            this.options = __assign({}, this.defaultOptions, options);
+        }
+        CheckBrowser.prototype.isSupportBrowser = function () {
+            var brwserInfo = this.getBrowserInfo();
+            if (brwserInfo.name === 'Chrome' && Number(brwserInfo.version) >= this.options.ChromeVersion) {
+                return true;
+            }
+            else if (brwserInfo.name === 'IE' &&
+                this.options.isAllowIE && Number(brwserInfo.version) >= this.options.IEVersion) {
+                return true;
+            }
+            return false;
+        };
+        CheckBrowser.prototype.showSupportInfo = function () {
+            var _this = this;
+            var root = document.createElement('div');
+            var isSupport = this.isSupportBrowser();
+            var info = isSupport ? this.options.supportText : this.options.unsupportText;
+            this.closeSupportInfo();
+            root.className = this.className;
+            root.innerHTML = cleanHTML("\n      <div class=\"tarsier-support-main\">\n        <div class=\"tarsier-support-info-body\">\n          <div class=\"tarsier-support-info-icon\">\n            <i class=\"" + (isSupport ? this.options.allowIconClassName : this.options.disallowIconClassName) + "\"></i>\n          </div>\n          <div class=\"tarsier-support-info-message\">\n            <h1>" + (isSupport ? this.options.supportTitle : this.options.unsupportTitle) + "</h1>\n            <p>" + info + "</p>\n          </div>\n        </div>\n        <div class=\"tarsier-support-info-footer\" style=\"" + (isSupport ? 'display: none' : '') + "\">\n          " + (this.options.ChromeDownloadUrl ? "\n          <div class=\"tarsier-support-info-item\">\n            <a href=\"" + this.options.ChromeDownloadUrl + "\" target=\"_blank\">\n              <div class=\"tarsier-support-info-item-icon\">\n                <i class=\"" + this.options.ChromeIconClassName + "\"></i>\n              </div>\n              <div>" + this.options.downloadChromeBtnLabel + "</div>\n            </a>\n          </div>" : '') + "\n          " + (this.options.IEDownloadUrl ? "\n          <div class=\"tarsier-support-line\"></div>\n          <div class=\"tarsier-support-info-item\">\n            <a href=\"" + this.options.IEDownloadUrl + "\" target=\"_blank\">\n              <div class=\"tarsier-support-info-item-icon\">\n                <i class=\"" + this.options.IEIconClassName + "\"></i>\n              </div>\n              <div>" + this.options.downloadIEBtnLable + "</div>\n            </a>\n          </div>" : '') + "\n        </div>\n\n        <div style=\"" + (isSupport ? 'display: none' : '') + "\">\n          <p style=\"color: #a7abb0; margin-top: 50px;\">" + this.options.unsupportTips + "</p>\n          <p style=\"margin-top: 10px;\">\n            <span class=\"tarsier-support-ignore-tip-btn\" style=\"color: #3f82dc; cursor: pointer;\">\n              " + this.options.ignoreBtnLabel + "\n            </span>\n          </p>\n        </div>\n      </div>\n      " + (isSupport ? "<button class=\"tarsier-support-info-close-btn\">" + this.options.closeBtnLabel + "</button>" : '') + "\n    ");
+            if (isSupport) {
+                root.querySelector('.tarsier-support-info-close-btn').addEventListener('click', function () {
+                    _this.closeSupportInfo();
+                }, false);
+            }
+            else {
+                root.querySelector('.tarsier-support-ignore-tip-btn').addEventListener('click', function () {
+                    _this.continueCallback.forEach(function (callback) {
+                        callback();
+                    });
+                }, false);
+            }
+            document.body.appendChild(root);
+        };
+        CheckBrowser.prototype.closeSupportInfo = function () {
+            var element = document.querySelector("." + this.className);
+            if (element) {
+                document.body.removeChild(element);
+            }
+        };
+        CheckBrowser.prototype.checkAndShowInfo = function () {
+            if (!this.isSupportBrowser()) {
+                this.showSupportInfo();
+            }
+        };
+        CheckBrowser.prototype.continueClick = function (callback) {
+            this.continueCallback.push(callback);
+        };
+        CheckBrowser.prototype.getBrowserInfo = function () {
+            var ua = navigator.userAgent;
+            var M = ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+            var tem = [];
+            if (/trident/i.test(M[1])) {
+                tem = /\brv[ :]+(\d+)/g.exec(ua) || [];
+                return {
+                    name: 'IE',
+                    version: tem[1] || '',
+                };
+            }
+            if (M[1] === 'Chrome') {
+                tem = ua.match(/\bOPR\/(\d+)/);
+                if (tem !== null) {
+                    return {
+                        name: 'Opera',
+                        version: tem[1],
+                    };
+                }
+            }
+            M = M[2] ? [M[1], M[2]] : [navigator.appName, navigator.appVersion, '-?'];
+            tem = ua.match(/version\/(\d+)/i);
+            if (tem !== null) {
+                M.splice(1, 1, tem[1]);
+            }
+            return {
+                name: M[0].trim(),
+                version: M[1].trim(),
+            };
+        };
+        return CheckBrowser;
+    }());
+
+    var Menu = (function () {
+        function Menu(element, data, options) {
+            if (options === void 0) { options = {}; }
+            this.menuTabBtnId = 'tabMenuBtn';
+            this.favoriteMenuTabBtnId = 'tabFovoriteMenuBtn';
+            this.menuTabBodyId = 'tabMenuBody';
+            this.favoriteMenuTabBodyId = 'tabFavoriteMenuBody';
+            this.faviconCallback = [];
+            this.menuCallback = [];
+            this.menuToggleCallback = [];
+            this.modelCallback = [];
+            this.tabCallback = [];
+            this.defaultOptions = {
+                className: 'tarsier-menu',
+                favoriteAreaClassName: 'tariser-menu-favorite',
+                isActiveFavoriteTab: false,
+                isLessModel: false,
+                logoURL: '',
+                tabButtonClassName: 'tarsier-menu-tab-btn',
+                tabClassName: 'tarsier-menu-tab',
+                tabsAreaClassName: 'tarsier-menu-tabs',
+                treeAreaClassName: 'tarsier-menu-tree',
+                closeIconClassName: 'ts ts-arrow-right',
+                favoriteIconClassName: 'ts ts-star-full',
+                lessIconClassName: 'ts ts-left',
+                menuIconClassName: 'ts ts-list',
+                normalIconClassName: 'ts ts-menus',
+                openIconClassName: 'ts ts-arrow-down',
+            };
+            this.options = __assign({}, this.defaultOptions, options);
+            this.element = element;
+            this.data = data;
+            this.init();
+        }
+        Menu.prototype.setLogoURL = function (url) {
+            this.options.logoURL = url;
+            var imgElement = this.rootElement.querySelector('img.tarsier-logo');
+            imgElement.src = url;
+        };
+        Menu.prototype.faviconClick = function (callback) {
+            this.faviconCallback.push(callback);
+        };
+        Menu.prototype.menuClick = function (callback) {
+            this.menuCallback.push(callback);
+        };
+        Menu.prototype.menuToggleListener = function (callback) {
+            this.menuToggleCallback.push(callback);
+        };
+        Menu.prototype.toggleOpen = function (id) {
+            var item = getTreeItemById(this.data, id);
+            if (item) {
+                item.isOpen = !item.isOpen;
+                this.initElementStatus(id);
+                this.menuToggleCallback.forEach(function (callback) {
+                    callback(item.id, item.isOpen);
+                });
+            }
+        };
+        Menu.prototype.open = function (id, isOpenParents) {
+            if (isOpenParents === void 0) { isOpenParents = false; }
+            var item = getTreeItemById(this.data, id);
+            var li = this.rootElement.querySelector("#" + this.menuTabBodyId + " li[data-id=\"" + id + "\"]");
+            if (isOpenParents && li) {
+                var root = this.rootElement.querySelector("#" + this.menuTabBodyId);
+                var element = li.parentElement;
+                while (element && element !== root) {
+                    if (element.nodeName.toLowerCase() === 'li' && element.getAttribute('data-id')) {
+                        var eid = element.getAttribute('data-id');
+                        var data = getTreeItemById(this.data, eid);
+                        if (data) {
+                            data.isOpen = true;
+                            this.initElementStatus(eid);
+                        }
+                    }
+                    element = element.parentElement;
+                }
+            }
+            if (item && !item.isOpen) {
+                item.isOpen = true;
+                this.initElementStatus(id);
+            }
+            if (li && li.clientWidth > 0 && li.clientHeight > 0) {
+                scrollElement(this.rootElement.querySelector('.tarsier-menu-tab-body'), li, getTreeMenuHeight(li));
+            }
+            if (item) {
+                this.menuToggleCallback.forEach(function (callback) {
+                    callback(item.id, item.isOpen);
+                });
+            }
+        };
+        Menu.prototype.close = function (id) {
+            var item = getTreeItemById(this.data, id);
+            if (item && item.isOpen) {
+                item.isOpen = false;
+                this.initElementStatus(id);
+                this.menuToggleCallback.forEach(function (callback) {
+                    callback(item.id, item.isOpen);
+                });
+            }
+        };
+        Menu.prototype.addFavorite = function (id) {
+            var item = getTreeItemById(this.data, id);
+            if (item && !item.isDisallowFavorite && !item.isFavorite) {
+                item.isFavorite = true;
+                var ulElement = this.rootElement.querySelector("#" + this.favoriteMenuTabBodyId + " ul");
+                var li = ulElement.querySelector("li[data-id=\"" + item.id + "\"]");
+                if (!li) {
+                    var html = this.getOneFavoritedHtml(item);
+                    ulElement.innerHTML += html;
+                }
+                this.initElementStatus(id);
+            }
+        };
+        Menu.prototype.removeFavorite = function (id) {
+            var item = getTreeItemById(this.data, id);
+            if (item && item.isFavorite) {
+                item.isFavorite = false;
+                this.initElementStatus(id);
+            }
+        };
+        Menu.prototype.getAllFavorites = function () {
+            var result = [];
+            getFavoriteItem(this.data, result);
+            return result;
+        };
+        Menu.prototype.setSelect = function (id) {
+            this.clearSelect();
+            var li = this.rootElement.querySelectorAll("li[data-id=\"" + id + "\"]");
+            var liList = Array.prototype.slice.call(li);
+            var item = getTreeItemById(this.data, id);
+            if (item) {
+                item.isSelect = true;
+                liList.forEach(function (nli) {
+                    var arr = getElementClass(nli);
+                    var index = arr.indexOf('tarsier-menu-select');
+                    if (index === -1) {
+                        arr.push('tarsier-menu-select');
+                        nli.className = arr.join(' ');
+                    }
+                });
+            }
+        };
+        Menu.prototype.getSelect = function () {
+            var result = [];
+            getSelectItem(this.data, result);
+            if (result.length >= 1) {
+                return result[0];
+            }
+            return null;
+        };
+        Menu.prototype.setLabel = function (id, label) {
+            var li = this.rootElement.querySelectorAll("li[data-id=\"" + id + "\"]");
+            var liList = Array.prototype.slice.call(li);
+            var item = getTreeItemById(this.data, id);
+            if (item) {
+                item.label = label;
+                liList.forEach(function (nli) {
+                    var header = nli.children[0];
+                    var labelElement = header.querySelector('.tarsier-menu-tree-item-label-text');
+                    if (labelElement) {
+                        labelElement.innerHTML = label;
+                    }
+                });
+            }
+        };
+        Menu.prototype.clearSelect = function () {
+            var _this = this;
+            var li = this.rootElement.querySelectorAll('li.tarsier-menu-select');
+            var liList = Array.prototype.slice.call(li);
+            liList.forEach(function (nli) {
+                var id = nli.getAttribute('data-id');
+                var item = getTreeItemById(_this.data, id);
+                var arr = getElementClass(nli);
+                var index = arr.indexOf('tarsier-menu-select');
+                arr.splice(index, 1);
+                nli.className = arr.join(' ');
+                if (item) {
+                    item.isSelect = false;
+                }
+            });
+        };
+        Menu.prototype.modelChange = function (callback) {
+            this.modelCallback.push(callback);
+        };
+        Menu.prototype.isLessModel = function () {
+            return this.options.isLessModel;
+        };
+        Menu.prototype.toggleModel = function () {
+            var _this = this;
+            this.options.isLessModel = !this.options.isLessModel;
+            var lessElement = this.rootElement.querySelector('.tarsier-menu-model-less');
+            var arr = getElementClass(this.rootElement);
+            var index = arr.indexOf('tarsier-less-model');
+            if (this.options.isLessModel) {
+                var html = this.initLessMenu(this.data);
+                lessElement.innerHTML = html;
+                if (index === -1) {
+                    arr.push('tarsier-less-model');
+                    this.rootElement.className = arr.join(' ');
+                }
+            }
+            else {
+                if (index >= 0) {
+                    arr.splice(index, 1);
+                    this.rootElement.className = arr.join(' ');
+                }
+            }
+            this.modelCallback.forEach(function (callback) {
+                callback(_this.options.isLessModel);
+            });
+        };
+        Menu.prototype.addMenus = function (items, parentId, isOrderFirst) {
+            var _this = this;
+            if (parentId) {
+                var parentItem_1 = getTreeItemById(this.data, parentId);
+                if (parentItem_1 && Array.isArray(parentItem_1.children)) {
+                    var html_1 = [];
+                    var parentLi = this.rootElement
+                        .querySelector("#" + this.menuTabBodyId + " li[data-id=\"" + parentItem_1.id + "\"]");
+                    var bodyElement1 = parentLi.children[1];
+                    var ul = bodyElement1.querySelector('ul');
+                    if (isOrderFirst) {
+                        items.reverse().forEach(function (item) {
+                            parentItem_1.children.unshift(item);
+                            html_1.unshift(_this.getOneTreeMenuHtml(item, getMenuLevel(_this.data, item.id)));
+                        });
+                        ul.innerHTML = html_1.join('') + ul.innerHTML;
+                    }
+                    else {
+                        items.forEach(function (item) {
+                            parentItem_1.children.push(item);
+                            html_1.push(_this.getOneTreeMenuHtml(item, getMenuLevel(_this.data, item.id)));
+                        });
+                        ul.innerHTML += html_1.join('');
+                    }
+                    if (parentItem_1.isOpen) {
+                        var height = getChildrenHeight(parentItem_1.children);
+                        bodyElement1.style.maxHeight = height + "px";
+                        var treeRoot = this.rootElement.querySelector("#" + this.menuTabBodyId);
+                        var element = parentLi.parentElement;
+                        while (element !== treeRoot) {
+                            if (element.tagName.toLowerCase() === 'li' && element.getAttribute('data-id')) {
+                                var bodyElement = element.children[1];
+                                var originMaxHeight = parseInt(bodyElement.style.maxHeight, 10);
+                                bodyElement.style.maxHeight = originMaxHeight + height + "px";
+                            }
+                            element = element.parentElement;
+                        }
+                    }
+                    var favBodyUl = this.rootElement.querySelector("#" + this.favoriteMenuTabBodyId + " ul");
+                    favBodyUl.innerHTML = this.initFavoritedMenu(this.data);
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+            else {
+                var html_2 = [];
+                var ulElement = this.rootElement.querySelector("#" + this.menuTabBodyId + " ul");
+                if (isOrderFirst) {
+                    items.reverse().forEach(function (item) {
+                        _this.data.unshift(item);
+                        html_2.unshift(_this.getOneTreeMenuHtml(item, 10));
+                    });
+                    ulElement.innerHTML = html_2.join('') + ulElement.innerHTML;
+                }
+                else {
+                    items.forEach(function (item) {
+                        _this.data.push(item);
+                        html_2.push(_this.getOneTreeMenuHtml(item, 10));
+                    });
+                    ulElement.innerHTML += html_2.join('');
+                }
+                var favBodyUl = this.rootElement.querySelector("#" + this.favoriteMenuTabBodyId + " ul");
+                favBodyUl.innerHTML = this.initFavoritedMenu(this.data);
+            }
+            return true;
+        };
+        Menu.prototype.addMenu = function (item, parentId, isOrderFirst) {
+            if (parentId) {
+                var parentItem = getTreeItemById(this.data, parentId);
+                if (parentItem && Array.isArray(parentItem.children)) {
+                    if (isOrderFirst) {
+                        parentItem.children.unshift(item);
+                    }
+                    else {
+                        parentItem.children.push(item);
+                    }
+                    var parentLi = this.rootElement
+                        .querySelector("#" + this.menuTabBodyId + " li[data-id=\"" + parentItem.id + "\"]");
+                    var bodyElement1 = parentLi.children[1];
+                    var html = this.getOneTreeMenuHtml(item, getMenuLevel(this.data, item.id));
+                    var ul = bodyElement1.querySelector('ul');
+                    if (isOrderFirst) {
+                        ul.innerHTML = html + ul.innerHTML;
+                    }
+                    else {
+                        ul.innerHTML += html;
+                    }
+                    var favBodyUl = this.rootElement.querySelector("#" + this.favoriteMenuTabBodyId + " ul");
+                    favBodyUl.innerHTML = this.initFavoritedMenu(this.data);
+                    if (parentItem.isOpen) {
+                        var height = getChildrenHeight(parentItem.children);
+                        bodyElement1.style.maxHeight = height + "px";
+                        var element = parentLi.parentElement;
+                        var treeRoot = this.rootElement.querySelector("#" + this.menuTabBodyId + " ul");
+                        while (element && element !== treeRoot) {
+                            if (element.tagName.toLowerCase() === 'li' && element.getAttribute('data-id')) {
+                                var bodyElement = element.children[1];
+                                var originMaxHeight = parseInt(bodyElement.style.maxHeight, 10);
+                                bodyElement.style.maxHeight = originMaxHeight + height + "px";
+                            }
+                            element = element.parentElement;
+                        }
+                    }
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+            else {
+                if (isOrderFirst) {
+                    this.data.unshift(item);
+                }
+                else {
+                    this.data.push(item);
+                }
+                var ulElement = this.rootElement.querySelector("#" + this.menuTabBodyId + " ul");
+                var html = this.getOneTreeMenuHtml(item, 10);
+                if (isOrderFirst) {
+                    ulElement.innerHTML = html + ulElement.innerHTML;
+                }
+                else {
+                    ulElement.innerHTML += html;
+                }
+                var favBodyUl = this.rootElement.querySelector("#" + this.favoriteMenuTabBodyId + " ul");
+                favBodyUl.innerHTML = this.initFavoritedMenu(this.data);
+            }
+            return true;
+        };
+        Menu.prototype.removeMenu = function (id) {
+            var item = getTreeItemById(this.data, id);
+            var liElement = this.rootElement.querySelector("#" + this.menuTabBodyId + " li[data-id=\"" + id + "\"]");
+            var menuUl = this.rootElement.querySelector("#" + this.menuTabBodyId + " ul");
+            if (item && liElement) {
+                var perentLiElement = liElement.parentElement;
+                while (perentLiElement && perentLiElement !== menuUl && !perentLiElement.getAttribute('data-id')) {
+                    perentLiElement = perentLiElement.parentElement;
+                }
+                if (perentLiElement === menuUl) {
+                    var index = this.data.indexOf(item);
+                    this.data.splice(index, 1);
+                    liElement.parentElement.removeChild(liElement);
+                }
+                else if (perentLiElement && perentLiElement.getAttribute('data-id')) {
+                    var parentId = perentLiElement.getAttribute('data-id');
+                    var parentItem = getTreeItemById(this.data, parentId);
+                    var index = parentItem.children.indexOf(item);
+                    parentItem.children.splice(index, 1);
+                    if (parentItem && parentItem.isOpen) {
+                        var offsetHeight = parseInt(liElement.style.maxHeight, 10) + ITEM_HEIGHT;
+                        var bodyElement = perentLiElement.children[1];
+                        var originMaxHeight = parseInt(bodyElement.style.maxHeight, 10);
+                        bodyElement.style.maxHeight = originMaxHeight - offsetHeight + "px";
+                        var perentLi = perentLiElement.parentElement;
+                        while (perentLi && perentLi !== menuUl) {
+                            if (perentLi.tagName.toLowerCase() === 'li' && perentLi.getAttribute('data-id')) {
+                                var id1 = perentLi.getAttribute('data-id');
+                                var parentItem1 = getTreeItemById(this.data, id1);
+                                if (parentItem1 && parentItem.isOpen) {
+                                    var bodyElement1 = perentLi.children[1];
+                                    var originMaxHeight1 = parseInt(bodyElement1.style.maxHeight, 10);
+                                    bodyElement1.style.maxHeight = originMaxHeight1 - offsetHeight + "px";
+                                }
+                            }
+                            perentLi = perentLi.parentElement;
+                        }
+                    }
+                    liElement.parentElement.removeChild(liElement);
+                }
+                var favBodyUl = this.rootElement.querySelector("#" + this.favoriteMenuTabBodyId + " ul");
+                favBodyUl.innerHTML = this.initFavoritedMenu(this.data);
+            }
+        };
+        Menu.prototype.removeMenus = function (ids) {
+            var _this = this;
+            ids.forEach(function (id) {
+                _this.removeMenu(id);
+            });
+        };
+        Menu.prototype.moveMenu = function (id, parentId) {
+            var item = getTreeItemById(this.data, id);
+            this.removeMenu(id);
+            this.addMenu(item, parentId);
+        };
+        Menu.prototype.moveMenus = function (ids, parentId) {
+            var _this = this;
+            ids.forEach(function (id) {
+                _this.moveMenu(id, parentId);
+            });
+        };
+        Menu.prototype.orderMenuFirst = function (id) {
+            var li = this.rootElement.querySelector("#" + this.menuTabBodyId + "  li[data-id=\"" + id + "\"]");
+            var item = getTreeItemById(this.data, id);
+            if (li && item) {
+                var perentLi = li.parentElement;
+                while (perentLi && perentLi.tagName.toLowerCase() !== 'li' && !perentLi.getAttribute('data-id')) {
+                    perentLi = perentLi.parentElement;
+                }
+                var parentId = perentLi.getAttribute('data-id');
+                var parentItem = getTreeItemById(this.data, parentId);
+                if (parentItem && Array.isArray(parentItem.children)) {
+                    var index = parentItem.children.indexOf(item);
+                    parentItem.children.splice(index, 1);
+                    parentItem.children.unshift(item);
+                }
+                var ul = li.parentElement;
+                ul.insertBefore(li, ul.children[0]);
+            }
+        };
+        Menu.prototype.orderMenuLast = function (id) {
+            var li = this.rootElement.querySelector("#" + this.menuTabBodyId + "  li[data-id=\"" + id + "\"]");
+            var item = getTreeItemById(this.data, id);
+            if (li && item) {
+                var perentLi = li.parentElement;
+                while (perentLi && perentLi.tagName.toLowerCase() !== 'li' && !perentLi.getAttribute('data-id')) {
+                    perentLi = perentLi.parentElement;
+                }
+                var parentId = perentLi.getAttribute('data-id');
+                var parentItem = getTreeItemById(this.data, parentId);
+                if (parentItem && Array.isArray(parentItem.children)) {
+                    var index = parentItem.children.indexOf(item);
+                    parentItem.children.splice(index, 1);
+                    parentItem.children.push(item);
+                }
+                var ul = li.parentElement;
+                ul.appendChild(li);
+            }
+        };
+        Menu.prototype.activeMenuTab = function () {
+            this.options.isActiveFavoriteTab = false;
+            this.updateTab();
+        };
+        Menu.prototype.activeFavoriteTab = function () {
+            this.options.isActiveFavoriteTab = true;
+            this.updateTab();
+        };
+        Menu.prototype.toggleTab = function () {
+            this.options.isActiveFavoriteTab = !this.options.isActiveFavoriteTab;
+            this.updateTab();
+        };
+        Menu.prototype.isActiveFavoriteTab = function () {
+            return this.options.isActiveFavoriteTab;
+        };
+        Menu.prototype.tabChange = function (callback) {
+            this.tabCallback.push(callback);
+        };
+        Menu.prototype.getAllOpenedMenus = function () {
+            var result = [];
+            getOpenMenus(this.data, result);
+            return result;
+        };
+        Menu.prototype.updateTab = function () {
+            var _this = this;
+            var menuTabBtn = this.rootElement.querySelector("#" + this.menuTabBtnId);
+            var favoriteMenuTabBtn = this.rootElement.querySelector("#" + this.favoriteMenuTabBtnId);
+            this.initTab();
+            this.clearRemovedItemFromFavoriteList();
+            if (this.options.isActiveFavoriteTab) {
+                menuTabBtn.parentElement.className = this.options.tabClassName;
+                favoriteMenuTabBtn.parentElement.className = this.options.tabClassName + " active";
+            }
+            else {
+                menuTabBtn.parentElement.className = this.options.tabClassName + " active";
+                favoriteMenuTabBtn.parentElement.className = this.options.tabClassName;
+                this.scrollSelectItemIntoview();
+            }
+            this.tabCallback.forEach(function (callback) {
+                callback(_this.options.isActiveFavoriteTab);
+            });
+        };
+        Menu.prototype.init = function () {
+            this.element.innerHTML = '';
+            this.rootElement = document.createElement('div');
+            if (this.options.isLessModel) {
+                this.rootElement.className = this.options.className + " tarsier-less-model";
+            }
+            else {
+                this.rootElement.className = this.options.className;
+            }
+            this.initHTML();
+            this.initEvent();
+            this.initTab();
+            this.element.appendChild(this.rootElement);
+            this.scrollSelectItemIntoview();
+        };
+        Menu.prototype.scrollSelectItemIntoview = function () {
+            var menuBody = this.rootElement.querySelector("#" + this.menuTabBodyId);
+            var selectElement = menuBody.querySelector('.tarsier-menu-select');
+            if (selectElement) {
+                selectElement.scrollIntoView({
+                    block: 'center',
+                    inline: 'center',
+                });
+            }
+        };
+        Menu.prototype.initTab = function () {
+            var menuBody = this.rootElement.querySelector("#" + this.menuTabBodyId);
+            var favBody = this.rootElement.querySelector("#" + this.favoriteMenuTabBodyId);
+            if (this.options.isActiveFavoriteTab) {
+                menuBody.style.display = 'none';
+                favBody.style.display = 'block';
+            }
+            else {
+                menuBody.style.display = 'block';
+                favBody.style.display = 'none';
+            }
+        };
+        Menu.prototype.initEvent = function () {
+            var _this = this;
+            this.rootElement.addEventListener('click', function (event) {
+                var modelBtn = _this.rootElement.querySelector('#toggleModelBtn');
+                var menuTabBtn = _this.rootElement.querySelector("#" + _this.menuTabBtnId);
+                var favoriteMenuTabBtn = _this.rootElement.querySelector("#" + _this.favoriteMenuTabBtnId);
+                var path = [];
+                var arr = [];
+                var element = event.srcElement;
+                var count = 0;
+                while (element && element !== _this.rootElement && count < 50) {
+                    path.push(element);
+                    arr = arr.concat(getElementClass(element));
+                    element = element.parentElement;
+                    count += 1;
+                }
+                if (path.indexOf(modelBtn) >= 0) {
+                    _this.toggleModel();
+                }
+                else if (path.indexOf(menuTabBtn) >= 0) {
+                    _this.activeMenuTab();
+                }
+                else if (path.indexOf(favoriteMenuTabBtn) >= 0) {
+                    _this.activeFavoriteTab();
+                }
+                else if (arr.indexOf('tarsier-menu-favorite-icon') >= 0) {
+                    var liElement = null;
+                    for (var _i = 0, path_1 = path; _i < path_1.length; _i++) {
+                        var itemElement = path_1[_i];
+                        if (itemElement.tagName.toLowerCase() === 'li' && itemElement.getAttribute('data-id')) {
+                            liElement = itemElement;
+                            break;
+                        }
+                    }
+                    if (liElement) {
+                        var item_1 = getTreeItemById(_this.data, liElement.getAttribute('data-id'));
+                        if (item_1) {
+                            _this.faviconCallback.forEach(function (callback) {
+                                callback(item_1.id, item_1.isFavorite);
+                            });
+                        }
+                    }
+                }
+                else if (arr.indexOf('tarsier-menu-tree-item-folder') >= 0) {
+                    var liElement = null;
+                    for (var _a = 0, path_2 = path; _a < path_2.length; _a++) {
+                        var itemElement = path_2[_a];
+                        if (itemElement.tagName.toLowerCase() === 'li' && itemElement.getAttribute('data-id')) {
+                            liElement = itemElement;
+                            break;
+                        }
+                    }
+                    if (liElement) {
+                        _this.toggleOpen(liElement.getAttribute('data-id'));
+                    }
+                }
+                else if (arr.indexOf('tarsier-menu-tree-item-header') >= 0 || arr.indexOf('.tarsier-menu-tree-item-label')) {
+                    var liElement = null;
+                    for (var _b = 0, path_3 = path; _b < path_3.length; _b++) {
+                        var itemElement = path_3[_b];
+                        if (itemElement.tagName.toLowerCase() === 'li' && itemElement.getAttribute('data-id')) {
+                            liElement = itemElement;
+                            break;
+                        }
+                    }
+                    if (liElement) {
+                        var item_2 = getTreeItemById(_this.data, liElement.getAttribute('data-id'));
+                        if (item_2) {
+                            _this.menuCallback.forEach(function (callback) {
+                                callback(item_2.id);
+                            });
+                        }
+                    }
+                }
+            }, false);
+            this.rootElement.addEventListener('mouseover', function (event) {
+                clearTimeout(_this.labelTimer);
+                _this.labelTimer = setTimeout(function () {
+                    var labelElement = _this.rootElement.querySelector('.tarsier-menu-less-label');
+                    var arr = getElementClass(event.srcElement);
+                    if ((arr.indexOf('ts') >= 0 || arr.indexOf('tarsier-menu-tree-item-label') >= 0
+                        || event.srcElement.getAttribute('data-id')) && _this.isLessModel()) {
+                        var element = event.srcElement;
+                        while (element && element.tagName.toLowerCase() !== 'li' && !element.getAttribute('data-id')) {
+                            element = element.parentElement;
+                        }
+                        if (element) {
+                            labelElement.style.display = 'block';
+                            labelElement.style.top = element.offsetTop +
+                                (element.clientHeight / 2) - 10 + "px";
+                            labelElement.innerText = element.getAttribute('data-label');
+                        }
+                    }
+                    else {
+                        labelElement.style.display = 'none';
+                    }
+                }, 200);
+            }, false);
+        };
+        Menu.prototype.initLessMenu = function (data) {
+            var _this = this;
+            var html = data.map(function (item) {
+                var str = '';
+                if (item.isFavorite) {
+                    str += _this.getOneLessMenuHtml(item);
+                }
+                if (Array.isArray(item.children)) {
+                    str += _this.initLessMenu(item.children);
+                }
+                return str;
+            }).filter(function (str) { return str !== ''; });
+            return html.join('');
+        };
+        Menu.prototype.getOneLessMenuHtml = function (item) {
+            return cleanHTML("\n    <li data-id=\"" + item.id + "\" data-label=\"" + item.label + "\">\n      " + (item.url ?
+                "<a href=\"" + item.url + "\" class=\"tarsier-menu-tree-item-label\"\n        style=\"" + (item.iconColor ? "color:" + item.iconColor : '') + "\">\n        <i class=\"" + item.iconClassName + "\"></i>\n      </a>" :
+                "<span class=\"tarsier-menu-tree-item-label tarsier-menu-tree-item-btn\"\n        style=\"" + (item.iconColor ? "color:" + item.iconColor : '') + "\">\n        <i class=\"" + item.iconClassName + "\"></i>\n      </span>") + "\n    </li>\n    ");
+        };
+        Menu.prototype.initElementStatus = function (id) {
+            var li = this.rootElement.querySelector("#" + this.menuTabBodyId + " li[data-id=\"" + id + "\"]");
+            var item = getTreeItemById(this.data, id);
+            if (li && item && Array.isArray(item.children)) {
+                var folderIconElement = li.children[0].querySelector('.tarsier-menu-folder-icon');
+                if (folderIconElement) {
+                    var iconClassArr = getElementClass(folderIconElement);
+                    var downClassName = this.options.openIconClassName.split(' ').pop();
+                    var rightClassName = this.options.closeIconClassName.split(' ').pop();
+                    var downIndex = iconClassArr.indexOf(downClassName);
+                    var rightIndex = iconClassArr.indexOf(rightClassName);
+                    var openClassName = 'tarsier-menu-open';
+                    var liClassArr = getElementClass(li);
+                    var activeIndex = liClassArr.indexOf(openClassName);
+                    if (item.isOpen) {
+                        if (downIndex === -1) {
+                            iconClassArr.push(downClassName);
+                        }
+                        if (rightIndex >= 0) {
+                            iconClassArr.splice(rightIndex, 1);
+                        }
+                        if (activeIndex === -1) {
+                            liClassArr.push(openClassName);
+                        }
+                    }
+                    else {
+                        if (downIndex >= 0) {
+                            iconClassArr.splice(downIndex, 1);
+                        }
+                        if (rightIndex === -1) {
+                            iconClassArr.push(rightClassName);
+                        }
+                        if (activeIndex >= 0) {
+                            liClassArr.splice(activeIndex, 1);
+                        }
+                    }
+                    folderIconElement.className = iconClassArr.join(' ');
+                    li.className = liClassArr.join(' ');
+                    var len = item.children.length;
+                    var cutHeight = item.isOpen ? len * ITEM_HEIGHT : -1 * (len * ITEM_HEIGHT);
+                    var treeRootElement = this.rootElement.querySelector("#" + this.menuTabBodyId);
+                    var element = li.parentElement;
+                    while (element !== treeRootElement) {
+                        if (element && element.nodeName.toLowerCase() === 'li') {
+                            var dataID = element.getAttribute('data-id');
+                            var bodyElement = element.children[1];
+                            if (bodyElement && dataID) {
+                                var originMaxHeight = parseInt(bodyElement.style.maxHeight, 10);
+                                bodyElement.style.maxHeight = originMaxHeight + cutHeight + "px";
+                            }
+                        }
+                        element = element.parentElement;
+                    }
+                    var height = item.isOpen ? getChildrenHeight(item.children) : 0;
+                    var body = li.children[1];
+                    body.style.maxHeight = height + "px";
+                }
+            }
+            if (li && item) {
+                var favoriteIconElement = li.children[0].querySelector('.tarsier-menu-favorite-icon');
+                if (favoriteIconElement) {
+                    var favoriteClassName = 'tarsier-menu-favorite';
+                    var favoriteClassArr = getElementClass(favoriteIconElement);
+                    var favoriteIndex = favoriteClassArr.indexOf(favoriteClassName);
+                    if (item.isFavorite) {
+                        if (favoriteIndex === -1) {
+                            favoriteClassArr.push(favoriteClassName);
+                            favoriteIconElement.className = favoriteClassArr.join(' ');
+                        }
+                    }
+                    else {
+                        if (favoriteIndex >= 0) {
+                            favoriteClassArr.splice(favoriteIndex, 1);
+                            favoriteIconElement.className = favoriteClassArr.join(' ');
+                        }
+                    }
+                }
+            }
+            var favoriteLi = this.rootElement
+                .querySelector("#" + this.favoriteMenuTabBodyId + " li[data-id=\"" + id + "\"]");
+            if (favoriteLi && item) {
+                var favoriteIconElement = favoriteLi.querySelector('.tarsier-menu-favorite-icon');
+                if (favoriteIconElement) {
+                    var favoriteClassName = 'tarsier-menu-favorite';
+                    var favoriteClassArr = getElementClass(favoriteIconElement);
+                    var favoriteIndex = favoriteClassArr.indexOf(favoriteClassName);
+                    if (item.isFavorite && favoriteIndex === -1) {
+                        favoriteClassArr.push(favoriteClassName);
+                        favoriteIconElement.className = favoriteClassArr.join(' ');
+                    }
+                    else if (favoriteIndex >= 0) {
+                        favoriteClassArr.splice(favoriteIndex, 1);
+                        favoriteIconElement.className = favoriteClassArr.join(' ');
+                    }
+                }
+            }
+        };
+        Menu.prototype.clearRemovedItemFromFavoriteList = function () {
+            var _this = this;
+            var ulEelment = this.rootElement.querySelector("#" + this.favoriteMenuTabBodyId + " ul");
+            var li = ulEelment.querySelectorAll('li.tarsier-menu-tree-item');
+            var liList = Array.prototype.slice.call(li);
+            liList.forEach(function (element) {
+                var id = element.getAttribute('data-id');
+                var item = getTreeItemById(_this.data, id);
+                if (!item || (item && !item.isFavorite)) {
+                    ulEelment.removeChild(element);
+                }
+            });
+        };
+        Menu.prototype.initHTML = function () {
+            this.rootElement.innerHTML = cleanHTML("\n    <div class=\"tarsier-menu-main\">\n      <div class=\"tarsier-menu-model-normal\">\n\n        <div class=\"tarsier-menu-header\">\n          <img class=\"tarsier-logo\" src=\"" + this.options.logoURL + "\" />\n        </div>\n\n        <div class=\"" + this.options.tabsAreaClassName + "\">\n          <div class=\"" + this.options.tabClassName + " " + (this.options.isActiveFavoriteTab ? '' : 'active') + "\">\n            <button class=\"" + this.options.tabButtonClassName + "\"\n              id=\"" + this.menuTabBtnId + "\"><i class=\"" + this.options.menuIconClassName + "\"></i></button>\n            <div class=\"tarsier-menu-tab-deco\">\n              <div class=\"tarsier-menu-tab-deco-line\"></div>\n            </div>\n          </div>\n          <div class=\"" + this.options.tabClassName + " " + (this.options.isActiveFavoriteTab ? 'active' : '') + "\">\n            <button class=\"" + this.options.tabButtonClassName + "\"\n              id=\"" + this.favoriteMenuTabBtnId + "\"><i class=\"" + this.options.favoriteIconClassName + "\"></i></button>\n            <div class=\"tarsier-menu-tab-deco\">\n              <div class=\"tarsier-menu-tab-deco-line\"></div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"tarsier-menu-tab-body\">\n          <div class=\"" + this.options.treeAreaClassName + "\" id=\"" + this.menuTabBodyId + "\">\n            " + this.initTreeMenu(this.data, 10) + "\n          </div>\n          <div class=\"" + this.options.favoriteAreaClassName + "\" id=\"" + this.favoriteMenuTabBodyId + "\">\n            <ul>\n              " + this.initFavoritedMenu(this.data) + "\n            </ul>\n          </div>\n        </div>\n      </div>\n      <div class=\"tarsier-menu-model-less\">" + this.initLessMenu(this.data) + "</div>\n    </div>\n\n    <div class=\"tarsier-menu-footer\">\n      <button class=\"tarsier-menu-model-btn\" id=\"toggleModelBtn\">\n        <i class=\"tarsier-icon-left " + this.options.lessIconClassName + "\"></i>\n        <i class=\"tarsier-icon-right " + this.options.normalIconClassName + "\"></i>\n      </button>\n    </div>\n\n    <span class=\"tarsier-menu-less-label\"></span>\n    ");
+        };
+        Menu.prototype.initTreeMenu = function (data, level) {
+            var _this = this;
+            var html = data.map(function (item) { return _this.getOneTreeMenuHtml(item, level); });
+            html.unshift('<ul>');
+            html.push('</ul>');
+            return html.join('');
+        };
+        Menu.prototype.getOneTreeMenuHtml = function (item, level) {
+            if (level === void 0) { level = 0; }
+            return cleanHTML("\n    <li data-id=\"" + item.id + "\" class=\"tarsier-menu-tree-item " + (item.isSelect ? 'tarsier-menu-select' : '') + "\n      " + (Array.isArray(item.children) && item.isOpen ? 'tarsier-menu-open' : '') + "\n      \">\n      <div class=\"tarsier-menu-tree-item-header " + (Array.isArray(item.children) ?
+                'tarsier-menu-tree-item-folder' : '') + "\">\n        " + (item.url ? "<a href=\"" + item.url + "\" class=\"tarsier-menu-tree-item-label\"\n          style=\"margin-left: " + level + "px\">\n\n          " + (Array.isArray(item.children) ? "<i class=\"tarsier-menu-folder-icon\n          " + (item.isOpen ? this.options.openIconClassName : this.options.closeIconClassName) + "\"></i>"
+                : "<i class=\"" + item.iconClassName + " tarsier-menu-item-icon\"\n              style=\"" + (item.iconColor ? "color: " + item.iconColor : '') + "\"></i>") + "\n            <span class=\"tarsier-menu-tree-item-label-text\">" + item.label + "</span>\n          </a>" :
+                "<span class=\"tarsier-menu-tree-item-label tarsier-menu-tree-item-btn\" style=\"margin-left: " + level + "px\">\n          " + (Array.isArray(item.children) ? "<i class=\"tarsier-menu-folder-icon\n          " + (item.isOpen ? this.options.openIconClassName : this.options.closeIconClassName) + "\"></i>"
+                    : "<i class=\"" + item.iconClassName + " tarsier-menu-item-icon\"\n              style=\"" + (item.iconColor ? "color: " + item.iconColor : '') + "\"></i>") + "\n          <span class=\"tarsier-menu-tree-item-label-text\">" + item.label + "</span>\n        </span>") + "\n        <span class=\"tarsier-menu-tree-item-icon\">\n          " + (!Array.isArray(item.children) && !item.isDisallowFavorite ?
+                "<i class=\"tarsier-menu-favorite-icon\n              " + (item.isFavorite ? 'tarsier-menu-favorite' : '') + " " + this.options.favoriteIconClassName + "\"></i>" : '') + "\n        </span>\n      </div>\n      <div class=\"tarsier-menu-tree-item-body\"\n        style=\"max-height: " + (Array.isArray(item.children) ?
+                (item.isOpen ? getChildrenHeight(item.children) : 0) : 0) + "px\">\n          <div class=\"tarsier-menu-item-body-line-top\"></div>\n          <div class=\"tarsier-menu-item-body-line-bottom\"></div>\n        " + (Array.isArray(item.children) ? this.initTreeMenu(item.children, level + 10) : '') + "\n      </div>\n    </li>\n    ");
+        };
+        Menu.prototype.initFavoritedMenu = function (data) {
+            var _this = this;
+            var html = data.map(function (item) {
+                var str = '';
+                if (item.isFavorite) {
+                    str += _this.getOneFavoritedHtml(item);
+                }
+                if (Array.isArray(item.children)) {
+                    str += _this.initFavoritedMenu(item.children);
+                }
+                return str;
+            }).filter(function (str) { return str !== ''; });
+            return html.join('');
+        };
+        Menu.prototype.getOneFavoritedHtml = function (item) {
+            return cleanHTML("\n    <li data-id=\"" + item.id + "\" class=\"tarsier-menu-tree-item " + (item.isSelect ? 'tarsier-menu-select' : '') + "\">\n      <div class=\"tarsier-menu-tree-item-header\">\n        " + (item.url ? "<a href=\"" + item.url + "\" class=\"tarsier-menu-tree-item-label\">\n        <i class=\"" + item.iconClassName + " tarsier-menu-item-icon\"\n          style=\"" + (item.iconColor ? "color: " + item.iconColor : '') + "\"></i>\n          <span class=\"tarsier-menu-tree-item-label-text\">" + item.label + "</span>\n        </a>" :
+                "<span class=\"tarsier-menu-tree-item-label tarsier-menu-tree-item-btn\">\n          <i class=\"" + item.iconClassName + " tarsier-menu-item-icon\"\n          style=\"" + (item.iconColor ? "color: " + item.iconColor : '') + "\"></i>\n          <span class=\"tarsier-menu-tree-item-label-text\">" + item.label + "</span>\n        </span>") + "\n        <span class=\"tarsier-menu-tree-item-icon\">\n          <i class=\"tarsier-menu-favorite-icon tarsier-menu-favorite " + this.options.favoriteIconClassName + "\"></i>\n        </span>\n      </div>\n    </li>\n    ");
+        };
+        return Menu;
+    }());
+
+    var Nav = (function () {
+        function Nav(element, options) {
+            this.element = null;
+            this.rootElement = null;
+            this.userMenuCallback = [];
+            this.iconClickCallback = [];
+            this.breadcrumbClickCallback = [];
+            this.breadcrumbs = [];
+            this.defaultOptions = {
+                icons: [],
+                isShowUserName: false,
+                userInfo: {
+                    avatar: '',
+                    menus: [],
+                    userName: '',
+                },
+            };
+            this.options = __assign({}, this.defaultOptions, options);
+            this.options.icons.forEach(function (item) {
+                if (!item.id) {
+                    item.id = makeRandomID();
+                }
+            });
+            this.element = element;
+            this.init();
+        }
+        Nav.prototype.setBreadcrumbs = function (arr) {
+            this.breadcrumbs = arr.slice();
+            this.initBreadcrumbs();
+        };
+        Nav.prototype.userMenuClick = function (callback) {
+            this.userMenuCallback.push(callback);
+        };
+        Nav.prototype.showUserMenu = function () {
+            var userInfo = this.rootElement.querySelector('.tarsier-nav-userinfo');
+            var arr = getElementClass(userInfo);
+            if (arr.indexOf('active') === -1) {
+                arr.push('active');
+                userInfo.className = arr.join(' ');
+            }
+        };
+        Nav.prototype.hideUserMenu = function () {
+            var userInfo = this.rootElement.querySelector('.tarsier-nav-userinfo');
+            var arr = getElementClass(userInfo);
+            var index = arr.indexOf('active');
+            if (index >= 0) {
+                arr.splice(index, 1);
+                userInfo.className = arr.join(' ');
+            }
+        };
+        Nav.prototype.toggleUserMenu = function () {
+            var userInfo = this.rootElement.querySelector('.tarsier-nav-userinfo');
+            var arr = getElementClass(userInfo);
+            var index = arr.indexOf('active');
+            if (index >= 0) {
+                arr.splice(index, 1);
+                userInfo.className = arr.join(' ');
+            }
+            else {
+                arr.push('active');
+                userInfo.className = arr.join(' ');
+            }
+        };
+        Nav.prototype.showUserName = function () {
+            var element = this.rootElement.querySelector('.tarsier-nav-username');
+            this.options.isShowUserName = true;
+            element.style.display = 'block';
+        };
+        Nav.prototype.hideUserName = function () {
+            var element = this.rootElement.querySelector('.tarsier-nav-username');
+            this.options.isShowUserName = false;
+            element.style.display = 'none';
+        };
+        Nav.prototype.toggleUserName = function () {
+            if (this.options.isShowUserName) {
+                this.hideUserName();
+            }
+            else {
+                this.showUserName();
+            }
+        };
+        Nav.prototype.setIconBadge = function (id, isBadge) {
+            var item = this.getIconItemByID(id);
+            var liElement = this.rootElement.querySelector(".tarsier-nav-icons li[data-id=\"" + id + "\"]");
+            if (item && liElement) {
+                item.isBadge = isBadge;
+                var arr = getElementClass(liElement);
+                var name_1 = 'tarsier-show-badge';
+                var index = arr.indexOf(name_1);
+                if (isBadge && index === -1) {
+                    arr.push(name_1);
+                    liElement.className = arr.join(' ');
+                }
+                else if (!isBadge && index >= 0) {
+                    arr.splice(index, 1);
+                    liElement.className = arr.join(' ');
+                }
+            }
+        };
+        Nav.prototype.setAllIconBadge = function (isBadge) {
+            var _this = this;
+            this.options.icons.forEach(function (item) {
+                _this.setIconBadge(item.id, isBadge);
+            });
+        };
+        Nav.prototype.addIconClickListener = function (callback) {
+            this.iconClickCallback.push(callback);
+        };
+        Nav.prototype.addBreadcrumbClickListener = function (callback) {
+            this.breadcrumbClickCallback.push(callback);
+        };
+        Nav.prototype.getIconItemByID = function (id) {
+            for (var _i = 0, _a = this.options.icons; _i < _a.length; _i++) {
+                var item = _a[_i];
+                if (item.id === id) {
+                    return item;
+                }
+            }
+            return null;
+        };
+        Nav.prototype.init = function () {
+            this.rootElement = document.createElement('div');
+            this.rootElement.className = 'tarsier-nav';
+            this.initHTML();
+            this.initUserMenuEvent();
+            this.initIconEvent();
+            this.initEvent();
+            this.element.innerHTML = '';
+            this.element.appendChild(this.rootElement);
+        };
+        Nav.prototype.initUserMenu = function () {
+            var html = [];
+            html.push();
+            this.options.userInfo.menus.forEach(function (item) {
+                html.push(cleanHTML("\n      <li>\n        " + (item.url ? "\n        <a href=\"" + item.url + "\">\n          <i class=\"" + item.iconClassName + "\"></i>\n          <span class=\"tarsier-nav-usermenu-item-label\">" + item.label + "</span>\n        </a>\n        " : "\n        <span class=\"tarsier-nav-usermenu-item\" data-label=\"" + item.label + "\">\n          <i class=\"" + item.iconClassName + "\"></i>\n          <span class=\"tarsier-nav-usermenu-item-label\">" + item.label + "</span>\n        </span>\n        ") + "\n      </li>\n      "));
+            });
+            return html.join('');
+        };
+        Nav.prototype.initUserMenuEvent = function () {
+            var _this = this;
+            var span = this.rootElement.querySelectorAll('.tarsier-nav-usermenu-item');
+            var spanList = Array.prototype.slice.call(span);
+            spanList.forEach(function (spanElement) {
+                var label = spanElement.getAttribute('data-label');
+                spanElement.addEventListener('click', function () {
+                    _this.userMenuCallback.forEach(function (callback) {
+                        callback(label);
+                    });
+                }, false);
+            });
+            var main = this.rootElement.querySelector('.tarsier-nav-userinfo-main');
+            main.addEventListener('click', function (event) {
+                event.stopPropagation();
+                event.preventDefault();
+                _this.toggleUserMenu();
+            }, false);
+            document.addEventListener('click', function () {
+                _this.hideUserMenu();
+            }, false);
+        };
+        Nav.prototype.initIconEvent = function () {
+            var _this = this;
+            var i = this.rootElement.querySelectorAll('.tarsier-nav-icon');
+            var iListElement = Array.prototype.slice.call(i);
+            iListElement.forEach(function (iElement) {
+                var id = iElement.getAttribute('data-id');
+                var item = _this.getIconItemByID(id);
+                if (item && !item.url) {
+                    iElement.addEventListener('click', function () {
+                        _this.iconClickCallback.forEach(function (callback) {
+                            callback(__assign({}, item));
+                        });
+                    }, false);
+                }
+            });
+        };
+        Nav.prototype.initIcons = function () {
+            var html = [];
+            this.options.icons.forEach(function (item) {
+                html.push(cleanHTML("\n        <li class=\"" + (item.isBadge ? 'tarsier-show-badge' : '') + "\" data-id=\"" + item.id + "\">\n          " + (item.url ? "\n          <a href=\"" + item.url + "\">\n            <i class=\"" + item.iconClassName + " tarsier-nav-icon\" data-id=\"" + item.id + "\"></i>\n            " + (item.label ? "<span class=\"tarsier-nav-icon-label\">" + item.label + "</span>" : '') + "\n          </a>\n          " : "\n          <span>\n            <i class=\"" + item.iconClassName + " tarsier-nav-icon\" data-id=\"" + item.id + "\"></i>\n            " + (item.label ? "<span class=\"tarsier-nav-icon-label\">" + item.label + "</span>" : '') + "\n          </span>\n          ") + "\n          <span class=\"tarsier-badge\"></span>\n        </li>\n      "));
+            });
+            return html.join('');
+        };
+        Nav.prototype.initBreadcrumbs = function () {
+            var html = [];
+            this.breadcrumbs.forEach(function (item) {
+                html.push(cleanHTML("\n        <li>\n          " + (item.url ? "\n          <a href=\"" + item.url + "\" class=\"tarsier-breadcrumb-label\">" + item.label + "</a>\n          " : "\n          <span class=\"tarsier-breadcrumb-label\">" + item.label + "</span>\n          ") + "\n        </li>\n      "));
+            });
+            this.rootElement.querySelector('.tarsier-breadcrumbs').innerHTML = html.join('');
+        };
+        Nav.prototype.initEvent = function () {
+            var _this = this;
+            this.rootElement.addEventListener('click', function (event) {
+                var element = event.srcElement;
+                var arr = getElementClass(element);
+                if (element.tagName.toLocaleLowerCase() !== 'a' && arr.indexOf('tarsier-breadcrumb-label') >= 0) {
+                    _this.breadcrumbClickCallback.forEach(function (callback) {
+                        callback({
+                            label: element.innerHTML.trim(),
+                        });
+                    });
+                }
+            }, false);
+        };
+        Nav.prototype.initHTML = function () {
+            this.rootElement.innerHTML = cleanHTML("\n    <div class=\"tarsier-nav-body\">\n      <div class=\"tarsier-nav-main\">\n        <div class=\"tarsier-breadcrumbs\"></div>\n      </div>\n\n      <div class=\"tarsier-nav-right\">\n        <ul class=\"tarsier-nav-icons\">\n          " + this.initIcons() + "\n        </ul>\n\n        <div class=\"tarsier-nav-userinfo\">\n          <div class=\"tarsier-nav-userinfo-main\">\n            <img src=\"" + this.options.userInfo.avatar + "\" alt=\"avatar\" />\n            <span class=\"tarsier-nav-username\" style=\"display: " + (this.options.isShowUserName ? 'block' : 'none') + "\">\n              " + this.options.userInfo.userName + "\n            </span>\n          </div>\n\n          <div class=\"tarsier-nav-usermenu\">\n            <ul>\n              " + this.initUserMenu() + "\n            </ul>\n          </div>\n        </div>\n      </div>\n    </div>\n    ");
+        };
+        return Nav;
+    }());
+
+    var Snackbar = (function () {
+        function Snackbar(options) {
+            this.autoHideTimer = {};
+            this.topMargin = 60;
+            this.itemMargin = 10;
+            this.defaultOptions = {
+                autoHideDuration: 5000,
+                closeIconClassName: 'ts ts-wrong',
+                errorIconClassName: 'ts ts-error',
+                queueSize: 3,
+                successIconClassName: 'ts ts-success',
+                warnIconClassName: 'ts ts-warn',
+            };
+            this.options = __assign({}, this.defaultOptions, options);
+            this.init();
+            this.initEvent();
+        }
+        Snackbar.prototype.error = function (text) {
+            return this.show(text, 'error');
+        };
+        Snackbar.prototype.warn = function (text) {
+            return this.show(text, 'warn');
+        };
+        Snackbar.prototype.success = function (text) {
+            return this.show(text, 'success');
+        };
+        Snackbar.prototype.close = function (id) {
+            var _this = this;
+            var snackbars = this.rootElement.querySelectorAll('.tarsier-snackbar-item');
+            var items = Array.prototype.slice.call(snackbars);
+            var element = document.querySelector(".tarsier-snackbar-item[data-id=\"" + id + "\"]");
+            if (element && this.autoHideTimer[id]) {
+                clearTimeout(this.autoHideTimer[id]);
+                delete this.autoHideTimer[id];
+                element.style.opacity = '0';
+                setTimeout(function () {
+                    var offsetTop = 0;
+                    items.forEach(function (item) {
+                        if (item === element) {
+                            offsetTop = element.clientHeight + _this.itemMargin;
+                        }
+                        else if (offsetTop > 0) {
+                            var top_1 = parseInt(item.style.top, 10) - offsetTop;
+                            item.style.top = top_1 + "px";
+                        }
+                    });
+                    _this.rootElement.removeChild(element);
+                }, 200);
+            }
+        };
+        Snackbar.prototype.closeAll = function () {
+            var _this = this;
+            Object.keys(this.autoHideTimer).forEach(function (id) {
+                _this.close(id);
+            });
+        };
+        Snackbar.prototype.initEvent = function () {
+            var _this = this;
+            this.rootElement.addEventListener('click', function (event) {
+                var element = event.srcElement;
+                var arr = getElementClass(element);
+                if (arr.indexOf('tarsier-snackbar-item-close-btn') >= 0) {
+                    _this.close(element.getAttribute('data-id'));
+                }
+            }, false);
+        };
+        Snackbar.prototype.show = function (text, type) {
+            var _this = this;
+            var div = document.createElement('div');
+            var id = makeRandomID();
+            var snackbars = this.rootElement.querySelectorAll('.tarsier-snackbar-item');
+            var items = Array.prototype.slice.call(snackbars);
+            div.setAttribute('data-id', id);
+            div.className = "tarsier-snackbar-item tarsier-snackbar-item-in tarsier-snackbar-" + type;
+            var typeIconClass = this.options.successIconClassName;
+            if (type === 'warn') {
+                typeIconClass = this.options.warnIconClassName;
+            }
+            else if (type === 'error') {
+                typeIconClass = this.options.errorIconClassName;
+            }
+            var html = "\n      <span class=\"tarsier-snackbar-item-icon\">\n        <i class=\"" + typeIconClass + "\"></i>\n      </span>\n      <div class=\"tarsier-snackbar-item-message\">" + text + "</div>\n      <span class=\"tarsier-snackbar-item-close\">\n        <i class=\"" + this.options.closeIconClassName + " tarsier-snackbar-item-close-btn\" data-id=\"" + id + "\"></i>\n      </span>\n    ";
+            div.innerHTML = html;
+            this.rootElement.insertBefore(div, items[0]);
+            this.autoHideTimer[id] = setTimeout(function () {
+                _this.close(id);
+            }, this.options.autoHideDuration);
+            setTimeout(function () {
+                div.style.top = _this.topMargin + "px";
+                var offsetTop = div.clientHeight + _this.itemMargin;
+                items.forEach(function (item, index) {
+                    var top = parseInt(item.style.top, 10) + offsetTop;
+                    item.style.top = top + "px";
+                });
+                if (items.length > _this.options.queueSize - 1) {
+                    _this.close(items[_this.options.queueSize - 1].getAttribute('data-id'));
+                }
+            });
+            return id;
+        };
+        Snackbar.prototype.init = function () {
+            this.rootElement = document.createElement('div');
+            this.rootElement.className = 'tarsier-snackbar';
+            document.body.appendChild(this.rootElement);
+        };
+        return Snackbar;
+    }());
+
+    var main = {
+        CheckBrowser: CheckBrowser,
+        Menu: Menu,
+        Nav: Nav,
+        Snackbar: Snackbar,
+        utility: utility,
+        version: '2.2.0',
+    };
+
+    return main;
+
+})));

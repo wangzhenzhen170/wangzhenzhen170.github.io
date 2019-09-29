@@ -1,0 +1,222 @@
+/**
+ * Created by uinnova on 2017/11/14.
+ */
+(function (graph) {
+
+    'use strict';
+    graph.app.controller('fastShieldCtrl', ['$uibModal', 'isOsreen', '$scope', '$uibModalInstance', 'MonitoringService', 'OScreenService', 'item', 'Unit', 'closeFn', function ($uibModal, isOsreen, $scope, $uibModalInstance, MonitoringService, OScreenService, item, Unit, closeFn) {
+        $scope.startTime = new Date().getTime();
+        $scope.deFaultItem = item;
+        $scope.severityValue = $scope.deFaultItem.SEVERITY;
+        $scope.okParms = {
+            selectorList: [
+                {
+                    selectors: [
+                        {
+                            property: 'SOURCECINAME',
+                            operator: '==',
+                            value: $scope.deFaultItem.SOURCECINAME,
+                            propertyDesc: L.get('EMV_SOURCE_ALARM_OBJECT'),
+                            operatorDesc: L.get('EMV_EQUAL')
+                        },
+                        {
+                            property: 'SEVERITY',
+                            operator: '==',
+                            value: $scope.deFaultItem.SEVERITY,
+                            propertyDesc: L.get('COMMON_EVENTUSERCONFIG_LEVEL'),
+                            operatorDesc: L.get('EMV_EQUAL')
+                        },
+                        {
+                            property: 'SOURCEALERTKEY',
+                            operator: '==',
+                            value: $scope.deFaultItem.SOURCEALERTKEY,
+                            propertyDesc: L.get('EMV_SOURCE_INDICATOR_NAME'),
+                            operatorDesc: L.get('EMV_EQUAL')
+                        }
+                    ]
+                }
+            ],
+            timeframe: {
+                loopType: 0,
+                isCross: 0,
+                startLoopTime: '00:00',
+                endLoopTime: '00:00',
+                days: []
+            }
+        };
+        $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE')+':'+L.get('COMMON_OBJECT') + $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value + ' '+ L.get('COMMON_AND') + ' ' + L.get('COMMON_EVENTUSERCONFIG_LEVEL') + ' ' + $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue + ' ' + L.get('COMMON_AND')+ ' ' + L.get('COMMON_INDICATOR') + $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+        //获取比较条件
+        $scope.toGetVal = function (type) {
+            //codeType14 获取比较条件  0等级
+            var parm = {
+                codeType: type,
+            }
+            if (type == 0) {
+                parm.add = [
+                    {
+                        codeType: type,
+                        name: L.get('COMMON_ALL'),
+                        value: '-1'
+                    }
+                ]
+            }
+
+            MonitoringService.getSelectorCodes(parm).success(function (result) {
+                if (result.success && result.data) {
+                    if (type === 14) {
+                        $scope.compareData = result.data;
+                    } else {
+                        //等级
+                        $scope.levelData = result.data;
+                    }
+                }
+
+            }).error(function () {
+            });
+        }
+        $scope.toGetVal(14);
+        $scope.toGetVal(0);
+        $scope.selectTimeListAry = [
+            {
+                name: '30 '+ L.get('COMMON_MINUTE'),
+                value: 0.5
+            },
+            {
+                name: '1 ' + L.get('COMMON_HOUR'),
+                value: 1
+            },
+            {
+                name: '2 ' + L.get('COMMON_HOUR'),
+                value: 2
+            },
+            {
+                name: '6 ' + L.get('COMMON_HOUR'),
+                value: 6
+            },
+            {
+                name: '12 ' + L.get('COMMON_HOUR'),
+                value: 12
+            },
+            {
+                name: '24 ' + L.get('COMMON_HOUR'),
+                value: 24
+            },
+        ]
+        $scope.selectTimeListAry.forEach(function (val, index) {
+            var oDate;
+            val.endTime = $scope.startTime + 60 * 60 * 1000 * val.value;
+            oDate = new Date(val.endTime);
+            val.toEndTime = (oDate.getMonth() + 1)  + '-' + oDate.getDate() + ' ' + (oDate.getHours() > 9 ? oDate.getHours() : '0' + oDate.getHours()) + ':' + (oDate.getMinutes() > 9 ? oDate.getMinutes() : '0' + oDate.getMinutes());
+            if (index === 0) {
+                $scope.selectTimeDefaul = val;
+                $scope.endTime = val.endTime
+
+            }
+        })
+
+        //屏蔽时间默认30分钟
+        $scope.goToSelectTime = function (e) {
+            e.stopPropagation();
+            $scope.chooseConditioncFlag = false;
+            $scope.selectFlag = !$scope.selectFlag;
+        }
+        $scope.getTime = function (item) {
+            $scope.selectTimeDefaul = item;
+            $scope.endTime = item.endTime;
+            $scope.selectFlag = false;
+        }
+        $scope.goChooseCondition = function (e, rule) {
+            e.stopPropagation();
+            rule.showFlag = rule.showFlag ? null : true;
+        }
+        $scope.goChooseSerial = function (e, rule) {
+            e.stopPropagation();
+            rule.showFlagSerial = rule.showFlagSerial ? null : true;
+        }
+        $scope.getLiValue = function (item, rule) {
+            rule.operatorDesc = item.name;
+            rule.operator = item.value;
+            rule.showFlag = null;
+            $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE')+':'+L.get('COMMON_OBJECT') + $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value + ' '+ L.get('COMMON_AND') + ' ' + L.get('COMMON_EVENTUSERCONFIG_LEVEL') + ' ' + $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue + ' ' + L.get('COMMON_AND')+ ' ' + L.get('COMMON_INDICATOR') + $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+
+        }
+        $scope.monitorDescription = function () {
+            $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE')+':'+L.get('COMMON_OBJECT') + $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value + ' '+ L.get('COMMON_AND') + ' ' + L.get('COMMON_EVENTUSERCONFIG_LEVEL') + ' ' + $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue + ' ' + L.get('COMMON_AND')+ ' ' + L.get('COMMON_INDICATOR') + $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+
+        }
+        $scope.getLiSerial = function (item, rule) {
+            $scope.severityValue = item.name;
+            rule.showFlagSerial = null;
+            $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE')+':'+L.get('COMMON_OBJECT') + $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value + ' '+ L.get('COMMON_AND') + ' ' + L.get('COMMON_EVENTUSERCONFIG_LEVEL') + ' ' + $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue + ' ' + L.get('COMMON_AND')+ ' ' + L.get('COMMON_INDICATOR') + $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+        }
+        $scope.setRuleFlag = true;
+        $scope.goSetRule = function () {
+            $scope.setRuleFlag = false;
+            $('.modal-fastShield').addClass('setH')
+        }
+        $scope.deleteVal = function (rule) {
+            rule.value = '';
+            $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE')+':'+L.get('COMMON_OBJECT') + $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value + ' '+ L.get('COMMON_AND') + ' ' + L.get('COMMON_EVENTUSERCONFIG_LEVEL') + ' ' + $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue + ' ' + L.get('COMMON_AND')+ ' ' + L.get('COMMON_INDICATOR') + $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+        }
+        $scope.ok = function () {
+            $scope.okParms.name = L.get('EMV_AUTO_SHIELD') + '_' + $scope.deFaultItem.SOURCECINAME + '_' + $scope.startTime,
+                $scope.okParms.timeframe.startTime = $scope.startTime;
+            $scope.okParms.timeframe.endTime = $scope.endTime;
+            if (!$scope.okParms.selectorList[0].selectors[0].value) {
+                Unit.error(L.get('EMV_OBJECT_VALUES_CANNOT_BE_EMPTY_IN_SHIELD_RULES'));
+                return
+            }
+            if (!$scope.okParms.selectorList[0].selectors[2].value) {
+                Unit.error(L.get('EMV_ALARM_INDICATOR_CANNOT_BE_EMPTY_IN_SHIELD_RULES'));
+                return
+            }
+            if (!$scope.okParms.description) {
+                Unit.error(L.get('EMV_DESCRIPTION_CANNOT_BE_EMPTY'));
+                return
+            }
+
+            $.each($scope.levelData, function () {
+                if (this.name == $scope.severityValue) {
+                    $scope.okParms.selectorList[0].selectors[1].value = this.value;
+                }
+            })
+            /*快速屏蔽*/
+            $uibModal.open({
+                size: 'sureShield',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/sureShield.html',
+                controller: 'sureShieldCtrl',
+                resolve: {
+                    selectList: function () {
+                        return $scope.okParms;
+                    },
+                    fn: function () {
+                        return function () {
+                            $uibModalInstance.close();
+                            closeFn();
+                        };
+                    }
+
+                }
+            });
+        };
+        // 取消按钮
+        $scope.cancel = function () {
+            $uibModalInstance.close({ ok: false });
+        };
+        // 取消按钮
+        $scope.cancleFn = function () {
+            $scope.selectFlag = false;
+            $.each($scope.okParms.selectorList[0].selectors, function () {
+                if (this.showFlag) {
+                    this.showFlag = null;
+                }
+                if (this.showFlagSerial) {
+                    this.showFlagSerial = null;
+                }
+            })
+
+        };
+    }])
+})(nameSpace.reg('graph'));

@@ -1,0 +1,33 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('CiCateService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+
+		// 获取分类
+		o.get = function(){
+			return $http.get(Unit.api('/cicate'));
+		};
+
+		// 创建分类
+		o.save = function(data){
+			return $http.post(Unit.api('/cicate'), data);
+		};
+
+		// 修改分类
+		o.update = function(id, data){
+			return $http.put(Unit.api('/cicate/' + id), data);
+		};
+
+		// 删除分类
+		o.remove = function(id){
+			return $http.delete(Unit.api('/cicate/' + id));
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

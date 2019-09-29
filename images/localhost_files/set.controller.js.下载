@@ -1,0 +1,72 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalRelationViewSetCtrl', ['$scope', '$uibModalInstance', 'ViewService', 'Unit', 'editor', function($scope, $uibModalInstance, ViewService, Unit, editor){
+
+		var cell = editor.graph.getSelectionCell();
+
+		$scope.direction = editor.graph.getCellAttr(cell, 'direction') ? editor.graph.getCellAttr(cell, 'direction') : 'down';
+
+		$scope.ok = function(){
+			$uibModalInstance.close();
+
+			if($scope.checked.length){
+				var arr = [];
+				$.each($scope.checked, function(){
+					arr.push(this.id);
+				});
+
+
+				editor.graph.setCellAttr(cell, 'view', arr.join('$'));
+				editor.graph.setCellAttr(cell, 'direction', $scope.direction);
+			}
+		};
+
+		$scope.$modal = $uibModalInstance;
+		$scope.staticUrl = Unit.static;
+
+		$scope.checked = [];
+		$scope.refresh = function(){
+			$scope.checked = [];
+			$.each($scope.views, function(){
+				if(this._checked){
+					$scope.checked.push(this);
+				}
+			});
+		};
+
+		$scope.clear = function(){
+			$scope.checked = [];
+			$.each($scope.views, function(){
+				this._checked = false;
+			});
+		};
+
+		ViewService.publicForRelation()
+			.success(function(result){
+				$scope.views = result.data;
+
+				if(cell){
+					var str = editor.graph.getCellAttr(cell, 'view');
+					if(str){
+						$.each(str.split('$'), function(){
+							var i;
+
+							for(i=0; i<$scope.views.length; i++){
+								if($scope.views[i].id === this){
+									$scope.views[i]._checked = true;
+									$scope.checked.push($scope.views[i]);
+								}
+							}
+						});
+					}
+				}
+
+
+			});
+	}]);
+
+
+})(nameSpace.reg('graph'));

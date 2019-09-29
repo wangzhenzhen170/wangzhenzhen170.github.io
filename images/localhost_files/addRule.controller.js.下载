@@ -1,0 +1,36 @@
+(function(graph){
+
+	'use strict';
+	graph.app.controller('AddRuleCtrl', ['$uibModal','$scope', '$uibModalInstance', 'MonitoringService','fn','Unit',function($uibModal,$scope, $uibModalInstance,MonitoringService,fn,Unit) {
+		$scope.ok = function () {
+			console.log($scope.newRuleName)
+			if($scope.newRuleName){
+					//item=$scope.newRuleName;
+				    MonitoringService.checkRuleName( {
+						"name": $scope.newRuleName
+					}).success(function(result){
+						$uibModalInstance.close({ok: false});
+						console.log($scope.newRuleName)
+						fn('',$scope.newRuleName);
+					}).error(function(){
+            Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+					});
+
+
+			}else{
+				Unit.error(L.get('COMMON_RULE_NAME_CANNOT_BE_EMPTY'))
+			}
+
+
+
+		};
+
+		// 取消按钮
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+
+
+
+	}])
+})(nameSpace.reg('graph'));

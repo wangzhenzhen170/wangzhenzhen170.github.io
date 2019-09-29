@@ -1,0 +1,201 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxScriptEffect', ['_emxBaseSvg', function (baseSvg) {
+
+        /*************************************************************************************************************************/
+
+        /**
+         * 角标效果
+         */
+        return baseSvg.extend({
+
+            /**
+             * 初始化
+             * @param {Number} cellSize - 元素尺寸，用于决定角标的大小默认为80，角标半径为 cellSize / 5
+             */
+            init: function (mxg, cellSize) {
+                this._super(mxg);
+
+                this.cellSize = cellSize || 80;
+
+                // 定义一个高斯模糊
+                this._blur = this._defGaussianBlur(1);
+                this._gradient = this._defLinearGradient('superscript_cover', [['0%', 'white', '0.4'], ['100%', 'white', '0']],
+                    true);
+            },
+
+            /**
+             * 为cell创建角标效果
+             * @param {Array<mxCell|String>} cells
+             * @param {String=gray} color - 颜色
+             * @param {String} text - 角标内容
+             */
+            createEffect: function (cells, color, text) {
+                cells = cells instanceof Array ? cells : [cells];
+                color = color || 'gray';
+                text = text || "";
+
+                var i, cell, node, geo, txt, bbox;
+
+                for (i in cells) {
+                    cell = this.getCell(cells[i]);
+                    geo = this.getCellGeo(cell);
+                    node = this.cellEffects[cell.id];
+                    if (!node) {
+                        node = this.createSvg('g', {
+                            'class': 'uEffect effect-script pointer'
+                        });
+
+                        this.cellEffects[cell.id] = node;
+
+                        node.appendChild(this.createSvg('circle', {
+                            stroke: 'rgba(255, 255, 255, 0.13)'
+                        })); // , {filter: 'url(#' + this._blur + ')'}
+                        // 渐变
+                        node.appendChild(this.createSvg('circle', {
+                            fill: 'url(#' + this._gradient + ')',
+                            stroke: 'rgba(255, 255, 255, 0.13)',
+                            'data-cellid': cell.id
+                        }));
+                        node.appendChild(this.createSvg('text', {
+                            fill: 'white',
+                            'dominant-baseline': 'middle',
+                            'font-family': 'sans-serif',
+                            'font-weight': 'bold',
+                            'data-cellid': cell.id
+                        }));
+                    }
+                    //            this.attr(node.getElementsByTagName('circle')[0],
+                    //                      {r: geo.width / 4,
+                    //                       cx: geo.x + geo.width / 4 * 3,
+                    //                       cy: geo.y + geo.width / 4,
+                    //                       fill: color
+                    //                      });
+                    txt = node.getElementsByTagName('text')[0];
+                    txt.textContent = text;
+
+                    //            this._placeNode(node, cell);
+                    //
+                    //            bbox = txt.getBBox();
+                    //            this.attr(txt, {
+                    //                x: geo.x + geo.width / 4 * 3 - bbox.width / 2,
+                    //                y: geo.y + geo.width / 4 + bbox.height / 2
+                    //            });
+                    this.syncEffect(cell);
+                    this.attr(node.getElementsByTagName('circle')[0], {
+                        fill: color
+                    });
+
+                    this.pushToCell(cell);
+                }
+            },
+
+            _placeNode: function (node, cell) {
+                this.toCellFront(node, cell);
+            },
+
+            syncEffect: function (cell) {
+                this._super(cell);
+
+                var node = this.getEffectNode(cell),
+                    state = this.getCellState(cell),
+                    geo, txt, bbox, cx, cy, r;
+                if (node && state) {
+                    geo = this.getCellGeo(cell);
+                    // 半径
+                    r = this.cellSize * this.getViewScale() / 6;
+                    r = Math.max(r, 8);
+                    // 计算圆心位置
+                    cx = geo.x + geo.width; // - r / 2;
+                    cy = geo.y; // + r / 2;
+
+                    this.attr(node.getElementsByTagName('circle')[0], {
+                        r: r,
+                        cx: cx + 7,
+                        cy: cy + 8,
+                        'stroke-width': r / 6,
+                    });
+                    // gradient
+                    this.attr(node.getElementsByTagName('circle')[1], {
+                        r: r,
+                        cx: cx + 7,
+                        cy: cy + 8,
+                        'stroke-width': r / 6,
+                    });
+
+                    // 先要把标签插入文档才能用getBBox获取值
+                    this._placeNode(node, cell);
+
+                    txt = node.getElementsByTagName('text')[0];
+                    bbox = txt.getBBox();
+                    this.attr(txt, {
+                        x: cx - bbox.width / 2 + 7,
+                        y: cy + 8 // + bbox.height / 2
+                    });
+
+                }
+            },
+
+            onTransform: function () {
+                this.syncAllEffect();
+            },
+
+            onChange: function () {
+                this.syncAllEffect();
+            },
+
+            // 执行动画时的每帧更新
+            update: function (t) {
+                this._animate_lasttime_ = this._animate_lasttime_ ? this._animate_lasttime_ : t;
+                var diff = t - this._animate_lasttime_;
+                if (diff > this._animate_duration_ || diff < 0) {
+                    this._animate_lasttime_ = t;
+                    diff = 0;
+                }
+                if (diff >= 0) {
+                    var half = this._animate_duration_ / 2,
+                        efs = this.cellEffects,
+                        i, node;
+                    for (i in efs) {
+                        node = efs[i];
+                        node && this.attr(node, {
+                            opacity: Math.abs(diff - half) / half
+                        });
+                    }
+
+                }
+
+
+                //        this._animate_lasttime_ = t;
+            },
+
+            /**
+             * 获取角标内容
+             * @param {mxCell|String} cell
+             */
+            getTextContent: function (cell) {
+                var node = this.getEffectNode(cell);
+                if (node) {
+                    return node.getElementsByTagName('text')[0].textContent;
+                }
+            },
+
+            hide: function (cell) {
+                var node = this.getEffectNode(cell);
+                if (node) {
+                    this.attr(node, 'visibility', 'hidden');
+                }
+            },
+
+            show: function (cell) {
+                var node = this.getEffectNode(cell);
+                if (node) {
+                    this.attr(node, 'visibility', 'visible');
+                }
+            }
+        });
+
+
+    }]);
+})();

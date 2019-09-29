@@ -1,0 +1,204 @@
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('ruleFilterEventDerive', function() {
+		return {
+			restrict : 'AE',
+			replace : true,
+            scope: {
+				ruleType : '@ruleType',
+				lineLong: '=lineLong',
+				copyValueFun:'=copyValueFun',
+				
+
+            },
+			templateUrl: 'app/directive/ruleFilterEvent/ruleFilterEventDerive.html',
+			controller: ['$scope', '$timeout', '$state','DefinedEventsService','Unit','uDialog','MonitoringService','$uibModal',function($scope, $timeout,$state,DefinedEventsService,Unit,uDialog,MonitoringService,$uibModal){
+				$scope.mdelObj={"function": true,ruleType:$scope.ruleType}
+				MonitoringService.getSelectorCodes({"codeType":14}).success(function(result) {
+					if(result.success){
+						$scope.operators=result.data
+					}else{
+						Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+					}
+						
+        })
+        $scope.L = L;
+				$scope.$on('sourceIdArray', function(event,data){
+					$scope.sourceId=data;
+				});
+				$scope.$on("importFlag",function(event,data){
+					$scope.importFlag=data;
+				})
+				fetch('assets/template/template.xlsx').then(function(r){return r.blob();}).then(function(r){
+					$scope.urlTemplate = URL.createObjectURL(r);
+				})
+				$scope.openXml=function(file){
+					if(file[0]){
+						var fileName=file[0].type;
+						var idx = fileName.lastIndexOf(".");   
+						if (idx != -1){   
+							var ext = fileName.substr(idx+1).toUpperCase();   
+							var ext = ext.toLowerCase( ); 
+							if (ext != 'sheet' ){
+								Unit.error(L.get('EMV_ONLY_XLSX_CAN_BE_UPLOADED')); 
+								return;  
+							}else{
+								MonitoringService.importSelector(file).success(function(result) {
+									if(result.data.selectorList){
+										$.each(result.data.selectorList, function () {
+											$scope.rules.push(this.selectors)
+											$scope.lineLong();
+											$scope.$emit('rulesnew', $scope.rules);
+											Unit.success(L.get('COMMON_BS_OBJ_SUCCESS_UPLOAD')); 
+										});
+									}else{
+										Unit.error(L.get('EMV_FORMAT_OF_THE_IMPORTED_FILE_NOT_MEET_THE_REQUIREMENTS')); 
+									}
+								})
+								
+							}   
+						}else{  
+						
+								Unit.error(L.get('EMV_ONLY_XLSX_CAN_BE_UPLOADED')); 
+								return;
+							}   
+						}else{
+							if(result.data){
+								Unit.error(result.data.message+L.get('COMMON_UPLOADFAILED'))
+							}else{
+								Unit.error(L.get('COMMON_UPLOADFAILED'))
+							}
+						}
+				}
+				if($scope.ruleType==1){
+					$scope.mdelObj.except=["SUMMARY","EVENTTITLE","CICATEGORYNAME","CINAME"];
+					$scope.mdelObj.default="SOURCECINAME";
+				}
+				$scope.$on('rulesnew', function(event,data){
+					$scope.rules=angular.copy(data);//接受值
+					
+				});
+				
+				
+				MonitoringService.getModelCode($scope.mdelObj).success(function(result) {
+					if(result.success){
+						$scope.classList=result.data;
+					}else{
+            Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+					}
+				})
+				
+				
+				$scope.rules= [
+					[
+						{
+							property: "CINAME",
+							operator:"==",
+							value :"*",
+							propertyDesc: L.get('EMV_EVENT_OBJECT'),
+              operatorDesc: L.get('EMV_EQUAL')
+            }
+					]
+
+				];
+				
+				
+
+				//添加或关系
+				$scope.AndaddRuleFun=function(orRule){
+					orRule.push(
+						{
+							property: "CINAME",
+							operator:"==",
+							value :"*",
+							propertyDesc:L.get('EMV_EVENT_OBJECT'),
+							operatorDesc:L.get('EMV_EQUAL')
+
+						}
+					);
+					$scope.lineLong();
+					$scope.copyValueFun($scope.rules);
+					$scope.$emit('rulesnew', $scope.rules);
+					
+				}
+				//删除且、或关系
+				$scope.removeAnd=function ($index,rule) {
+					rule.splice($index,1);
+					$scope.copyValueFun($scope.rules);
+					$scope.lineLong();
+					$scope.$emit('rulesnew', $scope.rules);
+				}
+				//添加且关系
+				$scope.addRule = function(){
+					
+					$scope.rules.push(
+						[
+							{
+								property: "CINAME",
+								operator:"==",
+								value :"*",
+								propertyDesc:L.get('EMV_EVENT_OBJECT'),
+								operatorDesc:L.get('EMV_EQUAL')
+							}
+						]
+					);
+					$scope.lineLong();
+					$scope.copyValueFun($scope.rules);
+					$scope.$emit('rulesnew', $scope.rules);
+				}
+
+				//预览列表
+				$scope.previewListFun=function(){
+					var selectorList = [];
+					$.each($scope.rules, function () {
+						var json = {};
+						json.selectors = this;
+						selectorList.push(json);
+					});
+					$uibModal.open({
+						size: 'previewList',
+						animation: true,
+						backdrop: 'static',
+						templateUrl: 'app/modal/manageAlert/previewList.html',
+						controller: 'previewCtrl',
+						resolve: {
+							list: function() {
+								return selectorList
+							},
+							sourceId: function() {
+								return $scope.sourceId
+							},
+						}
+					});
+				};
+				
+				//select框自定义赋值
+				$scope.selectClassify = function(andrule, value1,value2) {
+					andrule.property = value1;
+					andrule.propertyDesc=value2;
+					$scope.copyValueFun($scope.rules);
+					$scope.$emit('rulesnew', $scope.rules);
+					
+
+				}
+				$scope.eventValueFun=function(){
+					//$scope.$emit('rules', $scope.rules);
+					$scope.$emit('rulesnew', $scope.rules);
+					$scope.copyValueFun($scope.rules);
+				}
+				$scope.selectProp = function(andrule, value1,value2) {
+					andrule.operator = value1;
+					andrule.operatorDesc = value2;
+					$scope.copyValueFun($scope.rules);
+					$scope.$emit('rulesnew', $scope.rules);
+					
+
+				}
+
+			}]
+		};
+	});
+
+})(nameSpace.reg('graph'));

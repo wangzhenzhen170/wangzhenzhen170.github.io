@@ -1,0 +1,369 @@
+/**
+ * Created by uinnova on 2017/11/14.
+ */
+(function(graph){
+
+	'use strict';
+	graph.app.controller('goRecordCtrl', ['$uibModal','isOsreen','$scope', '$uibModalInstance', 'MonitoringService','OScreenService','item','Unit','fn',function($uibModal,isOsreen,$scope, $uibModalInstance,MonitoringService,OScreenService,item,Unit,fn) {
+		item;/*存在即为修改，不存在添加*/
+		/*获取比较条件*/
+		$scope.isOsreen=isOsreen
+		console.log(item)
+		$scope.toGetVal=function(type){
+			/*codeType14 获取比较条件  0等级 */
+			var parm={
+				codeType:type,
+			}
+			if(type==0){
+				parm.add=[
+					{
+						codeType: type,
+						name:L.get('COMMON_ALL'),
+						value: "0"
+
+					}
+				]
+			}
+			if(type==14){
+				parm.except=['!=','NOT CONTAINS']
+			}
+			$scope.severityGroup=[];
+			MonitoringService.getSelectorCodes(parm).success(function(result){
+				if(result.success){
+					if(type==14){
+						$scope.compareData=result.data||[];
+					}
+					if(type==0){/*等级*/
+						$scope.levelData=result.data||[];
+						if($scope.levelData.length){
+							$scope.allServitys={
+								codeType: 0,
+								name: L.get('COMMON_ALL'),
+								value: "0"
+							}
+						}
+
+						if(item&&item.id){
+							$.each($scope.okParms.selectors[2].values,function(){
+								var curVal=this;
+								$.each($scope.levelData,function(index,data){
+									if(data.value==curVal){
+										data.selected=true;
+										$scope.severityGroup.push(data);
+									}
+								})
+							})
+						}
+						if(item&&!item.id){
+							$.each($scope.levelData,function(index,data){
+								if(data.name==$scope.okParms.selectors[2].values){
+									data.selected=true;
+									$scope.severityGroup.push(data);
+								}
+							})
+						}
+						if($scope.severityGroup.length&&$scope.severityGroup[0].name==L.get('COMMON_ALL')){
+							$.each($scope.levelData,function(index,data){
+								data.selected=true;
+							})
+						}
+					}
+
+
+
+				}
+
+			}).error(function(){
+			});
+		}
+		$scope.toGetVal(14);
+		if(item&&item.id){/*修改*/
+			MonitoringService.getExperienceById(item.id).success(function(result){
+				if(result.success){
+					$scope.okParms=result.data;
+					$scope.toGetVal(0);
+				}else{
+
+				}
+
+			}).error(function(){
+
+			});
+		}else{
+			$scope.okParms={
+				experience:'',
+				selectors:[
+					{
+						property:'SOURCECINAME' ,
+						operator: "==",
+						value:item?item.SOURCECINAME:'',
+						propertyDesc: L.get('COMMON_OBJECT'),
+						operatorDesc: L.get('EMV_EQUAL')
+					},
+					{
+						property: "KPINAME",
+						operator: "==",
+						value:item?item.KPINAME:'',
+						propertyDesc: L.get('COMMON_INDICATOR'),
+						operatorDesc: L.get('EMV_EQUAL')
+					},
+					{
+						property: "SEVERITY",
+						operator: "==",
+						values:item?item.SEVERITY:'',
+						propertyDesc: L.get('COMMON_EVENTUSERCONFIG_LEVEL'),
+						operatorDesc: L.get('EMV_EQUAL')
+					},
+					{
+						property: "SUMMARY",
+						operator: "==",
+						value:item?item.SUMMARY:'',
+						propertyDesc: L.get('COMMON_DETAILS'),
+						operatorDesc: L.get('EMV_EQUAL')
+					}
+				],
+			};
+			$scope.toGetVal(0);
+		}
+
+		//$scope.okParms.description='筛选事件范围：对象等于'+item.SOURCECINAME+' 且 级别等于'+ item.SEVERITY+'且 指标等于'+item.KPINAME
+
+
+		$scope.goChooseCondition=function(e,rule){
+			e.stopPropagation();
+			if(rule.showFlag){
+				delete rule.showFlag
+			}else{
+				rule.showFlag=true;
+			}
+		}
+		$scope.goChooseSerial=function(e,rule){
+			e.stopPropagation();
+			if(rule.showFlagSerial){
+				delete rule.showFlagSerial
+			}else{
+				rule.showFlagSerial=true;
+			}
+		}
+		$scope.getLiValue=function(item,rule){
+			rule.operatorDesc=item.name;
+			rule.operator=item.value;
+			delete rule.showFlag;
+		}
+		$scope.getLiSerial=function(item,rule,e){
+			e.stopPropagation();
+			if(!item.selected){/*点击没选中的*/
+				if(item.name==L.get('COMMON_ALL')){/*选中全部*/
+					$.each($scope.levelData,function(){
+                       this.selected=true;
+					})
+					$scope.severityGroup=[item];
+				}else{/*选中单个*/
+					$scope.severityGroup.push(item);
+					if($scope.severityGroup.length==$scope.levelData.length-1){/*如果选中的个数等于全部个数了*/
+						$scope.severityGroup=[$scope.allServitys];/*等于全部*/
+						$.each($scope.levelData,function(){
+							this.selected=true;
+						})
+					}else{
+						item.selected=!item.selected;
+					}
+
+				}
+			}else{/*取消选中的*/
+				if(item.name==L.get('COMMON_ALL')){/*取消全部*/
+					$.each($scope.levelData,function(){
+						this.selected=false;
+
+					})
+					$scope.severityGroup=[];
+				}else{/*取消单个*/
+					if($scope.severityGroup.length==1&&$scope.severityGroup[0].name==L.get('COMMON_ALL')){/*当前状态是全部状态*/
+						$scope.severityGroup=[];
+						$.each($scope.levelData,function(index,data){
+							if(this.name!=L.get('COMMON_ALL')&&this.name!=item.name){
+								$scope.severityGroup.push(this);
+								this.selected=true;
+							}else{
+								this.selected=false;
+							}
+						})
+					}else{/*当前状态不是全部状态*/
+						$.each($scope.severityGroup,function(index,data){
+							if(this.name==item.name){
+								$scope.severityGroup.splice(index,1);
+								this.selected=false;
+							}
+						})
+
+					}
+
+				}
+			}
+
+		}
+		$scope.deleteSelectVal=function(e,item){
+			e.stopPropagation();
+			if(item.name==L.get('COMMON_ALL')){
+				$scope.severityGroup=[];
+				$.each($scope.levelData,function(index,data){
+					this.selected=false;
+				});
+				return false;
+			}
+			$.each($scope.severityGroup,function(index,data){
+				if(this.name==item.name){
+					$scope.severityGroup.splice(index,1);
+					this.selected=false;
+				}
+
+			})
+
+		}
+
+		$scope.goChooseSourceName = function(item, mailName) {
+				var type ='addGet';
+				$uibModal.open({
+					size: 'addEventObj',
+					animation: true,
+					backdrop: 'static',
+					templateUrl: 'app/modal/manageAlert/addEventObj.html',
+					controller: 'addEventObjCtrl',
+					resolve: {
+						type:function(){
+							return type;
+						},
+						fn:function(){
+							return function(d){
+								if(type=='add'){
+									$scope.getFocusData();
+								}
+								if(type=='get'||type=='addGet'){
+									//var getOjName=d;
+									$scope.okParms.selectors[0].value=d
+
+								}
+
+							}
+						}
+					}
+				});
+			}
+
+		$scope.deleteVal=function(rule){
+			rule.value='';
+		}
+		$scope.ok = function () {
+			if(!$scope.okParms.experience){
+				Unit.error(L.get('EMV_DESCRIPTION_CANNOT_BE_EMPTY'));
+				return
+			}
+			//$scope.okParms.experience =$scope.okParms.experience.replace("/\n/g" ,'<br/>')
+			if(!$scope.okParms.selectors[0].value){
+				Unit.error(L.get('EMV_OBJECT_VALUES_CANNOT_BE_EMPTY'));
+				return
+			}
+			if(!$scope.okParms.selectors[1].value){
+				Unit.error(L.get('EMV_INDICATOR_VALUES_CANNOT_BE_EMPTY'));
+				return
+			}
+			if(!$scope.severityGroup.length){
+				Unit.error(L.get('EMV_SEVERITY_CANNOT_BE_EMPTY'));
+				return
+			}
+			if(!$scope.okParms.selectors[3].value){
+				Unit.error(L.get('EMV_DESCRIPTION_CANNOT_BE_EMPTY2'));
+				return
+			}
+			$scope.okParms.selectors[2].values=[];
+			var severityStr='';
+			$.each($scope.severityGroup,function(index,data){
+				$scope.okParms.selectors[2].values.push(this.value);
+				if(index==0){
+					severityStr+=this.name
+				}else{
+					severityStr+='、'+this.name
+				}
+			});
+
+			var descriptionStr=''
+			$.each($scope.okParms.selectors,function(index,data){
+				if(index==0){
+					descriptionStr+=this.propertyDesc+this.operatorDesc+this.value
+				}else{
+					if(index==2){
+						descriptionStr+=' '+L.get('COMMON_AND')+' '+this.propertyDesc+this.operatorDesc+severityStr
+					}else{
+						descriptionStr+=' '+L.get('COMMON_AND')+' '+this.propertyDesc+this.operatorDesc+this.value
+					}
+
+				}
+
+
+			});
+			$scope.okParms.description=descriptionStr;
+			if($scope.okParms.description.length>=256){
+				Unit.error(L.get('EMV_DESCRIPTION_IS_TOO_LONG'));
+				return false;
+			}
+
+			$uibModalInstance.close( );
+			var validataId=$scope.okParms.id?$scope.okParms.id:0
+			/*验证*/
+			MonitoringService.selectorValidation($scope.okParms.selectors,validataId).success(function(result){
+				if(result.success){
+						if(result.data==0){
+							MonitoringService.saveExperience($scope.okParms).success(function(result){
+								if(result.success){
+									if($scope.okParms.id){
+										Unit.success(L.get('COMMON_MODIFICATION_SUCCESSFUL'));
+									}else{
+										Unit.success(L.get('COMMON_ADDING_SUCCESSFUL'));
+									}
+
+									fn();
+
+								}else{
+									Unit.error(L.get('EMV_FAILED_TO_ADD'))
+								}
+
+							}).error(function(){
+							});
+						}
+						if(result.data==1){
+							Unit.error(L.get('EMV_EXPERIENCE_HAS_ALREADY_EXISTED'));
+						}
+
+
+					}
+
+				}).error(function(){
+			});
+
+
+
+
+
+		};
+		/*换行*/
+		$scope.line2br=function(text){
+			return $("<div>").text(text).html().split("\n").join("<br />");
+		}
+		// 取消按钮
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+		// 取消
+		$scope.cancleFn = function () {
+			$.each($scope.okParms.selectors,function(){
+				if(this.showFlag){
+					delete this.showFlag
+				}
+				if(this.showFlagSerial){
+					delete this.showFlagSerial
+				}
+			})
+
+		};
+	}])
+})(nameSpace.reg('graph'));

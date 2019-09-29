@@ -1,0 +1,19 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('DiagramGroupService', ['$http', 'Unit', function($http, Unit){
+        var o = {};
+
+        o.queryGroupList = function() {
+            return $http.post(Unit.diagramApi('/group/queryGroupList'), {});
+        };
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

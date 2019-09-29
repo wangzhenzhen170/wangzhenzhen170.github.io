@@ -1,0 +1,72 @@
+(function () {
+
+	'use strict';
+
+	var app = angular.module('ljwSaveTags', []);
+
+	app.controller('SaveTagsCtrl', ['$scope', '$element',
+		function ($scope, $element) {
+
+			var con = $element[0].children[0].children[0];
+			var con2 = $element[0].children[0].children[1];
+
+			$scope.$parent.tagArr=[];
+
+			$scope.enters = function ($event) {
+
+				if (event.keyCode === 13) {
+
+					event.returnValue = false;
+					if(con.innerText!==''){
+						$scope.$parent.tagArr.push(con.innerText);
+						var d = document.createElement('div');
+						var d2=	document.createElement('div');
+
+						var txt = document.createTextNode(con.innerText);
+						d.appendChild(txt);
+
+						d2.style.backgroundColor = 'rgba(143,198,156,0.8)';
+						d2.style.float = 'left';
+						d2.style.borderRadius = '5px';
+						d.style.padding = '2px 5px';
+						d2.style.margin='2px 5px 2px 0';
+
+
+						var ch = con.childNodes;
+
+						for (var i = 0; i < ch.length; i++) {
+							if (ch[i].nodeType === 3) {
+								ch[i].remove();
+							}
+						}
+						d2.appendChild(d);
+						con2.appendChild(d2);
+					}
+
+					// console.log($scope.$parent.tagArr);
+				}
+			};
+
+			var d3=	document.createElement('div');
+			d3.style.clear='both';
+			con2.appendChild(d3)
+		}]);
+
+	app.directive('ljwSaveTags', [function () {
+
+		return {
+			restrict: 'A',
+			templateUrl: 'app/directive/ljwSave/saveTags.html',
+			controller: 'SaveTagsCtrl',
+			scope: true,
+			compile: function () {
+				return function (scope, element) {
+					// console.log(scope)
+				};
+			}
+		};
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

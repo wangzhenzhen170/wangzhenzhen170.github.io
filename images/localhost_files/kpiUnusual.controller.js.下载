@@ -1,0 +1,130 @@
+/* global CanvasJS */
+
+
+(function(graph){
+
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, ciId, editor, CiService, PerformanceService, NgTableParams, Unit){
+
+		$scope.data = {
+			ciInfo: {
+				name: 'Loading...'
+			},
+			viewName: editor.state.view ? editor.state.view.name : '',
+			sceneId: 'test'
+		};
+
+		$scope.$modal = $uibModalInstance;
+
+		$scope.tableParams = new NgTableParams({
+			page: 1,
+			count: 10
+		}, {
+			total: 0,
+			counts: [],
+			getData: function($params){
+				var viewId, sceneId;
+
+				if(editor.state.view){
+					viewId = editor.state.view.id;
+					sceneId = editor.state.view.sceneId;
+				}
+
+				return CiService.getKpiUnusual(
+					ciId,
+					sceneId,
+					viewId,
+					editor.state.startTime,
+					editor.state.endTime,
+					$params.page(),
+					$params.count()
+				).then(function(result){
+					$params.total(result.data.data.total);
+					// Fix table pagination isn't display
+					result.data.data.length = result.data.data.total;
+					return result.data.data;
+				});
+
+			}
+		});
+
+		$scope.charts = function(row, index){
+			row._expend = !row._expend;
+
+			if(row._expend){
+				PerformanceService.getChart(row.ciId, row.kpiId)
+					.success(function(result){
+
+						var datas = [], arr = [];
+
+						// TODO 后台最好要修改统一返回data
+						result.data = result.datas;
+
+						try{
+							arr = JSON.parse(result.data.values);
+						}catch (e){
+							Unit.error('错误: 数据异常');
+							return;
+						}
+
+						if(arr.length){
+							$.each(arr, function(){
+								var _this = this;
+								var o = {
+									name: _this.inst,
+									type: 'line',
+									showInLegend: true,
+									markerSize: 0,
+									dataPoints: []
+								};
+
+								$.each(_this.value, function(){
+									o.dataPoints.push({
+										x: new Date(Unit.datetimeToUnix(this.label) * 1000),
+										y: Number(this.value)
+									});
+								});
+
+								datas.push(o);
+
+							});
+
+							row.chart = new CanvasJS.Chart('chart_' + row.kpiId + '_' + index,
+								{
+									title:{
+										text: result.data.subTitle
+									},
+									animationEnabled: true,
+									axisY :{
+										includeZero: false
+									},
+									toolTip: {
+										shared: 'true'
+									},
+									data: datas
+								});
+
+							row.chart.render();
+						}else{
+							row.isEmpty = true;
+						}
+
+					});
+			}
+		};
+
+		CiService.getCi(ciId)
+			.success(function(result){
+				$scope.data.ciInfo = result.data;
+			});
+
+	};
+
+	graph.app.controller('ModalKpiUnusualTableCtrl', ['$scope', '$uibModalInstance', 'ciId', 'editor', 'CiService', 'PerformanceService', 'NgTableParams', 'Unit', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

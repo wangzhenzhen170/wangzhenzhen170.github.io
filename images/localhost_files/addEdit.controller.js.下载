@@ -1,0 +1,160 @@
+(function(graph) {
+
+	'use strict';
+
+	graph.app.controller('editSceneCtrl', ['$scope', '$state', '$filter', 'Unit', '$uibModal', 'ScenceService','DiagramDiagramService','$sce', 'uDialog', function($scope, $state, $filter, Unit, $uibModal, ScenceService,DiagramDiagramService,$sce,uDialog) {
+		$scope.isExpand = 'full screen';
+		$scope.diagramInfo = {};
+		// 组合视图默认名称
+		$scope.comboDiagramName = '组合视图1';
+
+		// 处理div上ng-src属性报错问题
+		$scope.trustSrc = function(src) {
+			return $sce.trustAsResourceUrl(src);
+		}
+
+		//获取公开视图
+		$scope.curPage = 1;
+		$scope.diagramsList = [];
+		$scope.getOpenDiagrams = function() {
+			$scope.diagramsBusy = true;
+			if ($scope.isEnd) {
+				return;
+			}
+			var param = {
+				pageNum: $scope.curPage,
+				pageSize: 50,
+				orders: "modify_Time desc",
+				cdt:{diagramType: 1}
+			};
+			if ($scope.searchvalue) {
+				param.cdt.name = "%" + $scope.searchvalue + "%";
+			}
+			DiagramDiagramService.queryWorkabilityDiagram(param).success(function(data) {
+				$scope.diagramsBusy = false;
+				var dd = data.data.data;
+				if ($scope.curPage == 1 && !dd.length) {
+					$scope.diagramsEmpty = true;
+				} else {
+					$scope.diagramsEmpty = false;
+				}
+				if (!dd.length || data.data.totalPages == $scope.curPage) {
+					$scope.isEnd = true;
+				}
+				$.each(dd, function() {
+					this.diagramname = this.diagram.name;
+				});
+				if ($scope.curPage === 1) {
+					$scope.diagramsList = dd;
+				} else {
+					$scope.diagramsList = $scope.diagramsList.concat(dd);
+				}
+			});
+		};
+
+		$scope.getOpenDiagrams();
+
+		//下拉加载
+		var scrollWrap = $('.diagrams-box').eq(0);
+
+		// 滚动到最底部加载更多
+		scrollWrap.on('scroll', function() {
+			var last = $(scrollWrap).find('.diagrams-list').children().eq(-1);
+			if (last.length && (last.offset().top <= (this.offsetHeight + 62)) && !$scope.diagramsBusy && !$scope.isEnd) {
+				$scope.curPage++;
+				$scope.$apply();
+				$scope.getOpenDiagrams();
+			}
+		});
+
+		//保存组合视图
+		$scope.saveScence = function(option) {
+
+			var combDiagrams = [];
+			$('.column-item').each(function() {
+				if ($(this).find('.img').length) {
+					combDiagrams.push({
+						diagramId: parseInt($(this).find('.img').attr('id')),
+						px: parseInt($(this).find('.num').html()),
+						py: $(this).find('.img').hasClass('skew') ? 1 : 0
+					});
+				}
+			});
+
+			if (!combDiagrams.length) {
+				Unit.error('请至少选择一张视图');
+				return;
+			}
+			uDialog.dialog({
+				class: 'md',
+				templateUrl: 'app/modal/saveScence/saveScence.html',
+				controller: 'saveScenceModalCtrl',
+				resolve: {
+					combDiagrams: function(){
+						return combDiagrams;
+					},
+					diagramInfo: function(){
+						return $scope.diagramInfo;
+					}
+				}
+			})
+			// $uibModal.open({
+			// 	animation: true,
+			// 	backdrop: 'static',
+			// 	templateUrl: 'app/modal/saveScence/saveScence.html',
+			// 	controller: 'saveScenceModalCtrl',
+			// 	resolve: {
+			// 		combDiagrams: function(){
+			// 			return combDiagrams;
+			// 		},
+			// 		diagramInfo: function(){
+			// 			return $scope.diagramInfo;
+			// 		}
+			// 	}
+			// });
+		};
+
+		//删除场景
+		$scope.removeScene = function(item, $event) {
+			Unit.confirm('确认删除该故障吗', function() {
+				ScenceService.removeScence({
+					id: $state.params.id
+				}).success(function(data) {
+					Unit.success('删除成功');
+					$state.go('tarsier.scenes.myScene');
+				});
+			});
+		};
+
+		//获取当前场景信息
+		if ($state.params.id) {
+			DiagramDiagramService.queryDiagramInfoAndEventById({id: $state.params.id}).success(function(data) {
+				var dd = data.data;
+				$scope.diagramArr = [];
+				$scope.diagramInfo = dd.diagramInfo;
+				$scope.comboDiagramName = dd.diagramInfo.diagram.name;
+
+				if(dd.combDiagramSubInfos && dd.combDiagramSubInfos.length){
+					for (var i = 0; i < dd.combDiagramSubInfos.length; i++) {
+						$scope.diagramArr[i] = {};
+						var combItem = dd.combDiagramSubInfos[i].diagramSubInfo.diagram;
+						$scope.diagramArr[i].imgSrc = combItem.icon1;
+						$scope.diagramArr[i].name = combItem.name;
+						$scope.diagramArr[i].id = combItem.id;
+						$scope.diagramArr[i].num = dd.diagramInfo.combDiagrams[i].px || i + 1;
+						$scope.diagramArr[i].skew = dd.diagramInfo.combDiagrams[i].py;
+					}
+					// angular.forEach(dd.diagramInfo.combDiagrams, function(item){
+					// 	for (var i = 0; i < $scope.diagramArr.length; i++) {
+					// 		$scope.diagramArr[i].num = item.px || i + 1;
+					// 		$scope.diagramArr[i].skew = item.py;
+					// 	}
+					// })
+				}
+				$scope.$broadcast('update');
+			});
+		}
+
+	}]);
+
+})(nameSpace.reg('graph'));

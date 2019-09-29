@@ -1,0 +1,127 @@
+
+
+(function (graph, self) {
+
+    'use strict';
+
+    graph.app.controller('tarsierCtrl', ['$rootScope', '$scope', '$state', '$filter', 'UserAuth', 'UserService', '$cookies', 'MonitoringService', function ($rootScope, $scope, $state, $filter, UserAuth, UserService, $cookies, MonitoringService) {
+        // 显示用户菜单
+        $scope.user = UserAuth.fetchUserInfo();
+        window.rootNav = null;
+        var checkStatus = window.localStorage.getItem('Tarsier_BrowserInfo');
+        var isCheckedBrowser = checkStatus && checkStatus !== '0';
+        if (isCheckedBrowser) {
+            MonitoringService.queryBrowserUrl()
+                .success(function (result) {
+                    if (result.success) {
+
+                        var checker = new tarsier.CheckBrowser({
+                            isAllowIE: true,
+                            ChromeDownloadUrl: result.data[0],
+                        });
+
+                        checker.checkAndShowInfo();
+                        checker.continueClick(function () {
+                            window.localStorage.setItem('Tarsier_BrowserInfo', '0');
+                        });
+                    }
+                });
+        }
+        $scope.menuTopFlag = $rootScope.menuTopFlag;
+        if ($scope.user.id) {
+            MonitoringService.getUserById($scope.user.id).success(function (result) {
+                if (result.success) {
+                    $scope.user.custom3 = result.data.custom3;
+                    $scope.user.userName = result.data.opName;
+                    var options = {
+                        //settingUrl: '/tarsier-vmdb/vmdb/base/ci/ci.html?code=0201',
+                        // icons: [
+                        //     {
+                        //         iconClassName: 'ts ts-cog',
+                        //         url: '/tarsier-vmdb/vmdb/base/ci/ci.html?code=0201',
+                        //     }
+                        // ],
+                        isShowUserName: true,
+                        userInfo: {
+                            avatar: $scope.user.custom3,
+                            userName: $scope.user.userName,
+
+                            menus: [
+                                {
+                                    label: L.get('COMMON_PERSONAL_INFORMATION_ABBR'),
+                                    iconClassName: 'ts ts-user-2',
+                                    //url: '/monitor-web/cmv/integration/page/jumpout/0212?token=' + $cookies.get('token'),
+                                },
+                                {
+                                    label: L.get('COMMON_UPDATE_LOG'),
+                                    iconClassName: 'ts ts-diary',
+                                },
+                                {
+                                    label: L.get('COMMON_SIGN_OUT'),
+                                    iconClassName: 'ts ts-power-off',
+                                }
+                            ]
+                        }
+                    };
+
+                    var element = document.querySelector('#nav');
+                    window.rootNav = new tarsier.Nav(element, options);
+
+                    window.rootNav.userMenuClick(function (label) {
+                        if (label === L.get('COMMON_UPDATE_LOG')) {
+                            var url = '/monitor-web/cmv/integration/page/jumpout/0219?token=' + $cookies.get('token');
+                            window.open(url, '_blank');
+                        } else if (label === L.get('COMMON_PERSONAL_INFORMATION_ABBR')) {
+                            var url = '/monitor-web/cmv/integration/page/jumpout/0212?token=' + $cookies.get('token');
+                            window.open(url, '_blank');
+                        } else {
+                            localStorage.setItem('Tarsier_LoginOut', 1);
+                            UserAuth.logout();
+                        }
+                    });
+
+
+                }
+            })
+        }
+    }]);
+
+    // 翻译class名
+    graph.app.filter('translateClass', function () {
+        return function (str) {
+            var name;
+            switch (str) {
+                case 'DMV':
+                    name = 'diagrams'
+                    break;
+                case 'SMV':
+                    name = 'scenes'
+                    break;
+                case 'EMV':
+                    name = 'monitoring'
+                    break;
+            }
+            return name;
+        }
+    });
+
+    // 翻译链接名
+    graph.app.filter('translateHref', function () {
+        return function (str) {
+            var name;
+            switch (str) {
+                case 'DMV':
+                    name = 'diagrams.square';
+                    break;
+                case 'SMV':
+                    name = 'scenes.myDiagram';
+                    break;
+                case 'EMV':
+                    name = 'monitoring.events';
+                    break;
+            }
+            return name;
+        };
+    });
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.tarsier'));

@@ -1,0 +1,832 @@
+(function (graph) {
+
+    'use strict';
+    //告警详情页面
+    graph.app.directive('warningDetail', ['$cookies', function ($cookies) {
+        return {
+            restrict: 'AE',
+            replace: true,
+
+            templateUrl: 'app/directive/warningDetail/warningDetail.html',
+            controller: ['$scope', '$sce', '$timeout', '$state', 'Unit', 'uDialog', 'MonitoringService', '$uibModal', function ($scope, $sce, $timeout, $state, Unit, uDialog, MonitoringService, $uibModal) {
+                $scope.$on('closebtnstatus', function (event, data) {
+                    $scope.closebtnstatus = data;
+                })
+                $scope.L = L;
+                $scope.obj = {};
+                var params = {};
+                var ciCode = '';
+                $scope.flag = 1;//默认table切换显示告警信息
+                //添加处理记录
+                $scope.addExperienceFun = function (e, item) {
+                    /*处理记录*/
+                    $uibModal.open({
+                        size: 'goRecord',
+                        animation: true,
+                        backdrop: 'static',
+                        templateUrl: 'app/modal/manageAlert/goRecord.html',
+                        controller: 'goRecordCtrl',
+                        resolve: {
+                            item: function () {
+                                return item;
+                            },
+                            isOsreen: function () {
+                                return 1;
+                            },
+                            fn: function () {
+                                return function () {
+                                    $scope.experience = [];
+                                    if ($scope.eventFlag != 3) {
+                                        MonitoringService.getAlertDetail($scope.newParams).success(function (data1) {
+                                            if (data1.success) {
+                                                MonitoringService.getExperienceByEvent(data1.data).success(function (data) {
+                                                    if (data.success) {
+                                                        $scope.experience = data.data;
+                                                        $scope.experienceArray = '';
+                                                        if ($scope.experience.length > 0) {
+                                                            if ($scope.experience[0].experience) {
+                                                                $scope.experienceArray = $scope.experience[0].experience.split('\n');
+
+                                                            }
+                                                        }
+                                                    } else {
+                                                        Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                                    }
+
+                                                });
+                                            } else {
+                                                Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                            }
+
+                                        });
+                                    } else {
+                                        MonitoringService.getAlertDetailDiscard($scope.newParams).success(function (data1) {
+                                            if (data1.success) {
+                                                MonitoringService.getExperienceByEvent(data1.data).success(function (data) {
+                                                    if (data.success) {
+                                                        $scope.experience = data.data;
+                                                        if ($scope.experience.length > 0) {
+                                                            if ($scope.experience[0].experience) {
+                                                                $scope.experienceArray = $scope.experience[0].experience.split('\n');
+                                                                //console.log($scope.experienceArray)
+                                                            }
+                                                        }
+                                                    } else {
+                                                        Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                                    }
+
+                                                });
+                                            } else {
+                                                Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                            }
+
+                                        });
+                                    }
+
+                                }
+                            }
+
+                        }
+                    });
+                }
+                //打开CMV影响分析
+                $scope.openFriendFun = function (item) {
+                    if (item) {
+                        var sendP = {
+                            ciName: item.ciname
+                        }
+                        MonitoringService.influenceAnalyzeParam(sendP).success(function (data) {
+                            if (data.success) {
+                                if (data.data.defId) {
+                                    var param = '?ciId=' + item.ciid;
+                                    var code = '0309';
+                                    var url = '/monitor-web/cmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&freedomUrl=' + param;
+                                    window.open(url);
+                                } else {
+                                    Unit.error(L.get('EMV_NO_ASSOCIATED_EFFECT'));
+                                }
+
+                            } else {
+                                Unit.error(L.get('EMV_NO_ASSOCIATED_CI'));
+
+                            }
+
+                        });
+
+                        return false;
+                    } else {
+                        Unit.error(L.get('EMV_DATA_HAS_A_PROBLEM'))
+                    }
+
+
+                }
+                //指标详情跳转pmv
+                $scope.goToPmvFun = function () {
+                    var pmvurl = '';
+                    MonitoringService.selectPMVUrl({}).success(function (data) {
+                        if (data.success) {
+                            pmvurl = data.data;
+                            $scope.pmvurl = pmvurl;
+                            var url = pmvurl + '/pmv/search/search.html?metric=' + $scope.kpiName + '&show=1&ciCode=' + $scope.ciCode + '&token=' + $cookies.get('token');
+                            window.open(url);
+                        } else {
+                            Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+
+                        }
+
+                    }).error(function () {
+                        Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                    });
+
+                }
+                //获取指标图函数
+                $scope.meritFun = function (ciCode, kpiName) {
+                    //指标图
+                    if (ciCode && kpiName) {
+                        //指标图需要的时间转换
+                        var now = new Date();
+                        var start = new Date(0, 0, 0, 0, 0, 0, 0);
+                        var millis = now - start - 3600 * 1000 * 2;
+                        var twoHoursAgo = new Date(0, 0, 0, 0, 0, 0, millis);
+
+                        MonitoringService.getPerformanceList({
+                            ciCode: ciCode,
+                            kpiNames: [kpiName],
+                            startTime: twoHoursAgo.getTime(),
+                            endTime: now.getTime()
+                        }).success(function (data) {
+                            if (data.success) {
+                                if (data.data) {
+                                    $scope.echartsArray = data.data;
+                                    if ($scope.echartsArray && Array.isArray($scope.echartsArray.values)) {
+                                        $scope.echarts = true;
+                                        var seriesData = $scope.echartsArray.values;
+                                        var xAxisData = $scope.echartsArray.times;
+                                        var main = document.getElementById('main');
+                                        main.style.display = 'block';
+                                        //main.style.width = document.getElementById('widthechat').clientWidth + 'px';
+
+
+                                        var option = {
+                                            // title: {
+                                            // 	text: '堆叠区域图'
+                                            // },
+                                            tooltip: {
+                                                trigger: 'axis',
+                                                formatter: '{a0}:{c0}' + $scope.echartsArray.unit,
+                                                axisPointer: {
+                                                    type: 'line',
+                                                    lineStyle: {          // 直线指示器样式设置
+                                                        type: 'solid',
+                                                        width: 1,
+                                                        color: '#fff'
+                                                    },
+                                                    label: {
+                                                        backgroundColor: '#6a7985'
+                                                    }
+                                                }
+                                            },
+                                            legend: {
+                                                x: 'left',
+                                                left: 0,
+                                                y: 'top',
+                                                top: 10,
+                                                selectedMode: false,
+                                                data: [
+                                                    {
+                                                        name: $scope.echartsArray.kpiName,
+                                                        textStyle: { color: $scope.modecolor },
+                                                        icon: 'none'
+                                                    }
+                                                ]
+                                            },
+
+                                            grid: {
+                                                left: '3%',
+                                                right: '4%',
+                                                bottom: '3%',
+                                                containLabel: true
+                                            },
+                                            xAxis: [
+                                                {
+                                                    type: 'category',
+                                                    boundaryGap: false,
+                                                    data: xAxisData,
+                                                    axisLine: {
+                                                        show: false,
+                                                    },
+                                                    axisLabel: {
+                                                        textStyle: {
+                                                            color: '#898d90'
+                                                        }
+                                                    },
+                                                    splitLine: {
+                                                        show: false
+
+                                                    },
+                                                    axisTick: {
+                                                        show: false
+                                                    },
+
+                                                }
+                                            ],
+                                            yAxis: [
+                                                {
+                                                    type: 'value',
+                                                    axisLine: {
+                                                        show: false
+                                                    },
+                                                    axisLabel: {
+                                                        textStyle: {
+                                                            color: '#898d90'
+                                                        }
+                                                    },
+                                                    splitLine: {
+                                                        lineStyle: {
+                                                            type: 'dotted',
+                                                            color: '#898d90'
+                                                        },
+
+                                                    },
+                                                    axisTick: {
+                                                        show: false
+                                                    },
+
+
+                                                }
+                                            ],
+                                            //backgroundColor:'#222e38',
+                                            series: [
+                                                {
+                                                    name: $scope.echartsArray.kpiName,
+                                                    type: 'line',
+                                                    //stack: '总量',
+                                                    areaStyle: {
+                                                        normal: {
+                                                            color: 'rgba(109,173,254,0.2)',
+                                                        }
+                                                    },
+                                                    data: seriesData,
+                                                    smooth: true,
+                                                    symbol: 'circle',     //设定为实心点
+                                                    symbolSize: 2,   //设定实心点的大小
+                                                    itemStyle: {
+                                                        normal: {
+                                                            color: '#99D0FF',
+                                                            areaStyle: {
+                                                                color: '#99D0FF',
+                                                            },
+                                                            lineStyle: {
+                                                                color: '#99D0FF',
+                                                                width: 1
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        };
+                                        $timeout(function () {
+                                            var myChart = echarts.init(main);
+                                            myChart.setOption(option);
+                                        });
+
+
+                                    }
+
+                                }
+
+                            }
+
+                        }).error(function () {
+                            console.log('500')
+                        });
+                    } else {
+                        if (document.getElementById('main')) {
+                            document.getElementById('main').style.display = 'none';
+                            $scope.echarts = true;
+                        }
+
+
+                    }
+                }
+
+                //告警信息打开压缩告警
+                $scope.compressDetail = function (serial) {
+                    uDialog.dialog({
+                        class: 'compressDetail',
+                        animation: true,
+                        backdrop: 'static',
+                        templateUrl: 'app/modal/manageAlert/compressDetail.html',
+                        controller: 'compressDetailCtrl',
+                        resolve: {
+                            serial: function () {
+                                return serial;
+                            },
+                            css: function () {
+                                return true;
+                            },
+                            type: function () {
+                                return 'DUPLICATESERIAL';
+                            },
+                            startTime: function () {
+                                return 0;
+                            },
+                            endTime: function () {
+                                return 0;
+                            },
+                            isWeihuPeriod: function () {
+                                return $scope.eventFlag;
+                            },
+                        }
+                    });
+                }
+                $scope.imgPhoto = { 'background': "url('assets/images//tarsier/monitor/warning.png') no-repeat 50%" };
+                //关闭当前页面
+                $scope.closeFun = function () {
+                    $scope.showAlertDetail = false;
+                    $scope.$emit('showEmpty', true);
+                }
+                //接受被打开详情的告警信息
+                $scope.$on('item', function (event, data) {
+                    $scope.warningItem = data;
+                    params.serial = data.serial ? data.serial : data.SERIAL;
+                    params.status = data.status || data.STATUS;
+                    $scope.defiendItem = data;
+                    $scope.obj.keyValue = L.get('COMMON_NONE');
+                    if (data.ci) {
+                        ciCode = data.ci;
+                    } else if (data.CINAME) {
+                        ciCode = data.CINAME;
+                    } else if (data.ciname) {
+                        ciCode = data.ciname;
+                    } else if (data.sourceciname) {
+                        ciCode = data.sourceciname;
+                    } else {
+                        ciCode = '';
+                    }
+                    $scope.ciCode = ciCode;
+                    var kpiname = '';
+                    if (data.KPINAME) {
+                        kpiname = data.KPINAME;
+                    } else if (data.kpiname) {
+                        kpiname = data.kpiname;
+                    } else if (data.SOURCEALERTKEY) {
+                        kpiname = data.SOURCEALERTKEY;
+                    } else if (data.sourcealertkey) {
+                        kpiname = data.sourcealertkey;
+                    } else {
+                        kpiname = '';
+                    }
+                    $scope.kpiName = kpiname;
+                    //console.log(data)
+                    // $scope.experienceLoading = true;
+                    // $scope.experience = [];
+                    $scope.echarts = false;
+                    var main = document.getElementById('main');
+                    if (main) {
+                        main.style.display = 'none';
+                    }
+
+
+                    $scope.newParams = params;
+                    $scope.meritFun(ciCode, kpiname);
+                    // $scope.configInformLoading = true;
+                    // $scope.configInform = [];
+                    $scope.alarmInforLoading = true;
+                    //$scope.alarmInfor = [];
+                    // $scope.Diagram = [];
+                    // $scope.DiagramLoading = true;
+                    $scope.EventOperationsLoading = true;
+                    $scope.EventOperations = [];
+                    $scope.eventRules = [];
+                    $scope.eventRulesLoading = true;
+                    $scope.busy = true;
+                    $scope.obj.more1 = false;//告警信息更多
+                    $scope.obj.PInfor = false;//配置信息更多
+                    $scope.obj.Pchange = false;//配置信息变更更多
+                    $scope.obj.more3 = false;//关联视图更多
+                    $scope.obj.change = false;//默认显示配置信息，不显示变更信息
+                    $scope.changeCiArray = [];
+                    $scope.eventFlag = data.eventType;//3代表维护期
+                    $scope.kpiname = kpiname;
+                    $scope.changeCount = 0;
+                    $scope.isShowChangeRecord = false;
+                    MonitoringService.isItListEnabled().success(function (result) {
+                        if (result.success) {
+                            $scope.isShowChangeRecord = result.data;
+                            if ($scope.isShowChangeRecord) {
+                                //配置信息变更数据
+                                MonitoringService.getCiDetailAccount([ciCode]).success(function (data) {
+                                    if (data.success) {
+                                        $scope.changeCiArray = data.data;
+                                    } else {
+                                        Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                    }
+
+                                });
+                                //请求pmvURl
+                                MonitoringService.countCiDetailAccount([ciCode]).success(function (data) {
+                                    if (data.success) {
+                                        if (data.data[0]) {
+                                            if (data.data[0].count) {
+                                                $scope.changeCount = data.data[0].count;
+                                            }
+                                        }
+                                    } else {
+                                        Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                    }
+                                });
+                            }
+
+                        }
+                    }).error(function () {
+                        console.log('500')
+                    });
+
+                    // MonitoringService.selectPMVUrl({}).success(function (data) {
+                    //     $scope.pmvUrl = data.data;
+                    //     var timestamp = Date.parse(new Date());
+                    //     var url = $scope.pmvUrl + '/pmv/dashboard/show.html?' + timestamp + '#ciCode=' + ciCode + '&metric=' + $scope.kpiname + '&showTimeControl';
+                    //     $scope.myURL = $sce.trustAsResourceUrl(url);
+
+                    // });
+
+                    //处理记录
+                    MonitoringService.getEventRules({ serial: params.serial }, data.eventType).success(function (data) {
+                        $scope.eventRules = [];
+                        $scope.eventRulesLoading = true;
+                        if (data.success) {
+                            $scope.eventRules = data.data;
+                            $scope.eventRulesLoading = false;
+                        } else {
+                            Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                            $scope.eventRulesLoading = false;
+                        }
+
+                    });
+                    //关联视图跳到DMV
+                    $scope.goToDMV = function (code, id) {
+                        if (id) {
+                            var url = '/monitor-web/dmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&freedomUrl=/' + id;
+                            window.open(url);
+                        }
+                    };
+                    if ($scope.eventFlag === 1 || $scope.eventFlag === 2) {
+                        //获取告警详情数据
+                        MonitoringService.getAlertDetail(params).success(function (data) {
+                            if (data.success) {
+                                //获取处理经验
+                                MonitoringService.getExperienceByEvent(data.data).success(function (data) {
+                                    $scope.experienceLoading = true;
+                                    $scope.experience = [];
+                                    $scope.experienceArray = '';
+                                    if (data.success) {
+                                        $scope.experience = data.data;
+                                        if ($scope.experience.length > 0) {
+                                            if ($scope.experience[0].experience) {
+                                                $scope.experienceArray = $scope.experience[0].experience.split('\n');
+                                                //console.log($scope.experienceArray)
+                                            }
+                                        }
+                                        $scope.experienceLoading = false;
+                                    } else {
+                                        Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                        $scope.experienceLoading = false;
+                                    }
+                                });
+                            }
+
+
+                            MonitoringService.eventDetails(params).success(function (data) {
+                                $scope.alarmInforLoading = true;
+                                //$scope.alarmInfor=[];
+                                if (data.success) {
+                                    if (data.data) {
+                                        $scope.alarmInfor = data.data.event;
+                                        $scope.alarmInforLoading = false;
+                                    }
+
+
+                                } else {
+                                    Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                    $scope.alarmInforLoading = false;
+                                }
+
+
+                            });
+                            $scope.newLoadData();
+                            $scope.alertDetail = data.data;
+                            if ($scope.alertDetail) {
+                                if ($scope.alertDetail.icon) {
+                                    $scope.imgPhoto = { 'background': "url(" + $scope.alertDetail.icon + ") no-repeat 50%" };
+                                } else {
+                                    $scope.imgPhoto = { 'background': "url('assets/images//tarsier/monitor/warning.png') no-repeat 50%" };
+                                }
+                                var colorObj = localStorage.getItem('colorkey');
+                                colorObj = JSON.parse(colorObj)
+                                $scope.colorArr = colorObj.data;
+                                $.each($scope.colorArr, function (index, item) {
+                                    if (item.severity === $scope.alertDetail.severity) {
+                                        $scope.color = item.color
+                                        $scope.background = { 'border-left': 'solid 8px ' + $scope.color + '' }
+                                        $scope.color = { 'color': $scope.color }
+                                    }
+                                })
+                            }
+
+
+
+
+                        });
+
+
+                    } else if (data.eventType === 3) {//维护期
+                        MonitoringService.getAlertDetailDiscard(params).success(function (data) {
+                            MonitoringService.getExperienceByEvent(data.data).success(function (data) {
+                                $scope.experienceLoading = true;
+                                $scope.experience = [];
+                                if (data.success) {
+                                    $scope.experience = data.data;
+                                    if ($scope.experience.length > 0) {
+                                        if ($scope.experience[0].experience) {
+                                            $scope.experienceArray = $scope.experience[0].experience.split('\n');
+                                            //console.log($scope.experienceArray)
+                                        }
+
+                                    }
+                                    $scope.experienceLoading = false;
+                                } else {
+                                    Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                    $scope.experienceLoading = false;
+                                }
+
+
+
+                                //console.log($scope.experienceArray)
+                            });
+                            MonitoringService.eventDiscardDetails(params).success(function (data) {
+                                //console.log(data)
+                                $scope.alarmInforLoading = true;
+                                //$scope.alarmInfor = [];
+                                if (data.success) {
+
+                                    $scope.alarmInfor = data.data.event;
+                                    $scope.alarmInforLoading = false;
+
+                                } else {
+                                    Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                                    $scope.alarmInforLoading = false;
+                                }
+
+                            });
+                            $scope.alertDetail = data.data;
+                            if ($scope.alertDetail.icon) {
+                                $scope.imgPhoto = { 'background': "url(" + $scope.alertDetail.icon + ") no-repeat 50%" };
+                            } else {
+                                $scope.imgPhoto = { 'background': "url('assets/images//tarsier/monitor/warning.png') no-repeat 50%" };
+                            }
+                            var colorObj = localStorage.getItem('colorkey');
+                            colorObj = JSON.parse(colorObj)
+                            $scope.colorArr = colorObj.data;
+
+                            $.each($scope.colorArr, function (index, item) {
+
+                                if (item.severity === $scope.alertDetail.severity) {
+                                    $scope.color = item.color
+                                    $scope.background = { 'border-left': 'solid 8px ' + $scope.color + '' }
+                                    $scope.color = { 'color': $scope.color };
+
+                                }
+                            })
+
+                        });
+
+                    }	//配置信息
+                    MonitoringService.getCiPropertyByCiCode({ ciCode: ciCode }).success(function (data) {
+                        $scope.configInformLoading = true;
+                        //$scope.configInform = [];
+                        if (data.success) {
+                            $scope.configInform = data.data;
+                            $scope.configInformLoading = false;
+                        } else {
+                            Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                            $scope.configInformLoading = false;
+                        }
+                    });
+                    //关联视图
+                    MonitoringService.getEventDiagramByCiCode({ ciCode: ciCode }).success(function (data) {
+                        //$scope.Diagram = [];
+                        $scope.DiagramLoading = true;
+                        if (data.success) {
+                            $scope.Diagram = data.data;
+                            $scope.DiagramLoading = false;
+                        } else {
+                            Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                            $scope.DiagramLoading = false;
+                        }
+                    });
+                    //操作记录
+                    MonitoringService.getEventOperations({ serial: params.serial }).success(function (data) {
+                        $scope.EventOperations = [];
+                        $scope.EventOperationsLoading = true;
+                        if (data.success) {
+                            $scope.EventOperations = data.data;
+                            $scope.EventOperationsLoading = false;
+                        } else {
+                            Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                            $scope.EventOperationsLoading = false;
+                        }
+                    });
+
+
+
+                });
+
+                //关联告警查询
+                var oDate = new Date();
+                var intStartTime = oDate.getFullYear() + '/' + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + '/' + oDate.getDate();
+                $scope.startD = intStartTime //获取系统的年；
+                var intEndTime = oDate.getFullYear() + '/' + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + '/' + oDate.getDate()
+                $scope.endD = intEndTime;   //获取系统的年；
+                $scope.getBeforeDate = function (n) {
+                    var date = {};
+                    //var n = n;
+                    var d = new Date();
+                    date.endtimeStamp = Date.parse(d);
+                    var year = d.getFullYear();
+                    var mon = d.getMonth() + 1;
+                    var day = d.getDate();
+                    date.endtime = year + L.get('COMMON_YEAR') + (mon < 10 ? ('0' + mon) : mon) + L.get('COMMON_MONTH') + (day < 10 ? ('0' + day) : day) + L.get('COMMON_DAY_1');
+                    if (day <= n) {
+                        if (mon > 1) {
+                            mon = mon - 1;
+                        }
+                        else {
+                            year = year - 1;
+                            mon = 12;
+                        }
+                    }
+                    d.setDate(d.getDate() - n);
+                    year = d.getFullYear();
+                    mon = d.getMonth() + 1;
+                    day = d.getDate();
+                    date.starttimeStamp = Date.parse(d);
+
+                    date.starttime = year + L.get('COMMON_YEAR') + (mon < 10 ? ('0' + mon) : mon) + L.get('COMMON_MONTH') + (day < 10 ? ('0' + day) : day) + L.get('COMMON_DAY_1');
+                    return date;
+
+                }
+
+                $scope.dateRange = {};
+                $scope.dateRange.display = L.get('COMMON_LAST_DAY');
+                $scope.dateRange.value = 1;
+                $scope.classList = [
+                    { display: L.get('COMMON_LAST_DAY'), value: 1 },
+                    { display: L.get('EMV_LAST_SEVEN_DAYS'), value: 7 },
+                    { display: L.get('EMV_LAST_THIRTY_DAYS'), value: 30 },
+
+                ];
+                $scope.pageSize1 = 20;
+                $scope.pageSizeOption1 = [$scope.pageSize1, 50, 100, 150];
+                $scope.currentPage1 = 1;
+                $scope.getNowTime = function () {
+                    $scope.starttimeStamp = $scope.getBeforeDate($scope.dateRange.value).starttimeStamp;
+                    $scope.endtimeStamp = $scope.getBeforeDate($scope.dateRange.value).endtimeStamp;
+                    $scope.starttime = $scope.getBeforeDate($scope.dateRange.value).starttime;
+                    $scope.endtime = $scope.getBeforeDate($scope.dateRange.value).endtime;
+                }
+                $scope.getNowTime()
+                /*自定义时间确定*/
+                $scope.goToTimeSearch = function ($event) {
+                    $event.stopPropagation();
+                    if (!$('#startTime').val()) {
+                        Unit.error(L.get('EMV_PLEASE_SELECT_THE_START_TIME'));
+                        return;
+                    }
+                    if (!$('#endTime').val()) {
+                        Unit.error(L.get('EMV_PLEASE_SELECT_THE_END_TIME'));
+                        return;
+                    }
+                    var startTime = $('#startTime').val() + ' ' + '00:00:00';
+                    var endTime = $('#endTime').val() + ' ' + '23:59:59';
+
+                    $scope.startTime = Number((new Date(startTime)).getTime());
+                    $scope.endTime = Number((new Date(endTime)).getTime());
+
+                    if ($scope.startTime > $scope.endTime) {
+                        Unit.error(L.get('EMV_THE_END_TIME_NOT_REASONABLE_SELECT_AGAIN'));
+                        return;
+                    }
+                    $scope.startD = $('#startTime').val();
+                    $scope.endD = $('#endTime').val();
+                    var startGetD = $scope.startD.split('/');
+                    var endGetD = $scope.endD.split('/')
+                    $scope.dateRange.display = startGetD[1] + '.' + startGetD[2] + '-' + endGetD[1] + '.' + endGetD[2];
+                    $scope.dateRange.value = '';
+                    $scope.showTitleDefalt = $scope.startD + '- ' + $scope.endD;
+                    $scope.starttimeStamp = Number((new Date(startTime)).getTime());
+                    $scope.endtimeStamp = Number((new Date(endTime)).getTime());
+                    $scope.starttime = $scope.startD.substring(0, 4) + L.get('COMMON_YEAR') + $scope.startD.substring(5, 7) + L.get('COMMON_MONTH') + $scope.startD.substring(8, 10) + L.get('COMMON_DAY_1');
+                    $scope.endtime = $scope.endD.substring(0, 4) + L.get('COMMON_YEAR') + $scope.endD.substring(5, 7) + L.get('COMMON_MONTH') + $scope.endD.substring(8, 10) + L.get('COMMON_DAY_1');
+                    $scope.obj.selectDefTimeFlagZ = false;
+                    if (!$scope.$$phase) {
+                        $scope.$apply();
+                    }
+                    $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+                }
+
+                $scope.goBack = function () {
+                    $scope.obj.selectDefTimeFlagZ = false;
+                }
+                $scope.newLoadData = function () {
+                    if ($scope.dateRange.value) {
+                        $scope.getNowTime();
+                    }
+                    $scope.busy = true;
+                    $scope.totalRows1 = '';
+                    $scope.listData = '';
+                    var keyValue;
+                    if ($scope.obj.keyValue === L.get('COMMON_NONE')) {
+                        keyValue = '';
+                    } else {
+                        keyValue = $scope.obj.keyValue;
+                    }
+                    //关联告警查询
+                    MonitoringService.associateEventList({
+                        startTime: $scope.starttimeStamp,
+                        endTime: $scope.endtimeStamp,
+                        pageSize: $scope.pageSize1,
+                        pageNum: $scope.currentPage1,
+                        ciCode: $scope.defiendItem.sourceciname || $scope.defiendItem.SOURCECINAME,
+                        keyField: 'SOURCEALERTKEY',
+                        keyValue: keyValue,
+                        serial: $scope.defiendItem.serial || $scope.defiendItem.SERIAL
+
+                    }).success(function (result) {
+                        $scope.busy = false;
+                        if (result.success) {
+                            if (result.data) {
+                                $scope.totalRows1 = result.data.totalRows;
+                                $scope.pageSize1 = result.data.pageSize;
+                                $scope.listData = result.data.data;
+                                var colorObj = localStorage.getItem('colorkey');
+                                colorObj = JSON.parse(colorObj)
+                                $scope.colorArr = colorObj.data;
+                                //console.log($scope.listData)
+                                $.each($scope.colorArr, function (index, item) {
+                                    $.each($scope.listData, function (index, item1) {
+                                        if (item.severity === item1.severity) {
+                                            item1.backgroundColor = { 'background': item.color }
+                                        }
+                                    })
+
+                                })
+                            }
+
+                        } else {
+                            Unit.error('associateEventList' + L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                        }
+                    })
+                };
+                //点击分页的页码调的函数
+                $scope.paging1 = function (data) {
+                    $scope.pageSize1 = data.pageSize;
+                    $scope.currentPage1 = data.currentPage;
+                    $scope.newLoadData();
+                }
+                //选择时间查询关联告警
+                $scope.selectClassify = function (item) {
+                    $scope.dateRange.display = item.display;
+                    $scope.showTitleDefalt = item.display;
+                    $scope.starttimeStamp = $scope.getBeforeDate(item.value).starttimeStamp;
+                    $scope.endtimeStamp = $scope.getBeforeDate(item.value).endtimeStamp;
+                    $scope.starttime = $scope.getBeforeDate(item.value).starttime;
+                    $scope.endtime = $scope.getBeforeDate(item.value).endtime;
+                    $scope.obj.selectDefTimeFlagZ = false;
+                }
+                $scope.selectFun = function () {
+                    event.stopPropagation();
+                    $('.drop-menu').stop().slideToggle(150);
+                }
+                //控制告警详情页面是否显示
+                $scope.$on('showAlertDetail', function (event, data) {
+                    $scope.showAlertDetail = data;//接受值
+                    if (data) {
+                        $scope.pmvShow = false;
+                        $scope.moreTimeRelative = false;
+                        $timeout(function () {
+                            $scope.moreTimeRelative = true;
+                        }, 8000)
+                    }
+                });
+                //点击页面其他地方让下拉框和自定义时间框消失
+                $(document).on('click', function () {
+                    $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+                    $scope.obj.selectDefTimeFlagZ = false;
+                });
+
+            }]
+        };
+    }]);
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,361 @@
+(function (graph) {
+
+    'use strict';
+    // 应用时光轴
+    graph.app.directive('appTimeline', ['Unit', function (Unit) {
+        return {
+            restrict: 'E',
+            replace: true,
+            templateUrl: 'app/directive/appTimeLine/appTimeLine.html',
+            scope: {
+                ciApplication: '=ciApplication',
+                startTime: '=startTime',
+                endTime: '=endTime',
+                eventType: '@eventType',
+                svgId: '@svgId',
+                /*isQueryTimeLine:'=isQueryTimeLine'*/
+            },
+            controller: ['$scope', '$state', 'Unit', '$filter', 'MonitoringService', '$timeout', '$interval', '$uibModal', 'uDialog', 'DefinedEventsService',
+                function ($scope, $state, Unit, $filter, MonitoringService, $timeout, $interval, $uibModal, uDialog, DefinedEventsService) {
+                    /*监听$scope.ciApplication变化*/
+                    $timeout(function () {
+                        $scope.L = L;
+                        var timeLiH = ($(".eventWrap").height() - 86) / 4;
+                        console.log(timeLiH)
+                        $('#timeline-layer').find('li').css('height', timeLiH)
+                        $scope.$watch('ciApplication', function (newV, oldV) {
+                            if (!newV) {
+                                $scope.timeLineData([]);
+                            } else {
+                                var name = [];
+                                name.push($scope.ciApplication);
+                                $scope.timeLineData(name);
+
+                            }
+
+                        }, true);
+                        $scope.$watch('startTime', function (newV, oldV) {
+                            if (newV != oldV) {
+                                if (!$scope.ciApplication) {
+                                    $scope.timeLineData([]);
+                                } else {
+                                    var name = [];
+                                    name.push($scope.ciApplication);
+                                    $scope.timeLineData(name);
+                                }
+
+                            }
+                        }, true);
+                        /*时光轴数据*/
+                        $scope.timeLineData = function (name) {
+                            $scope.timeParm = {};
+                            $scope.timeParm.view_search = {};
+                            $scope.timeParm.view_search.ciApplication = name;
+                            $scope.timeParm.startTime = $scope.startTime;
+                            $scope.timeParm.endTime = $scope.endTime;
+                            MonitoringService.selectTimeAxisEvent($scope.timeParm).success(function (data) {
+                                if (data.success) {
+                                    var resultData = data.data;
+                                    var timelist = [];
+                                    $scope.applyNameGroup = [];
+                                    $.each(resultData, function () {
+                                        $scope.applyNameGroup.push(this.name)
+                                        $.each(this.dataList, function () {
+                                            timelist.push(Unit.datetimeToUnix(this.FIRSTOCCURRENCE) * 1000);
+                                        });
+                                    });
+                                    $scope.creatLineTimeChart(resultData, timelist)
+                                }
+                            });
+                        }
+
+                        $scope.creatLineTimeChart = function (data, timelist) {
+                            var firstTime = new Date(d3.min(timelist));
+                            var currentTime = new Date(d3.max(timelist) + 900000);
+                            if (timelist.length == 1) {
+                                firstTime = new Date(timelist[0] - 1800000);
+                            }
+                            var appyLiH = $('#timeline-layer').find('li').height();
+                            // 绘制坐标轴
+                            var margin = {
+                                top: 0,
+                                right: 70,
+                                bottom: 0,
+                                left: 90
+                            },
+
+                                width = $('#app-timeline').width() - margin.left - margin.right,
+                                height = $('#app-timeline').height();
+                            // 时间比例尺
+                            var x = d3.scaleTime()
+                                .domain([firstTime, currentTime])
+                                .rangeRound([0, width]);
+
+                            // 时间格式化
+                            var locale = d3.timeFormatLocale({
+                                dateTime: "%a %b %e %X %Y",
+                                date: "%Y/%-m/%-d",
+                                time: "%H:%M:%S",
+                                periods: ["AM", "PM"],
+                                days: [$scope.L.get('COMMON_SUN'), $scope.L.get('COMMON_MON'), $scope.L.get('COMMON_TUES'), $scope.L.get('COMMON_WED'), $scope.L.get('COMMON_THUR'), $scope.L.get('EMV_FRIDAY'), $scope.L.get('COMMON_SAT')],
+                                shortDays: [$scope.L.get('COMMON_SUN'), $scope.L.get('COMMON_MON'), $scope.L.get('COMMON_TUES'), $scope.L.get('COMMON_WED'), $scope.L.get('COMMON_THUR'), $scope.L.get('EMV_FRIDAY'), $scope.L.get('COMMON_SAT')],
+                                months: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+                                shortMonths: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+                            });
+
+                            var formatMillisecond = locale.format(".%L"),
+                                formatSecond = locale.format(":%S"),
+                                formatMinute = locale.format("%H:%M"),
+                                formatHour = locale.format("%H:%M"),
+                                formatDay = locale.format("%m/%d"),
+                                formatWeek = locale.format("%m/%d"),
+                                formatMonth = locale.format("%m/%d"),
+                                formatYear = locale.format("%Y");
+
+                            function multiFormat(date) {
+                                return (d3.timeSecond(date) < date ? formatMillisecond : d3.timeMinute(date) < date ? formatSecond : d3.timeHour(date) < date ? formatMinute : d3.timeDay(date) < date ? formatHour : d3.timeMonth(date) < date ? (d3.timeWeek(date) < date ? formatDay : formatWeek) : d3.timeYear(date) < date ? formatMonth : formatYear)(date);
+                            }
+
+                            // 时间坐标轴
+                            var axisX = d3.axisBottom(x)
+                                .tickSize(-(height))
+                                .tickPadding(25)
+                                .tickFormat(multiFormat);
+                            var svgId = $scope.svgId;
+                            var clipPathId = svgId + 'cli';
+                            var clipPathIdStr = '#' + clipPathId;
+                            //console.log(svgId);
+                            var oWrap = $('.app-timeline #' + svgId);
+                            oWrap.html('');
+
+                            var svg = d3.select('.app-timeline .svg-wrap').append('svg')
+                                .attr('width', width + margin.left + margin.right)
+                                .attr('height', height + margin.top + margin.bottom)
+                                .append('g')
+                                .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+                            // 定义裁剪路径
+                            svg.append('defs')
+                                .append('clipPath')
+                                .attr('id', clipPathId)
+                                .append('rect')
+                                .attr('width', width + margin.left + margin.right)
+                                .attr('height', height - 50);
+
+                            svg.append('g')
+                                .attr('class', 'axis axis-x')
+                                .attr('transform', 'translate(0,' + (height - 50) + ')')
+                                .call(axisX);
+
+                            // 绘制刻度
+                            function drawScale() {
+                                var ticks = svg.select('g.axis-x').selectAll('g.tick');
+
+                                ticks.each(function () {
+                                    var g = d3.select(this);
+                                    var x1 = g.select('line').attr('x1');
+                                    var x2 = g.select('line').attr('x2');
+                                    var y2 = g.select('line').attr('y2');
+                                    g.select('line.time-scale').remove();
+                                    g.append('line')
+                                        .attr('y2', 10)
+                                        .attr('x1', x1)
+                                        .attr('x2', x2)
+                                        .attr('class', 'time-scale');
+                                });
+                            }
+
+                            drawScale();
+
+                            var scrollWrap = svg.append('g')
+                                .attr('class', 'app-timeline-box')
+                                .attr('clip-path', 'url(' + clipPathIdStr + ')');
+
+                            var wrap = svg.select('g.app-timeline-box').selectAll('g.data-wrap')
+                                .data(data);
+                            wrap.exit().remove();
+                            //console.log(wrap)
+                            wrap.enter()
+                                .append('g')
+                                .attr('class', 'data-wrap')
+                                .merge(wrap)
+                                .each(function (d, index) {
+                                    var g = d3.select(this);
+                                    var group = g.selectAll('g.data-group')
+                                        .data(d.dataList);
+                                    group.exit().remove();
+
+                                    var groupAll = group.enter()
+                                        .append('g')
+                                        .attr('class', 'data-group')
+                                        .merge(group);
+
+                                    groupAll.each(function (d, i) {
+                                        //console.log(this)
+                                        var g = d3.select(this);
+                                        // 告警开始时间
+                                        var y;
+                                        g.append('circle')
+                                            .attr('class', 'alarm-rect')
+                                            .attr('r', 6)
+                                            .attr('cx', function (d) {
+                                                return x(new Date(d.FIRSTOCCURRENCE)) + 6;
+                                            })
+                                            .attr('cy', function (d) {
+                                                var minY = appyLiH * (index + 1) - 24 - 6;
+                                                var maxY = appyLiH * (index + 1) - appyLiH + 6;
+                                                y = Math.random() * (maxY - minY) + minY;
+                                                return y;
+                                            })
+                                            .attr('fill', function (d) {
+                                                //return getColor(d.SEVERITY);
+                                                return d.COLOR
+                                            })
+                                            .attr('stroke', 'transparent')
+                                            .attr('stroke-width', 2)
+                                            .attr('rank', function (d) {
+                                                return d.severity;
+                                            }).on('mouseover', function () {
+                                                $timeout(function () {
+                                                    $scope.$emit('overItem', d);
+                                                }, 10)
+
+                                            }).on('mouseleave', function () {
+                                                $timeout(function () {
+                                                    $scope.$emit('leaveItem', d);
+                                                }, 10)
+                                            }).on('click', function (d) {
+                                                //console.log(d);
+                                                d.eventType = 1;
+                                                $scope.getDetailModal(d);
+                                            });
+                                        g.append('text')
+                                            .attr('class', 'alarm-text')
+                                            .html(d.CINAME || d.SOURCECINAME)
+                                            .attr('x', function (d) {
+                                                return x(new Date(d.FIRSTOCCURRENCE)) + 0;
+                                            })
+                                            .attr('y', function (d) {
+                                                return y + 25;
+                                            })
+                                            /*.attr('text-anchor', 'middle')*/
+                                            .attr('fill', '#BEBFC2').on('mouseover', function () {
+                                                $timeout(function () {
+                                                    $scope.$emit('overItem', d);
+                                                }, 10)
+                                            }).on('mouseleave', function () {
+                                                $timeout(function () {
+                                                    $scope.$emit('leaveItem', d);
+                                                }, 10)
+                                            }).on('click', function (d) {
+                                                //console.log(d);
+                                                d.eventType = 1;
+                                                $scope.getDetailModal(d);
+                                            });
+                                    });
+                                });
+
+                            // 定义缩放
+                            var zoom = d3.zoom()
+                                .scaleExtent([1, Number.POSITIVE_INFINITY])
+                                .translateExtent([
+                                    [0, 0],
+                                    [width, height]
+                                ])
+                                .extent([
+                                    [0, 0],
+                                    [width, height]
+                                ])
+                                .on("zoom", zoomed);
+
+                            // 缩放回调函数
+                            function zoomed() {
+                                var t = d3.event.transform,
+                                    xt = t.rescaleX(x);
+
+                                d3.selectAll('.alarm-rect').each(function () {
+                                    d3.select(this).attr('cx', function (d) {
+                                        return xt(new Date(d.FIRSTOCCURRENCE)) + 6;
+                                    });
+                                });
+
+                                d3.selectAll('.alarm-text').each(function () {
+                                    d3.select(this).attr('x', function (d) {
+                                        return xt(new Date(d.FIRSTOCCURRENCE)) + 0;
+                                    });
+                                });
+
+                                d3.select('.axis-x').call(axisX.scale(xt));
+
+                                drawScale();
+                            }
+
+                            d3.select('.app-timeline svg').call(zoom).transition()
+                                .duration(1500)
+                                .call(zoom.transform, d3.zoomIdentity
+                                    .scale(width / (x(currentTime) - x(firstTime)))
+                                    .translate(-x(firstTime), 0));
+                        }
+                        $scope.getDetailModal = function (d) {
+                            //console.log(d)
+                            var params = {
+                                serial: d.SERIAL,
+                                status: d.STATUS
+                            };
+
+                            if ($scope.isHistory) {
+                                params.history = false;
+                            }
+                            uDialog.dialog({
+                                class: 'detailMore',
+                                animation: true,
+                                backdrop: 'static',
+                                templateUrl: 'app/modal/manageAlert/detailMore.html',
+                                controller: 'detailMoreCtrl',
+                                resolve: {
+                                    flag: function () {
+                                        return 1
+                                    },
+                                    data: function () {
+                                        return d
+                                    },
+                                    params: function () {
+                                        return params
+                                    },
+                                    pageFlag: function () {
+                                        return 3
+                                        /*全部事件为1；自定义事件为2*/
+                                    },
+                                    eventType: function () {
+                                        return $scope.eventType
+                                        /*活动或关闭类型*/
+                                    },
+                                    viewId: function () {
+                                        return $scope.viewId
+                                    },
+                                    isOsreen: function () {
+                                        return 0
+                                    },
+
+                                    css: function () {
+                                        return true
+                                    },
+                                    fn: function () {
+                                        return function (d) {
+                                            //alert('1')
+
+
+                                        }
+                                    }
+
+                                }
+                            });
+                        }
+                    }, 50)
+
+
+                }]
+        };
+    }]);
+
+})(nameSpace.reg('graph'));

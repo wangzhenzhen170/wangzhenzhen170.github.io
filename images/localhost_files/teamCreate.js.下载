@@ -1,0 +1,334 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('teamCreatCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        $scope.objs = {};
+        $scope.groupId = '';
+        $scope.objs.searchPerson = '';
+        $scope.firstImgUrl = 'assets/images/tarsier/team/group-image.png'
+
+        $scope.edit = $stateParams.id;
+        $scope.objs.listShowFlag = false;
+        //获取当前登陆用户
+        $scope.adminId = '';
+
+        MonitoringService.user({}).success(function (result) {
+
+            $scope.userName = result.data.userName;
+            $scope.adminId = result.data.id;
+            $scope.userCode = result.data.userCode;
+            $scope.admin = {};
+            $scope.personCheckedArray = [];
+
+        }).error(function () {
+
+        });
+        //获取团队成员
+        $scope.queryUserFun = function (mailname) {
+            var obj;
+            if (mailname) {
+                obj = { name: mailname, team: true }
+            } else {
+                obj = { team: true }
+            }
+            MonitoringService.userList(obj).success(function (result) {
+                $scope.personArray = result.data
+
+            }).error(function () {
+
+            });
+        }
+        //获取管理范围字段
+        MonitoringService.queryDict({ groupId: 1 }).success(function (result) {
+            $scope.source = result.data
+
+        }).error(function () {
+
+        });
+
+        $scope.queryPerson = function () {
+            $scope.queryUserFun($scope.objs.searchPerson)
+        }
+        if ($stateParams.id === '') {
+            // MonitoringService.userList({team:true}).success(function(result) {
+            // 	$scope.personArray=result.data
+
+            // }).error(function() {
+
+            // });
+            $scope.personArray = [];
+            $scope.personSendArray = [];
+            $scope.personUsercode = [];
+            $timeout(function () {
+                //$scope.personCheckedArray=[{userCode:$scope.userCode,userName:$scope.userName,id:$scope.adminId}];
+            }, 4)
+
+
+            $scope.sourceId = [];
+            $scope.Imgurl = null;
+            $scope.selectImgUrl = null;
+            $scope.teamName = '';
+        } else {
+            $scope.groupId = $stateParams.id;
+            MonitoringService.userList({ team: true }).success(function (result) {
+                $scope.personArray = result.data
+
+                MonitoringService.queryByIdGroup({
+                    id: $stateParams.id
+                }).success(function (result) {
+
+                    $scope.personSendArray = [];
+                    $scope.personUsercode = [];
+                    $scope.personCheckedArray = [];
+                    $scope.sourceId = result.data.authRegion.sourceId;
+
+                    $scope.Imgurl = result.data.groupImage;
+
+                    if (!result.data.groupImageUrl) {
+                        $scope.selectImgUrl = $scope.firstImgUrl;
+                    } else {
+                        $scope.selectImgUrl = result.data.groupImageUrl;
+                    }
+                    $scope.teamName = result.data.groupName;
+                    $.each($scope.source, function (index, item) {
+                        item.Cheked = true;
+                    })
+                    var userId = [];
+                    var uerId1 = [];
+                    if (result.data.member.length > 0) {
+                        $.each(result.data.member, function (index, item) {
+                            userId.push(item.id)
+                        })
+                    }
+
+                    $.each(userId, function (index, item) {
+                        $.each($scope.personArray, function (index1, item1) {
+                            if (item === item1.id) {
+                                $scope.personCheckedArray.push(item1);
+                                $scope.personUsercode.push(item1.userCode)
+                            }
+                        })
+                    })
+
+                    if ($scope.sourceId === null) {
+
+                        $scope.allCheked = true;
+                        $.each($scope.source, function (index, item) {
+                            item.Cheked = true;
+                        })
+                    } else if ($scope.sourceId.length === 0) {
+
+                        $scope.allCheked = false;
+
+                        $.each($scope.source, function (index, item) {
+                            item.Cheked = false;
+
+                        })
+                    } else if ($scope.sourceId.length > 0) {
+
+                        $scope.allCheked = true;
+                        $.each($scope.source, function (index, item) {
+                            $.each($scope.sourceId, function (index1, item1) {
+                                if (item1 === item.code) {
+                                    item.Cheked = false;
+                                }
+                            })
+                        })
+                    }
+
+
+
+
+                });
+            });
+
+
+        }
+        $scope.title = $state.params.title;//标题
+        $scope.gobackFun = function () {
+            $state.go('tarsier.monitoring.teamList')
+        }
+
+        //删除团队
+        $scope.deleteTeamFun = function () {
+            var dlg = uDialog.confirm({
+                title: L.get('COMMON_CONFIRM'),
+                content: L.get('EMV_PLEASE_CONFIRM_WHETHER_TO_DELETE_THE_TEAM')+'?',
+                size: 'mine',
+                confirm: function (ret) {
+                    if (ret.ok) {
+                        MonitoringService.deleteGroup({ groupId: $stateParams.id }).success(function (result) {
+                            if (result.success) {
+                                Unit.success(L.get('EMV_TEAM_DELETED_SUCCESSFULLY'))
+                                $state.go('tarsier.monitoring.teamList');
+                            } else {
+                                Unit.error(L.get('EMV_TEAM_REMOVAL_FAILED'))
+                            }
+                        }).error(function () {
+
+                        });
+                    }
+                }
+            });
+
+        }
+
+        //保存管理团队
+        $scope.saveTeamFun = function () {
+            var userId = [];
+
+            //userId.push($scope.adminId);
+
+            $.each($scope.personCheckedArray, function (index, item) {
+                userId.push(item.id);
+            })
+            if ($scope.personCheckedArray.length === 0) {
+                Unit.error(L.get('EMV_TEAM_MEMBERS_CANNOT_BE_EMPTY'))
+                return;
+            }
+            if ($scope.teamName === '') {
+                Unit.error(L.get('EMV_TEAM_NAME_CANNOT_BE_EMPTY'))
+                return;
+            } else {
+                MonitoringService.isGroupAlreadyExist({
+                    id: $stateParams.id,
+                    name: $scope.teamName
+                }).success(function (result) {
+                    if (!result.data) {
+                        MonitoringService.saveGroup({
+                            groupId: $scope.groupId,
+                            userId: userId,
+                            sourceId: $scope.sourceId,
+                            groupName: $scope.teamName,
+                            img: $scope.Imgurl
+                        }).success(function (result) {
+                            if (result.success) {
+                                $scope.gobackFun();
+                                Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'))
+                            } else {
+                              Unit.error(L.get('COMMON_SAVE_FAILED'));
+                            }
+                        })
+                    } else {
+                        Unit.error(L.get('EMV_TEAM_NAME_ALREADY_EXISTS'))
+                    }
+                })
+            }
+
+
+
+
+
+
+
+        }
+
+        //邮件通知选择联系人
+        $scope.checkPersonFun = function (person) {
+            $scope.personCheckedArray.push(person);
+            $scope.personSendArray.push(person.userName);
+            $scope.personUsercode.push(person.userCode);
+            $scope.objs.searchPerson = '';
+            MonitoringService.userList({ team: true }).success(function (result) {
+                $scope.personArray = result.data
+                //console.log($scope.personArray)
+            }).error(function () {
+
+            });
+
+        }
+        $scope.removeCheckedFun = function (item, $index) {
+            $scope.personCheckedArray.splice($index, 1)
+            $scope.personSendArray.splice($index, 1)
+            $scope.personUsercode.splice($index, 1)
+        }
+        $scope.clearSearchFun = function () {
+            if (!$scope.objs.listShowFlag) {
+                $scope.objs.searchPerson = '';
+                $scope.queryPerson();
+            }
+
+        }
+        $(document).on('click', function () {
+            $scope.objs.listShowFlag = false;
+            $scope.objs.searchPerson = '';
+            //$scope.queryPerson();
+        });
+        $scope.openXml = function (file) {
+            if (file.length >= 1) {
+                var reg = /image\/(gif|jpg|jpeg|png|GIF|JPG|PNG)$/; //限制图片上传的类型；
+                var typeOfPic = file[0].type; //获得图片类型；
+                if (!reg.test(typeOfPic)) {
+                    Unit.error(L.get('EMV_CAN_ONLY_UPLOAD_IMAGES')+'！')
+                    return;
+                }
+                if (file[0].size === 0) {
+                    Unit.error(L.get('EMV_IMAGE_FILE_CORRUPTION'));
+                    return;
+                }
+                if (file[0].size > 1024 * 1024 * 10) {
+                    Unit.error(L.get('EMV_PICTURES_CANNOT_EXCEED')+'100MB');
+
+                    return;
+                }
+
+                MonitoringService.uploadVoiceFile(file).success(function (result) {
+
+                    $scope.selectImgUrl = result.data.voicePlayUrl;
+                    $scope.Imgurl = result.data.voiceUrl;
+
+                }).error(function () {
+
+                });
+            }
+        }
+        $scope.checkAllFun = function () {
+            var checked = []
+            if (!$scope.allCheked) {
+                $.each($scope.source, function (index, item) {
+                    item.Cheked = false;
+                })
+                $scope.sourceId = [];
+            } else {
+                $.each($scope.source, function (index, item) {
+                    item.Cheked = true;
+                })
+                $scope.sourceId = null;
+            }
+
+        }
+        $scope.ckekedSourceFun = function () {
+            var cheked = [];
+            $.each($scope.source, function (index, item) {
+                if (!item.Cheked) {
+                    cheked.push(item.code);
+                }
+            })
+            $timeout(function () {
+
+                if (cheked.length === $scope.source.length) {
+                    $scope.allCheked = false;
+                    $scope.sourceId = [];
+                } else if (cheked.length === 0) {
+                    $scope.allCheked = true;
+                    $scope.sourceId = null;
+                } else {
+                    $scope.allCheked = true;
+                    $scope.sourceId = cheked;
+                }
+            }, 1)
+
+        }
+
+
+    }]);
+
+
+})(nameSpace.reg('graph'));

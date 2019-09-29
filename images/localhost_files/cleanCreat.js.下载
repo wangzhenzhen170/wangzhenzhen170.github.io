@@ -1,0 +1,32 @@
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('createCleanRule', function() {
+		return {
+			restrict : 'AE',
+			replace : true,
+            scope: {
+				ruleType : '@ruleType'
+			},
+			templateUrl: 'app/directive/creatRule/cleanCreat.html',
+			controller: ['$scope', '$timeout', '$state','Unit','uDialog','DefinedEventsService','MonitoringService','$uibModal',function($scope, $timeout,$state,Unit,uDialog,DefinedEventsService,MonitoringService,$uibModal){
+				$scope.L = L;
+				$scope.objs = {};
+				$scope.objs.duration = 0;
+				$scope.$emit('timeCleanDuration',$scope.objs.duration)
+				$scope.emitFun = function (duration) {
+					$scope.$emit('timeCleanDuration',duration)
+				};
+				$scope.$on('duration',function (event,data) {
+					$scope.objs.duration = data;
+					$scope.emitFun(data);
+				})
+				$(document).on('click', function() {
+					$('.public-select-time').find('.select-time').hide();
+				});
+			}]
+		};
+	});
+
+})(nameSpace.reg('graph'));

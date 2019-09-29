@@ -1,0 +1,26 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('viewRelationSetService', ['$http', '$q', 'Unit', 'MockPromise', function($http, $q, Unit, MockPromise){
+
+        var o = {};
+        //获取数据
+        o.get = function(params){
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/diagram/queryWorkabilityDiagram'), params, {timeout: deferred.promise});
+
+            $promise.cancel = function(){
+                deferred.resolve();
+            };
+            return $promise;
+        };
+        o.save = function(data){
+            return $http.post(Unit.diagramApi('/ciRlt/saveOrUpdate'), data);
+        }
+        return o;
+	}]);
+
+})(nameSpace.reg('graph'));

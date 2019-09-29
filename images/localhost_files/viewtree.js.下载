@@ -1,0 +1,584 @@
+
+(function(){
+
+	'use strict';
+
+	var app = angular.module('graphViewtree', []);
+
+	app.factory('GraphViewtree', function(){
+		return function(options){
+
+			var selectNode = null;
+
+			this.options = {};
+			this.public = false;
+
+			this.settings = function(options){
+				var _this = this;
+				$.each(options, function(key){
+					_this.options[key] = options[key];
+				});
+			};
+
+			this.getSelectNode = function(){
+				return selectNode;
+			};
+
+			this.setSelectNode = function(data, isSelected){
+				selectNode = isSelected ? data : null;
+			};
+
+			this.selectNode = function(data, isSelected){
+				this.setSelectNode(data, isSelected);
+
+				if(this.options.selectNode){
+					this.options.selectNode.apply(this, [data, isSelected]);
+				}
+			};
+
+			this.togglePublic = function(bool){
+				this.public = bool;
+			};
+
+			this.isPublic = function(){
+				return this.public;
+			};
+
+			this.getScope = function(fn){
+				this.getScopeCallBack = fn;
+			};
+
+			if(options){
+				this.settings(options);
+			}
+
+		};
+	});
+
+
+	app.controller('DirectiveGraphViewtreeCtrl', ['$rootScope', '$scope', '$state', '$element', '$attrs', '$compile', '$parse', 'GraphViewtree',
+		'CiCateService', 'ViewCateService', 'ViewService', 'Event', 'Unit', '$timeout', function($rootScope, $scope, $state, $element, $attrs, $compile, $parse, GraphViewtree,
+														  CiCateService, ViewCateService, ViewService, Event, Unit, $timeout){
+		if(!$scope.hasOwnProperty('params')){
+			$scope.params = new GraphViewtree();
+		}
+
+		$scope.isReady = false;
+		$scope.maxHeight = 'auto';
+		$scope.isLoadingTree = true;
+		$scope.comparator = false;
+		$scope.predicate = '';
+		$scope.prefix = Unit.getRandomString() + '_';
+
+		this.setupBindingsToInternalScope = function(params){
+
+			var splictArr = params.split(',');
+			var toolbarParamsExpr = splictArr[0];
+			$scope.needMonitor = splictArr[1] === 'true';
+			var viewtreeParamsGetter = $parse(toolbarParamsExpr);
+
+			$scope.$watch(viewtreeParamsGetter, function(params){
+				if(angular.isUndefined(params)){
+					return;
+				}
+
+				$scope.params = params;
+				if(typeof params.getScopeCallBack === 'function'){
+					params.getScopeCallBack($scope);
+				}
+
+				if(params.options.maxHeight){
+					$scope.maxHeight = params.options.maxHeight + 'px';
+				}
+
+				if(params.options.dir === 'public'){
+					$scope.cateParams.open = true;
+				}
+
+				$scope.isReady = true;
+				$scope.reloadTree();
+
+			}, false);
+		};
+
+		$scope.treeOptions = {
+			nodeChildren: 'children',
+			dirSelectable: true,
+			injectClasses: {
+				ul: 'a1',
+				li: 'a2',
+				liSelected: 'a7',
+				iExpanded: 'a3',
+				iCollapsed: 'a4',
+				iLeaf: 'a5',
+				label: 'a6',
+				labelSelected: 'a8'
+			}
+		};
+
+		$scope.treeData = [];
+
+		$scope.form = {
+			cate: { name: 'root', id: '' }
+		};
+
+		$scope.cateParams = {
+			open: false
+		};
+
+		$scope.createCate = function(){
+			if($scope.form.name){
+
+				var data = {
+					name: $scope.form.name,
+					parent: $scope.form.cate.id,
+					open: $scope.cateParams.open
+				};
+
+				ViewCateService.create(data)
+					.success(function(){
+						$scope.reloadTree();
+					});
+			}
+		};
+
+		$scope.reloadTree = function(){
+
+			var handle = function(result){
+				var key, item;
+
+				$scope.selected = undefined;
+
+				$scope.treeData.splice(0);
+				for (key in result.data) {
+					if(result.data.hasOwnProperty(key)){
+						item = result.data[key];
+						$scope.treeData.push(item);
+					}
+				}
+
+				$scope.isLoadingTree = false;
+				$scope._refresh();
+
+				if(typeof $scope.params.options.onload === 'function'){
+					$scope.params.options.onload($scope, $scope.cateParams.open);
+				}
+			};
+
+			$scope.isLoadingTree = true;
+
+			if($scope.params.options.hideView){
+				if($scope.cateParams.open){
+					ViewCateService.getDirTree('open')
+						.success(handle);
+				}else{
+					ViewCateService.getDirTree('close')
+						.success(handle);
+				}
+			}else{
+				if($scope.cateParams.open){
+					ViewCateService.getTree('open')
+						.success(handle);
+				}else{
+					ViewCateService.getTree('close')
+						.success(handle);
+				}
+			}
+		};
+
+		$scope.formatSelect = function(list){
+			var arr = [];
+
+			arr.push($scope.form.cate);
+			$.each(list, function(){
+				arr.push(this);
+			});
+
+			return arr;
+		};
+
+		$scope.showSelected = function(sel, isSelected){
+			if (Array.isArray(sel.children)) {
+				if ($scope.expandedNodes.indexOf(sel) === -1) {
+					$scope.expandedNodes.push(sel);
+				} else {
+					$scope.expandedNodes.splice($scope.expandedNodes.indexOf(sel), 1);
+				}
+			}
+
+			$scope.params.selectNode(sel, true);
+		};
+
+		$scope.appendList = function(node, list){
+			if(list  && !list.length){
+				return;
+			}
+
+			var loop = function(list){
+				var i, ret;
+
+				for(i=0; i<list.length; i++){
+					if(list[i].id === node.id){
+						ret = list[i];
+						break;
+					}
+					if(angular.isArray(list[i].children)){
+						ret = loop(list[i].children);
+					}
+				}
+
+				return ret;
+			};
+
+			var o = loop($scope.treeData);
+
+			if(o){
+
+				var arr = [];
+
+				if(!angular.isArray(o.children)){
+					o.children = [];
+				}
+
+				$.each(o.children, function(){
+					if(!this.xml){
+						arr.push(this);
+					}
+				});
+
+				o.children.splice(0);
+
+				$.each(arr, function(){
+					this.label = this.name;
+					o.children.push(this);
+				});
+
+				$.each(list, function(){
+					this.label = this.name;
+					o.children.push(this);
+				});
+			}
+		};
+
+		$scope.deleteNodeById = function(id){
+			var loop;
+			var path = [];
+			loop = function(arr){
+				var i;
+				for(i=0; i<arr.length; i++){
+					if(arr[i].id === id){
+						arr.splice(i, 1);
+						$.each(path, function () {
+							this.viewCount--;
+						});
+						break;
+					}else if(angular.isArray(arr[i].children)){
+						path.push(arr[i]);
+						loop(arr[i].children);
+						path.pop();
+					}
+				}
+			};
+
+			loop($scope.treeData);
+			$scope._refresh();
+		};
+
+		$scope.getNodePath = function(node){
+
+			var loop, isFind = false, path = [];
+
+			loop = function(arr){
+				var i;
+
+				for(i = 0; i < arr.length; i++){
+					if(arr[i].id === node.id){
+						path.push(arr[i]);
+						isFind = true;
+						break;
+					}
+
+					if(arr[i].children){
+						path.push(arr[i]);
+						loop(arr[i].children);
+						if(isFind) {
+							break;
+						}else{
+							path.pop();
+						}
+					}
+				}
+			};
+
+			loop($scope.treeData);
+			return path;
+		};
+
+		$scope.isShowCount = function(node){
+			if($scope.params.options.hideView){
+				node.viewCount = node.viewCateCount;
+			}
+			return Array.isArray(node.children);
+		};
+
+		$scope.$watch('cateParams.open', function(){
+			if($scope.isReady){
+				$scope.params.togglePublic($scope.cateParams.open);
+				$scope.reloadTree();
+			}
+		}, false);
+
+		$scope.$on(Event.VIEW_DELETE_AFTER, function(event, data){
+			$scope.deleteNodeById(data.id);
+		});
+
+		$scope.createCate = function() {
+			var option = {
+				name: $scope.inputName,
+				open: $scope.cateParams.open,
+				parent: $scope.selectedNode ? $scope.selectedNode.id : '',
+				viewCount: 0
+			};
+
+			ViewCateService.create(option).success(function(result) {
+				result.data.children = [];
+				result.data.viewCount = 0;
+
+				if ($scope.selectedNode) {
+					$scope.selectedNode.children.push(result.data);
+				} else {
+					$scope.treeData.push(result.data);
+				}
+
+				if ($scope.expandedNodes.indexOf($scope.selectedNode) === -1) {
+					$scope.expandedNodes.push($scope.selectedNode);
+				}
+
+				$scope.inputName = '';
+				$scope.selectedNode = null;
+				$scope.isShowCateInput = false;
+
+			});
+		};
+
+		$scope.showInputCate = function(node){
+			$scope.selectedNode = node;
+			$scope.isShowCateInput = true;
+			$scope._refresh();
+			$timeout(function(){
+				$('#graph_cate_input_1').focus();
+			}, 200);
+		};
+
+		$scope.getParentNode = function(node) {
+			var path = $scope.getNodePath(node);
+			return path.length >= 2 ? path[path.length - 2] : null;
+		};
+
+		$scope.getNodeById = function(id) {
+			var node = null;
+
+			var loop = function(arr){
+				var i;
+
+				for(i = 0; i < arr.length; i++){
+					if(arr[i].id === id){
+						node = arr[i];
+						return;
+					}
+
+					if(arr[i].children){
+						loop(arr[i].children);
+						if(node){
+							return;
+						}
+					}
+				}
+			};
+
+			loop($scope.treeData);
+			return node;
+		};
+
+		// 删除分类节点
+		$scope.deleteNode = function(node) {
+			if (node.children) {
+				Unit.confirm(graph.translate('DELETE_CONFIRM'), function(){
+					ViewCateService.remove(node.id).success(function() {
+						$scope.deleteNodeById(node.id);
+						$scope.$emit(Event.CATE_DELETE_AFTER, node);
+					});
+				});
+			} else {
+				Unit.confirm(graph.translate('DELETE_CONFIRM'), function(){
+					ViewService.remove(node.id).success(function() {
+						$scope.deleteNodeById(node.id);
+						$scope.$emit(Event.VIEW_DELETE_AFTER, node);
+					});
+				});
+			}
+		};
+
+		$scope.hideInput = function(){
+			$scope.isShowCateInput=false;
+			$scope._refresh();
+		};
+
+		$scope.rename = function(node){
+			Unit.prompt(graph.translate('RENAME'), function(msg){
+				if(msg){
+					if(Array.isArray(node.children)){
+						ViewCateService.update({id: node.id, name: msg})
+							.success(function(){
+								node.name = msg;
+							});
+					}else{
+						ViewService.getView(node.id).success(function(result) {
+							result.data.name = msg;
+							ViewService.update(result.data).success(function(){
+								node.name = msg;
+							});
+						});
+					}
+				}
+			}, node.name);
+		};
+
+		// 拖中树节点触发
+		$scope.drag = function(event) {
+			var id = event.currentTarget.id.split('_').pop();
+			event.dataTransfer.setData('Text', id);
+		};
+
+		// 拖放树节点触发
+		$scope.drop = function(event) {
+			event.preventDefault();
+
+			var targetNodeParent;
+			var id = event.dataTransfer.getData('Text');
+
+			var fromNode = $scope.getNodeById(id);
+			var fromNodeParent = $scope.getParentNode(fromNode);
+			var targetNode = $scope.getNodeById(event.currentTarget.id.split('_').pop());
+
+			var dropSuccess = function(){
+				$scope.deleteNodeById(fromNode.id);
+				targetNodeParent.children.push(fromNode);
+
+				var fromNodeParentPath = $scope.getNodePath(fromNodeParent);
+				var targetNodeParentPath = $scope.getNodePath(targetNodeParent);
+
+				var step = fromNode.children ? fromNode.viewCount : 1;
+
+				$.each(fromNodeParentPath, function(){
+					if(this.viewCount){
+						this.viewCount-= step;
+					}
+				});
+
+				$.each(targetNodeParentPath, function(){
+					if(this.children){
+						this.viewCount+= step;
+					}
+				});
+
+				if($scope.expandedNodes.indexOf(targetNodeParent) === -1){
+					$scope.expandedNodes.push(targetNodeParent);
+				}
+
+				$scope._refresh();
+			};
+
+			if(Array.isArray(targetNode.children)){
+				targetNodeParent = targetNode;
+			}else{
+				targetNodeParent = $scope.getParentNode(targetNode);
+			}
+
+			if(fromNode && targetNodeParent && (!fromNodeParent || (fromNodeParent && fromNodeParent.id !== targetNodeParent.id))){
+				if (fromNode.children) {
+					if (id !== targetNodeParent.id) {
+						ViewCateService.update({id: id, parent: targetNodeParent.id, name: fromNode.name})
+							.success(function() {
+								dropSuccess();
+							});
+					}
+				} else {
+					ViewService.getView(id).success(function(result) {
+						result.data.categoryId = targetNodeParent.id;
+						ViewService.update(result.data).success(function() {
+							dropSuccess();
+						});
+					});
+				}
+			}
+		};
+
+		// 允许拖。啦啦啦
+		$scope.allowDrop = function(event) {
+			event.preventDefault();
+		};
+
+		$scope.fileNode = [];
+
+		// 过滤树结构
+		$scope.predicateFn = function(node) {
+
+			var childs = [];
+			childs.push(node);
+			if ($scope.predicate === '') {
+				return true;
+			}
+
+			// 宽度遍历所有子节点，若name属性和过滤元素匹配返回true
+			while (childs.length) {
+				console.time('predicateFn');
+
+				var tChilds = [];
+				for (var i = 0; i < childs.length; i++) {
+					var child = childs[i];
+					if (child.name.indexOf($scope.predicate) !== -1) {
+						return true;
+					}
+					if (child.children) {
+
+						if ($scope.expandedNodes.indexOf(child) === -1) {
+							$scope.expandedNodes.push(child);
+						}
+						tChilds = tChilds.concat(child.children);
+					}
+				}
+				childs = tChilds;
+
+			}
+
+			return false;// 匹配失败
+		};
+
+
+		$scope.$watch(function() { return $scope.predicate; }, function() {
+			if (!$scope.predicate) {
+				$scope.expandedNodes = [];
+			}
+		});
+
+	}]);
+
+	app.directive('graphViewtree', ['$q', '$parse', function(){
+
+		return {
+			restrict: 'A',
+			priority: 1001,
+			scope: true,
+			templateUrl: 'app/directive/viewtree/viewtree.html',
+			controller: 'DirectiveGraphViewtreeCtrl',
+			compile: function(){
+				return function(scope, element, attrs, controller){
+					controller.setupBindingsToInternalScope(attrs.graphViewtree);
+				};
+			}
+		};
+
+	}]);
+
+})(nameSpace.reg('graph'));

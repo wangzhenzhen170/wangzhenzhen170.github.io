@@ -1,0 +1,171 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('KeyTable', [function(){
+
+
+        /**
+         * key值行列表，用于保存图中元素的位置尺寸信息
+         */
+        var KeyTable = Class.extend({
+            init: function () {
+                this.table = {};
+                this.keies = {
+                    cols: {},
+                    rows: {}
+                }
+            },
+
+            /**
+             * 添加数据
+             *
+             * @param {Number|String} col - 列号
+             * @param {Number|String} row - 行号
+             * @param {Object} data - 数据
+             *
+             * @return {Array} - 返回该单元格的数据列表
+             */
+            put: function (col, row, data) {
+                this.table[col] || (this.table[col] = {});
+                this.table[col][row] = data;
+
+                // 记录行列索引
+                this.keies.cols[col] = true;
+                this.keies.rows[row] = true;
+
+                return this.table[col][row];
+            },
+
+            /**
+             * 获取数据
+             *
+             * @param {Number|String} col - 列号
+             * @param {Number|String} row - 行号
+             *
+             * @return {Array|null}
+             */
+            get: function (col, row) {
+
+                return this.table[col] && this.table[col][row] || null;
+            },
+
+            /**
+             * 获取全部列的索引
+             *
+             * @return {Array}
+             */
+            getColKeies: function () {
+                var cks = [];
+                for (var i in this.keies.cols) {
+                    cks.push(i);
+                }
+
+                return cks;
+            },
+
+            /**
+             * 列的个数
+             */
+            colLength: function () {
+                return this.getColKeies().length;
+            },
+
+            /**
+             * 获取一列
+             *
+             * @param {Number|String} col - 列号
+             */
+            getCol: function (col) {
+                var c = {};
+
+                if (!this.keies.cols[col])
+                    return null;
+
+                for (var i in this.keies.rows) {
+                    c[i] = this.table[col][i];
+                }
+
+                return c;
+            },
+
+            /**
+             * 删除一列
+             *
+             * @param {Number|String} col - 列号
+             */
+            delCol: function (col) {
+                delete this.table[col];
+                delete this.keies[col];
+            },
+
+            /**
+             * 获取全部的行索引
+             *
+             * @return {Array}
+             */
+            getRowKeies: function () {
+                var rks = [];
+                for (var i in this.keies.rows) {
+                    rks.push(i);
+                }
+
+                return rks;
+            },
+
+            /**
+             * 行的个数
+             */
+            rowLength: function () {
+                return this.getRowKeies().length;
+            },
+
+            /**
+             * 获取一行
+             *
+             * @param {Number|String} row - 行号
+             */
+            getRow: function (row) {
+                var r = {};
+
+                if (!this.keies.rows[row])
+                    return null;
+
+                for (var i in this.keies.cols) {
+                    r[i] = this.table[i][row];
+                }
+            },
+
+            /**
+             * 删除一行
+             *
+             * @param {Number|String} row - 行号
+             */
+            delRow: function (row) {
+                if (!this.keies.rows[row]) return ;
+
+                for (var i in this.keies.cols) {
+                    delete this.table[i][row];
+                }
+
+                delete this.rows[row];
+            },
+
+            /**
+             * 清空表格数据
+             */
+            clear: function () {
+                delete this.table;
+                this.table = {};
+
+                delete this.keies;
+                this.keies = {
+                    cols: {},
+                    rows: {}
+                };
+            }
+        });
+
+        return KeyTable;
+    }]);
+})(nameSpace.reg('graph'));

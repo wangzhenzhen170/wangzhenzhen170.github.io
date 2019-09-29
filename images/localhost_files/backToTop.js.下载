@@ -1,0 +1,68 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.directive('backToTop', function($http) {
+		 return {
+            restrict: "AE",
+            replace: false,
+            scope:{
+                bgc:'@',
+                goTop:'='
+            },
+            link: function (scope, element, attr) {
+                /*样式定义*/
+                element.css('width','50px')
+                .css('height','50px')
+                .css('border-radius','50%')
+                .css('background','url(assets/images/tarsier/top.png) no-repeat center')
+                .css('text-align','center')
+                .css('position','absolute')
+                .css('bottom','30px')
+                .css('right','30px')
+                .css('cursor','pointer')
+                .css('background-size','20px 20px');
+                if(scope.bgc){
+                    element.css('background-color',scope.bgc)
+                }else{
+                    element.css('background-color','#ccc')
+                }
+
+                /*功能定义*/
+                var scrollWrap = $(element).parent().parent();
+                var mymine=$(element).parent();
+                var e = $(element);
+                //显示回到顶部
+                scrollWrap.on('scroll', function($scope){
+                    if( !scope.noSearchData && $(this).scrollTop() > 100){
+                        scope.goTop = true;
+                        scope.$apply();
+                    }else{
+                        scope.goTop = false;
+                        scope.$apply();
+                    }
+                });
+                mymine.on('scroll', function($scope){
+                    if( !scope.noSearchData && $(this).scrollTop() > 100){
+                        scope.goTop = true;
+                        scope.$apply();
+                    }else{
+                        scope.goTop = false;
+                        scope.$apply();
+                    }
+                });
+
+                /*点击回到顶部*/
+                e.click(function () {
+                    mymine.animate({ //添加animate动画效果
+                        scrollTop: 0
+                    }, 300);
+                    scrollWrap.animate({ //添加animate动画效果
+                        scrollTop: 0
+                    }, 300);
+                });
+            }
+        };
+	});
+
+})(nameSpace.reg('graph'));

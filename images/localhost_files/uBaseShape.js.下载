@@ -1,0 +1,164 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxBaseShape', ['emxExtandMxSvgCanvas', function (emxExtandMxSvgCanvas) {
+
+
+        /*************************************************************************/
+
+        /**
+         * 形状基类，按照设计稿张雨绮版实现
+         */
+
+
+        function uBaseShape(bounds, fill, stroke, strokewidth) {
+            mxShape.call(this);
+            this.bounds = bounds;
+            this.fill = fill;
+            this.stroke = stroke;
+            this.strokewidth = null != strokewidth ? strokewidth : 1
+
+        }
+
+        mxUtils.extend(uBaseShape, mxShape);
+
+        /**
+         * 定义自身形状名
+         * 子类应当指定具体值
+         */
+        uBaseShape.prototype.uShapeName = "";
+
+
+
+
+        /**
+         * 获取标题颜色或渐变ID
+         */
+        uBaseShape.prototype.getTitleColor = function (c, direction) {
+            var state = this.state,
+                style = state.style;
+
+            if (style.titleStartColor && style.titleEndColor) {
+                return 'url(#' +
+                    c.getSvgGradient(style.titleStartColor, style.titleEndColor, 1, 1, direction || mxConstants.DIRECTION_EAST) +
+                    ')';
+            } else {
+                return style.titleColor;
+            }
+        };
+
+
+
+
+        /**
+         * 获取标题高度
+         */
+        uBaseShape.prototype.getTitleHeight = function (w, h) {
+            var state = this.state,
+                style = state.style;
+
+            return Math.min(h, style.titleHeight || 35);
+        };
+
+
+        /**
+         * 绘制之前的准备工作
+         */
+        uBaseShape.prototype.uBeforePaint = function (c, x, y, w, h) {
+
+        };
+
+
+
+        /**
+         * 重写绘制方法
+         * 首先调用uBeforePaint方法
+         */
+        uBaseShape.prototype.paintVertexShape = function (c, x, y, w, h) {
+            this.uBeforePaint(c, x, y, w, h);
+
+            mxShape.prototype.paintVertexShape.apply(this, arguments);
+        };
+
+
+        /**
+         * 绘制图标
+         */
+        uBaseShape.prototype.drawCellIcon = function (c, x, y, w, h) {
+            var state = this.state,
+                style = state.style,
+                cell = state.cell,
+                titleHeight = this.getTitleHeight(w, h);
+
+            if (style.image && !style.hideCellIcon && !this.hideCellIcon) {
+                var iw = 20; // this.titleHeight * 3 / 5,
+                ih = iw,
+                    ix = x + c.state.dx + (titleHeight - iw) / 2,
+                    iy = y + c.state.dy + (titleHeight - ih) / 2;
+                c.image(ix,
+                    iy,
+                    iw,
+                    ih,
+                    state.style.image);
+
+                c.root.lastChild.setAttribute('class', 'cell-icon pointer');
+            }
+
+        };
+
+
+
+
+        /**
+         * 绘制背景
+         */
+        uBaseShape.prototype.paintBackground = function (c, x, y, w, h) {
+            var state = this.state,
+                style = state.style,
+                cell = state.cell,
+                titleHeight = this.getTitleHeight(w, h);
+
+            c.root.setAttribute("class", "uShape " + this.uShapeName);
+            c.root.setAttribute("data-cellid", cell.id);
+            c.save();
+
+            // 绘制阴影
+            c.uDrawShadow(x, y + 10, w, h, 4, 4, 10, style.shadowColor);
+
+            // 绘制底层
+            c.setFillColor(style.backColor);
+            c.roundrect(x, y, w, h, style.radiusX || 0, style.radiusY || 0);
+            c.fill();
+
+            // 开始绘制标题部分
+            c.setFillColor(this.getTitleColor(c));
+            c.uRadiusRect(x, y, w, titleHeight, 4, 4, {
+                tl: 1,
+                tr: 1
+            });
+            c.fill();
+
+            this.drawCellIcon(c, x, y, w, h);
+
+            c.restore();
+        };
+
+
+        /**
+         * 绘制前景
+         */
+        uBaseShape.prototype.paintForeground = function (c, x, y, w, h) {
+
+        };
+
+        uBaseShape.prototype.getLabelBounds = function (bounds) {
+            bounds.height = this.getTitleHeight(bounds.width, bounds.height) * this.state.view.scale;
+
+            return bounds;
+        }
+
+
+        return uBaseShape;
+
+    }]);
+})();

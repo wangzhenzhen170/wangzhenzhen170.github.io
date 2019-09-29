@@ -1,0 +1,128 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalExpandCtrl', ['$scope', '$uibModalInstance', 'CiRelationService', 'CiCateService', 'CiService',
+		'editor', 'Unit', 'Const', function($scope, $uibModalInstance, CiRelationService, CiCateService, CiService,
+													 editor, Unit, Const){
+
+		$scope.ok = function(){
+
+			var obj = {};
+
+			var cell = editor.graph.getSelectionCell();
+
+			obj.dirDepth = $scope.dep;
+			obj.ciRels = [];
+			obj.ci = Unit.getCiIdByCell(cell);
+			obj.like = {};
+
+			$.each($scope.relations, function(){
+				if(this._checked){
+					obj.ciRels.push(this.id);
+				}
+			});
+
+			$.each($scope.categorys, function(){
+
+				if(!obj.like[this.category.id]){
+					obj.like[this.category.id] = {};
+				}
+
+				var o = obj.like[this.category.id];
+
+				if(this.attribute){
+					o[this.attribute] = this.like ? '*' + this.like + '*' : '*';
+				}else{
+					o['*'] = this.like ? '*' + this.like + '*' : '*';
+				}
+
+			});
+
+			CiService.expand(obj)
+				.success(function(result1){
+
+					$.each(result1.data, function(){
+						if(!editor.graph.getCellById(Const.CI_PREFIX + this.id)){
+							editor.graph.insertVertex(
+								editor.graph.getDefaultParent(),
+								Const.CI_PREFIX + this.id,
+								this.name,
+								0,
+								0,
+								Const.GRAPH_DRAG_WIDTH,
+								Const.GRAPH_DRAG_HEIGHT,
+								'image;image=' + Unit.static(this.icon)
+							);
+						}
+					});
+
+
+					CiService.expand({cis: editor.action.getCisId()})
+						.success(function(result2){
+							$uibModalInstance.close();
+
+							$.each(result2.data, function() {
+								var item = this, isTrue = false, i = 0, edge;
+
+								var source = editor.graph.getCellById(Const.CI_PREFIX + item.startCi);
+								var target = editor.graph.getCellById(Const.CI_PREFIX + item.endCi);
+
+								if(Array.isArray(source.edges)){
+									for(i; i<source.edges.length; i++){
+										edge = source.edges[i];
+
+										if((edge.source.id === source.id && edge.target.id === target.id) ||
+												(edge.target.id === source.id && edge.source.id === target.id)){
+											isTrue = true;
+											break;
+										}
+									}
+								}
+
+								if (source && target && !isTrue) {
+									var edgeId = [Const.RELATION_PREFIX, item.relCateName].join('');
+									editor.graph.insertEdge(editor.graph.getDefaultParent(), edgeId, item.relCateName,
+										source, target);
+								}
+							});
+
+							editor.action.layoutVertical();
+							editor.action.zoomCenter();
+						});
+
+				});
+		};
+
+		$scope.$modal = $uibModalInstance;
+
+		$scope.relations = [];
+		$scope.categorys = [];
+		$scope.dep = {
+			up: '1',
+			down: '1'
+		};
+
+		$scope.add = function(){
+			$scope.categorys.push({});
+		};
+
+		$scope.remove = function(index){
+			$scope.categorys.splice(index, 1);
+		};
+
+		CiCateService.get()
+			.success(function(result){
+				$scope.categorysLib = result.data;
+			});
+
+		CiRelationService.getCategory()
+			.success(function(result){
+				$scope.relations = result.data;
+			});
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

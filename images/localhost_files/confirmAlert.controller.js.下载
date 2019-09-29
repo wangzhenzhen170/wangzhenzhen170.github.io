@@ -1,0 +1,78 @@
+(function (graph) {
+
+    'use strict';
+
+    var controller = function ($scope, $uibModalInstance, Unit, MonitoringService, item, type, fn) {
+
+        $scope.cancel = function () {
+            $uibModalInstance.close();
+        };
+        //console.log(item);
+        //console.log(type)
+        if (type == 1) {
+            $scope.title = L.get('EMV_ALARM_CONFIRM_TITLE');
+            $scope.titleContent = L.get('COMMON_ALARM');
+        }
+        if (type == 2) {
+            $scope.title = L.get('EMV_INCIDENT_CONFIRM_TITLE');
+            $scope.titleContent = L.get('COMMON_INCIDENT');
+        }
+        $scope.ok = function () {
+            if ($scope.ackInfo && $scope.ackInfo.length > 200) {
+                Unit.error(L.get('EMV_DESCRIPTION_LIMIT_HINT'));
+                return;
+            }
+            var params = {
+                ackInfo: $scope.ackInfo,
+                continued: $('#continued').hasClass('checked') ? 1 : 0,
+
+            };
+            if (type == 1) {/*告警*/
+                params.serials = [];
+                params.serials.push(item.serial || item.SERIAL);
+                //$scope.title = '告警确认';
+                //$scope.titleContent='告警';
+                //$scope.isFault = false;
+                MonitoringService.confirmFault(params).success(function (data) {
+                    if (data.success) {
+                        Unit.success(L.get('COMMON_CONFIRMATION_SUCCEEDED'));
+                        $uibModalInstance.close();
+                        fn();
+                    } else {
+                        Unit.error(data.message);
+                    }
+                });
+            }
+            if (type == 2) {/*故障*/
+                params.incidentIds = [];
+                params.incidentIds.push(item.id);
+                //$scope.title = '故障确认';
+                //$scope.titleContent='故障';
+                //$scope.isFault = true;
+                MonitoringService.confirmEvent(params).success(function (data) {
+                    if (data.success) {
+                        Unit.success(L.get('COMMON_CONFIRMATION_SUCCEEDED'));
+                        $uibModalInstance.close();
+                        fn();
+                    } else {
+                        Unit.error(data.message);
+                    }
+                });
+            }
+
+
+
+        };
+        $scope.stopPropagation = function ($event) {
+            $event.stopPropagation();
+        };
+        $scope.newNotice = function () {
+            $('#continued').toggleClass('checked');
+        };
+
+    };
+
+    graph.app.controller('ModalConfirmAlertCtrl', ['$scope', '$uibModalInstance', 'Unit', 'MonitoringService', 'item', 'type', 'fn', controller]);
+
+
+})(nameSpace.reg('graph'));

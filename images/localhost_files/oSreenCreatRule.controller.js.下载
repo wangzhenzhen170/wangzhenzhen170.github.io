@@ -1,0 +1,488 @@
+/**
+ * Created by uinnova on 2017/11/14.
+ */
+(function (graph) {
+
+    'use strict';
+    graph.app.controller('osreenCreatRuleCtrl', ['$uibModal', '$scope', '$uibModalInstance', 'MonitoringService', 'rule', 'item', '$timeout', 'Unit', function ($uibModal, $scope, $uibModalInstance, MonitoringService, rule, item, $timeout, Unit) {
+        $scope.deFaultItem = item;
+        $scope.rule = rule;
+        $scope.severityValue = $scope.deFaultItem.SEVERITY;
+        //接收丰富规则数据
+        $scope.$on('enrichStrategyArr', function (event, data) {
+            $scope.enrichStrategyArr = data;
+            console.log(data)
+
+        })
+        //接收标准化规则的值
+        $scope.$on('standalevelVal', function (event, data) {
+            $scope.standalevelVal = data;
+            console.log($scope.standalevelVal)
+        })
+        $scope.$on('standadefineTimeVal', function (event, data) {
+            $scope.standadefineTimeVal = data;
+            console.log($scope.standadefineTimeVal)
+        })
+        $scope.$on('standaMailContentString', function (event, data) {
+            $scope.standaMailContentString = data;
+            console.log($scope.standaMailContentString)
+        })
+        $scope.$on('standaTitleContentString', function (event, data) {
+            $scope.standaTitleContentString = data;
+            console.log($scope.standaTitleContentString)
+        })
+        //接收过滤规则的值
+        $scope.$on('filter', function (event, data) {
+            $scope.filter = data;
+            console.log(data)
+        })
+        //接收压缩规则的事件压缩标识,接收压缩规则的更新字段信息
+        $scope.$on('event$flag', function (event, data) {
+            $scope.compressEventflag = data;
+        })
+        $scope.$on('overUpdateword', function (event, data) {
+            $scope.compressOverUpdateword = data;
+        })
+        //定时清理规则清理时间
+        $scope.$on('timeCleanDuration', function (event, data) {
+            $scope.timeCleanDuration = data;
+            console.log($scope.timeCleanDuration)
+        })
+        //接受自动派单值
+        $scope.$on('automaticInfluence', function (event, data) {
+            $scope.automaticInfluence = data;
+            console.log($scope.automaticInfluence)
+        })
+        $scope.$on('automaticSeverityClass', function (event, data) {
+            $scope.automaticSeverityClass = data;
+            console.log($scope.automaticSeverityClass)
+        })
+        $scope.$on('automaticDescrible', function (event, data) {
+            $scope.automaticDescrible = data;
+            console.log($scope.automaticDescrible)
+        })
+        $scope.$on('automaticperson', function (event, data) {
+            $scope.automaticperson = data;
+            console.log($scope.automaticperson)
+        })
+        $scope.$on('automatictitle', function (event, data) {
+            $scope.automatictitle = data;
+            console.log($scope.automatictitle)
+        })
+        //邮件通知规则（收件人数组，邮件内容）
+        $scope.$on('noticePersonCheckedArray', function (event, data) {
+            $scope.noticePersonCheckedArray = data;
+            console.log($scope.noticePersonCheckedArray)
+        })
+        $scope.$on('noticeTeamCheckedArray', function (event, data) {
+            $scope.noticeTeamCheckedArray = data;
+            console.log($scope.noticeTeamCheckedArray)
+        })
+        $scope.$on('noticedutyPersonArray', function (event, data) {
+            $scope.noticedutyPersonArray = data;
+            console.log($scope.noticePersonCheckedArray)
+        })
+        $scope.$on('notifies', function (event, data) {
+            $scope.noticenotifies = data;
+            console.log($scope.noticenotifies)
+        })
+        $scope.$on('charge', function (event, data) {
+            $scope.charge = data;
+            console.log(data)
+        })
+        //超时升级
+        $scope.$on('timeOutTime', function (event, data) {
+            $scope.timeOutTime = data;
+            console.log($scope.timeOutTime)
+        })
+        $scope.$on('timeOutSeverity', function (event, data) {
+            $scope.timeOutSeverity = data;
+            console.log($scope.timeOutSeverity)
+        })
+        //重定级
+        $scope.$on('regradingLevel', function (event, data) {
+            $scope.regradingLevel = data;
+            console.log($scope.regradingLevel)
+        })
+
+        $scope.okParms = {
+            selectorList: [
+                {
+                    selectors: [
+                        {
+                            property: 'SOURCECINAME',
+                            operator: '==',
+                            value: $scope.deFaultItem.SOURCECINAME,
+                            propertyDesc: L.get('EMV_SOURCE_ALARM_OBJECT'),
+                            operatorDesc: L.get('EMV_EQUAL')
+                        },
+                        {
+                            property: 'SEVERITY',
+                            operator: '==',
+                            value: $scope.deFaultItem.SEVERITY,
+                            propertyDesc: L.get('COMMON_EVENTUSERCONFIG_LEVEL'),
+                            operatorDesc: L.get('EMV_EQUAL')
+                        },
+                        {
+                            property: 'SOURCEALERTKEY',
+                            operator: '==',
+                            value: $scope.deFaultItem.SOURCEALERTKEY,
+                            propertyDesc: L.get('EMV_SOURCE_INDICATOR_NAME'),
+                            operatorDesc: L.get('EMV_EQUAL')
+                        }
+                    ]
+                }
+            ],
+
+        };
+        //$scope.okParms.description='筛选事件范围：对象等于'+item.SOURCECINAME+' 且 级别等于'+ item.SEVERITY+'且 指标等于'+item.KPINAME
+        $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE_OBJECT')+ $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value +L.get('COMMON_AND')+L.get('COMMON_EVENTUSERCONFIG_LEVEL')+ $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue +L.get('COMMON_AND')+L.get('COMMON_INDICATOR')+ $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+        /*获取比较条件*/
+        $scope.toGetVal = function (type) {
+            /*codeType14 获取比较条件  0等级 */
+            var parm = {
+                codeType: type,
+            }
+            if (type === 0) {
+                parm.add = [
+                    {
+                        codeType: type,
+                        name: L.get('COMMON_ALL'),
+                        value: '-1'
+                    }
+                ]
+            }
+
+            MonitoringService.getSelectorCodes(parm).success(function (result) {
+                //console.log(result)
+                if (result.success) {
+                    if (type === 14) {
+                        $scope.compareData = result.data || [];
+                    }
+                    if (type === 0) {/*等级*/
+                        $scope.levelData = result.data || [];
+                    }
+
+                }
+
+            }).error(function () {
+            });
+        }
+        $scope.toGetVal(14);
+        $scope.toGetVal(0);
+
+
+
+
+        /*屏蔽时间默认30分钟*/
+
+        $scope.goChooseCondition = function (e, rule) {
+            e.stopPropagation();
+            if (rule.showFlag) {
+                delete rule.showFlag
+            } else {
+                rule.showFlag = true;
+            }
+        }
+        $scope.goChooseSerial = function (e, rule) {
+            e.stopPropagation();
+            if (rule.showFlagSerial) {
+                delete rule.showFlagSerial
+            } else {
+                rule.showFlagSerial = true;
+            }
+        }
+        $scope.getLiValue = function (item, rule) {
+            // debugger;
+            rule.operatorDesc = item.name;
+            rule.operator = item.value;
+            delete rule.showFlag;
+            $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE_OBJECT')+ $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value + ' 且 级别' + $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue + ' 且 指标' + $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+
+        }
+        $scope.monitorDescription = function () {
+            $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE_OBJECT')+ $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value + ' 且 级别' + $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue + ' 且 指标' + $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+
+        }
+        $scope.getLiSerial = function (item, rule) {
+            //rule.value=item.name;
+            $scope.severityValue = item.name;
+
+            delete rule.showFlagSerial;
+            $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE_OBJECT')+ $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value + ' 且 级别' + $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue + '且 指标' + $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+        }
+        $scope.setRuleFlag = true;
+        $scope.goSetRule = function () {
+            $scope.setRuleFlag = false;
+            $('.modal-fastShield').addClass('setH')
+        }
+        $scope.deleteVal = function (rule) {
+            rule.value = '';
+            $scope.okParms.description = L.get('EMV_FILER_EVENT_RANGE_OBJECT')+ $scope.okParms.selectorList[0].selectors[0].operatorDesc + $scope.okParms.selectorList[0].selectors[0].value + ' 且 级别' + $scope.okParms.selectorList[0].selectors[1].operatorDesc + $scope.severityValue + '且 指标' + $scope.okParms.selectorList[0].selectors[2].operatorDesc + $scope.okParms.selectorList[0].selectors[2].value;
+        }
+        $scope.checkFun = function () {
+            if (!$scope.okParms.selectorList[0].selectors[0].value) {
+                Unit.error(L.get('EMV_ALARM_OBJECT_VALUE_CANNOT_BE_EMPTY_IN_THE_RULE'));
+                return
+            } else if (!$scope.okParms.selectorList[0].selectors[2].value) {
+                Unit.error(L.get('EMV_ALARM_INDICATOR_VALUE_CANNOT_BE_EMPTY_IN_THE_RULE'));
+                return
+            } else if (!$scope.okParms.description) {
+                Unit.error(L.get('EMV_DESCRIPTION_CANNOT_BE_EMPTY'));
+                return
+            }
+            //var breakFlag = false;
+
+            $scope.levelData.forEach(function (item, index) {
+                if (item.name === $scope.severityValue && item.value !== '-1' && $scope.okParms.selectorList[0].selectors[1].property === 'SEVERITY') {
+                    $scope.okParms.selectorList[0].selectors[1].value = item.value;
+                    //breakFlag = true;
+
+                } else if (item.name === $scope.severityValue && item.value === '-1' && $scope.okParms.selectorList[0].selectors[1].property === 'SEVERITY') {
+                    $scope.okParms.selectorList[0].selectors.splice(1, 1);
+                    // breakFlag = true;
+                }
+                //if(breakFlag){ return true}
+            })
+
+            var selectorList = $scope.okParms.selectorList;
+            var name = item.SOURCECINAME + Math.round(new Date().getTime() / 1000).toString();
+            if (name.length > 32) {
+                name = item.SOURCECINAME.slice(0, 20) + Math.round(new Date().getTime() / 1000).toString();
+            }
+            $scope.ruleparam = {
+                name: name,
+                active: 1,
+                priority: 1,
+                ruleType: rule.ruleType,
+                selectorList: selectorList,
+                description: $scope.okParms.description,
+                sourceIdList: []
+            };
+            // console.log($scope.okParms.selectorList)
+
+
+
+            if (rule.ruleType === 12) {
+                if (!$scope.enrichStrategyArr[0].eventAttr) {
+                    Unit.error(L.get('EMV_RICH_FIELDS_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+                if (!$scope.enrichStrategyArr[0].ciShow && !$scope.enrichStrategyArr[0].defindeShow) {
+                    Unit.error(L.get('EMV_PLEASE_CHOOSE_A_RICH_WAY'))
+                    return false;
+                }
+                if ($scope.enrichStrategyArr[0].ciShow && !$scope.enrichStrategyArr[0].ciClassId) {
+                    Unit.error(L.get('EMV_PLEASE_SELECT_CI_CLASSIFICATION_METHOD'))
+                    return false;
+                }
+                if ($scope.enrichStrategyArr[0].ciShow && !$scope.enrichStrategyArr[0].ciAttr) {
+                    Unit.error(L.get('EMV_PLEASE_SELECT_CI_ATTRIBUTE'))
+                    return false;
+                }
+                $.each($scope.enrichStrategyArr, function (index, item) {
+
+                    if (item.ciShow) {
+                        item.matchType = 1;
+                    } else if (item.defindeShow) {
+                        item.matchType = 2;
+                        delete item.ciClassId;
+                        delete item.ciAttr;
+                    }
+                    delete item.ciShow;
+                    delete item.defindeShow;
+                })
+                $scope.ruleparam.action = { 'ciMatches': $scope.enrichStrategyArr };
+            } else if (rule.ruleType === 1) {
+                if ($scope.standaTitleContentString.length === 0) {
+                    Unit.error(L.get('EMV_EVENT_TITLE_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+                if ($scope.standaMailContentString.length === 0) {
+                    Unit.error(L.get('EMV_EVENT_CONTENT_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+                $scope.ruleparam.duration = $scope.standadefineTimeVal;
+                $scope.ruleparam.action = {
+                    eventTitle: $scope.standaTitleContentString,
+                    summary: $scope.standaMailContentString,
+                    severity: $scope.standalevelVal
+                }
+
+
+            } else if (rule.ruleType === 14) {
+                $scope.ruleparam.action = {
+                    'severity': $scope.regradingLevel
+                }
+
+            } else if (rule.ruleType === 2) {
+                $scope.ruleparam.filterType = $scope.filter;
+
+            } else if (rule.ruleType === 3) {
+                if ($scope.compressEventflag.length == 0) {
+                    Unit.error(L.get('EMV_EVENT_COMPRESSION_ID_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+                if ($scope.compressOverUpdateword.length == 0) {
+                    Unit.error(L.get('EMV_SELECTED_UPDATE_FIELD_INFORMATION_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+                $scope.ruleparam.action = {
+                    identifier: $scope.compressEventflag.join('_'),
+                    properties: $scope.compressOverUpdateword
+                }
+
+            } else if (rule.ruleType === 4) {
+                if ($scope.timeOutTime === undefined || $scope.timeOutTime === '' || $scope.timeOutTime === 0) {
+                    Unit.error(L.get('EMV_TIMEOUT_UPGRADE_TIME_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+                $scope.ruleparam.duration = $scope.timeOutTime;
+                $scope.ruleparam.severity = $scope.timeOutSeverity;
+
+
+            } else if (rule.ruleType === 5) {
+                if ($scope.timeCleanDuration === undefined || $scope.timeCleanDuration === '' || $scope.timeCleanDuration === 0) {
+                    Unit.error(L.get('EMV_TIMING_CLEANUP_TIME_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+                $scope.ruleparam.duration = $scope.timeCleanDuration;
+
+            } else if (rule.ruleType === 6) {
+                var typecheck = false;
+                $scope.noticenotifies.forEach(function (item, index) {
+                    console.log(item)
+                    switch (item.type) {
+                        case 1:
+                            if (typeof (item.title) !== 'String' && item.title.length < 1) {
+                                Unit.error(L.get('EMV_MAIL_HEADER_CANNOT_BE_EMPTY'));
+                                typecheck = true;
+                            } else if (typeof (item.content) !== 'String' && item.content.length < 1) {
+                                Unit.error(L.get('EMV_MAIL_CONTENT_CANNOT_BE_EMPTY'));
+                                typecheck = true;
+                            }
+                            break;
+                        case 2:
+                            if (typeof (item.content) !== 'String' && item.content.length < 1) {
+                                Unit.error(L.get('EMV_SMS_CONTENT_CANNOT_BE_EMPTY'));
+                                typecheck = true;
+
+                            }
+                            break;
+                        case 3:
+                            if (typeof (item.content) !== 'String' && item.content.length < 1) {
+                                Unit.error(L.get('EMV_WECHAT_CONTENT_CANNOT_BE_EMPTY'));
+                                typecheck = true;
+                            }
+                            break;
+                    }
+                })
+                if (typecheck) {
+                    return false;
+                }
+                if ($scope.noticePersonCheckedArray.length === 0 && $scope.noticeTeamCheckedArray.length === 0 && $scope.noticedutyPersonArray.length === 0 && !$scope.charge) {
+                  Unit.error(L.get('EMV_EMAIL_NOTIFICATION_CONTENT_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+                $scope.ruleparam.action = {
+                    userCodes: $scope.noticePersonCheckedArray,
+                    groupIds: $scope.noticeTeamCheckedArray,
+                    duties: $scope.noticedutyPersonArray,
+                    notifies: $scope.noticenotifies,
+                    notifyApp: $scope.charge
+                }
+
+
+            } else if (rule.ruleType === 7) {
+                if ($scope.automatictitle.length === 0) {
+                    Unit.error(L.get('EMV_WORK_ORDER_TITLE_CANNOT_BE_EMPTY'))
+                    return false;
+                } else if ($scope.automaticDescrible.length === 0) {
+                    Unit.error(L.get('EMV_WORK_ORDER_DESCRIPTION_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+
+                $scope.ruleparam.action = {
+                    influenceScope: $scope.automaticInfluence,
+                    ticketSeverity: $scope.automaticSeverityClass,
+                    ticketSummary: $scope.automaticDescrible,
+                    ticketTitle: $scope.automatictitle,
+                    userCodes: $scope.automaticperson
+                }
+
+            }
+            $scope.saveFun();
+
+
+        }
+        $scope.saveFun = function () {
+            //$scope.checkFun();
+
+            MonitoringService.saveRule($scope.ruleparam).success(function (result) {
+                if (result.success) {
+                    Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'));
+                    $scope.cancel();
+                } else {
+                    Unit.error(L.get('COMMON_SAVE_FAILED'));
+                }
+
+            })
+
+
+        }
+
+
+        $scope.ok = function () {
+            if (!$scope.okParms.selectorList[0].selectors[0].value) {
+                Unit.error(L.get('EMV_ALARM_OBJECT_VALUE_CANNOT_BE_EMPTY_IN_THE_RULE'));
+                return
+            }
+            if (!$scope.okParms.selectorList[0].selectors[2].value) {
+                Unit.error(L.get('EMV_ALARM_INDICATOR_VALUE_CANNOT_BE_EMPTY_IN_THE_RULE'));
+                return
+            }
+
+            $scope.checkFun();
+            // $.each($scope.levelData, function () {
+            //     if (this.name === $scope.severityValue) {
+            //         $scope.okParms.selectorList[0].selectors[1].value = this.value;
+            //     }
+            // })
+			/*if($scope.okParms.selectorList[0].selectors[1].value==0){
+				$scope.okParms.selectorList[0].selectors.splice(1,1)
+			}*/
+
+
+        };
+        // 取消按钮
+        $scope.cancel = function () {
+            $uibModalInstance.close({ ok: false });
+        };
+        // 取消按钮
+        $scope.cancleFn = function () {
+            $scope.selectFlag = false;
+            $.each($scope.okParms.selectorList[0].selectors, function () {
+                if (this.showFlag) {
+                    delete this.showFlag
+                }
+                if (this.showFlagSerial) {
+                    delete this.showFlagSerial
+                }
+            })
+
+        };
+        $(document).on('click', function () {
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+            $('.search-inp').hide();
+        });
+        $timeout(function (event) {
+            $('.rule').on('click', '.select-wrap', function (event) {
+                event.stopPropagation();
+                $(this).find('.drop-menu').stop().slideToggle(150);
+
+            });
+
+        }, 3)
+
+    }])
+})(nameSpace.reg('graph'));

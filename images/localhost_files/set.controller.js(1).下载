@@ -1,0 +1,143 @@
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('ModalViewRltViewSetCtrl', ['$scope', '$uibModalInstance',
+        'ViewService', 'Unit', 'editor', 'DiagramDiagramService',
+        'viewRelationSetService', function ($scope, $uibModalInstance,
+                                            ViewService, Unit, editor,
+                                            DiagramDiagramService, viewRelationSetService) {
+
+            var cell = editor.graph.getSelectionCell();
+
+            $scope.direction = editor.graph.getCellAttr(cell, 'direction') ? editor.graph.getCellAttr(cell, 'direction') : 'down';
+
+            $scope.ok = function () {
+
+                $uibModalInstance.close();
+                if ($scope.checked.length) {
+                    var arr = [];
+                    $.each($scope.checked, function () {
+                        arr.push(this.diagram.id);
+                    });
+
+                    cell.setUtAttr('view', arr.join('$'));
+                    cell.setUtAttr('direction', $scope.direction);
+                    editor.graph.setCellAttr(cell, 'view', arr.join('$'));
+                    editor.graph.setCellAttr(cell, 'direction', $scope.direction);
+                }
+            };
+
+            $scope.$modal = $uibModalInstance;
+            $scope.staticUrl = Unit.static;
+
+            $scope.checked = [];
+            $scope.refresh = function (item) {
+                $scope.clear();
+                item._checked = !item._checked;
+                $scope.checked.push(item);
+                // if (!item._checked) {
+                //     $scope.clear();//清空所有选中;
+                //     $scope.checked = [];//清空所有选中数据；
+                //     item._checked = !item._checked;
+                //     $scope.checked.push(this);
+                // } else {
+                //     $scope.checked = [];//清空所有选中数据；
+                //     item._checked = !item._checked;
+                //     $scope.checked.pop(this);
+                // }
+                // $scope.checked = [];
+                /*$.each($scope.views.data, function(){
+                 if(this._checked){
+                 console.log(this)
+                 $scope.checked.push(this);
+                 }
+                 });*/
+            };
+
+            $scope.clear = function () {
+                $scope.checked = [];
+                $.each($scope.views.data, function () {
+                    this._checked = false;
+                });
+            };
+
+            $scope.loadImages = function(){
+                var cdt = {};
+                if($scope.filter){
+                    cdt.name = '%' + $scope.filter + '%';
+                }
+
+                if($scope.httpTimer){
+                    $scope.httpTimer.cancel();
+                }
+                $scope.httpTimer = viewRelationSetService.get({
+                    pageNum: 1,
+                    pageSize: 10000,
+                    orders: 'modify_Time desc',
+                    cdt: cdt
+                }).success(function (result) {
+                    if (!angular.isObject(result.data)) {
+                        return;
+                    }
+                    $scope.views = result.data;
+
+                    if (cell) {
+                        var str = editor.graph.getCellAttr(cell, 'view');
+                        if(str){
+                            var i;
+                            for(i = 0; i < $scope.views.data.length; i++){
+                                if(String($scope.views.data[i].diagram.id) === String(str)){
+                                    $scope.refresh($scope.views.data[i]);
+                                }
+                            }
+                        }
+                    };
+
+                    if (!$scope.$$phase) {
+						$scope.$apply();
+					}
+                });
+            };
+
+            $scope.loadImages();
+            
+
+            /* ViewService.publicForRelation()
+             .success(function(result){
+             $scope.views = result.data;
+
+             if(cell){
+             var str = editor.graph.getCellAttr(cell, 'view');
+             if(str){
+             $.each(str.split('$'), function(){
+             var i;
+
+             for(i=0; i<$scope.views.length; i++){
+             if($scope.views[i].diagram.id === this){
+             $scope.views[i]._checked = true;
+             $scope.checked.push($scope.views[i]);
+             }
+             }
+             });
+             }
+             }
+             });*/
+
+            /**
+             * 鼠标进入
+             */
+            $scope.mouseenter = function(item,e){
+             item._disc = !item._disc;
+             }
+
+            /**
+             * 鼠标移出
+             */
+            $scope.mouseleave = function(item,e){
+             item._disc = !item._disc;
+             }
+        }]);
+
+
+})(nameSpace.reg('graph'));

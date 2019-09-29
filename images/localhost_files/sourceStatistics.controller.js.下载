@@ -1,0 +1,117 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('sourceStatisticsCtrl', ['$scope','$state','$timeout','MonitoringService','$uibModal','Unit','uDialog','$stateParams','$filter', function($scope,$state,$timeout,MonitoringService,$uibModal,Unit,uDialog,$stateParams,$filter){
+		$scope.focusData=true;
+		$scope.getFocusData=function(){
+			MonitoringService.queryMajorCiCount().success(function(result) {
+				$scope.focusData=false;
+				if(result.success==true){
+					$scope.focusData=result.data;
+				}else{
+				}
+			}).error(function() {
+
+			});
+		};
+		$scope.statusFlag=1;
+		$scope.heardTitle=L.get('EMV_MONITOR_SOURCE_STATUS_STATISTICS');
+		$scope.getTypeData=function(item,e){
+			e.stopPropagation();
+			$scope.statusFlag=item;
+			item==1&&($scope.heardTitle=L.get('EMV_MONITOR_SOURCE_STATUS_STATISTICS'));
+			item==2&&($scope.heardTitle=L.get('EMV_KEY_OBJECT_STATUS_STATISTICS'));
+			if(item==2){
+				$scope.getFocusData()
+			}else{
+				$scope.loadData()
+			}
+
+
+		}
+		$scope.loadBusy=true;
+		$scope.loadData=function(){
+			MonitoringService.monitorSourceCount().success(function(result) {
+				$scope.loadBusy=false;
+				if(result.success==true){
+					$scope.listData=result.data;
+				}else{
+
+				}
+			}).error(function() {
+
+			});
+		};
+		$scope.loadData();
+
+
+		$scope.fnDelete = function(item) {
+			var dialog = uDialog.confirm({
+				title: L.get('COMMON_CONFIRM'),
+				content: L.get('EMV_PLEASE_CONFIRM_WHETHER_TO_DELETE')+'?',
+				confirm: function() {
+					MonitoringService.delDict([item.id])
+						.success(function(result) {
+							$scope.getFocusData();
+							Unit.success(L.get('COMMON_SUCCESSFULLY_DELETED'))
+
+						}).error(function(err) {
+							console.error(err)
+						});
+				}
+			})
+
+		}
+		$scope.addEventObj = function(item, mailName) {
+			var type ='add';
+			$uibModal.open({
+				size: 'addEventObj',
+				animation: true,
+				backdrop: 'static',
+				templateUrl: 'app/modal/manageAlert/addEventObj.html',
+				controller: 'addEventObjCtrl',
+				resolve: {
+					type:function(){
+						return type;
+					},
+					fn:function(){
+						return function(d){
+							if(type=='add'){
+								$scope.getFocusData();
+							}
+							if(type=='get'){
+								var getOjName=d;
+							}
+
+						}
+					}
+				}
+			});
+		}
+	  $scope.selectDefTimeFlag=false;
+		$(document).on('click', function() {
+			$('.select-wrap').find('.drop-menu').stop().slideUp(150);
+			$scope.selectDefTimeFlag=false;
+		});
+
+
+
+
+
+
+
+
+
+
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

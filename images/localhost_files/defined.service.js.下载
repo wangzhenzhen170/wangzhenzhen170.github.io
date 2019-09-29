@@ -1,0 +1,100 @@
+(function(graph) {
+
+    'use strict';
+
+    graph.app.service('DefinedEventsService', ['$http', 'Unit', 'MockPromise', '$q', function($http, Unit, MockPromise, $q) {
+      /*写入值班日志*/
+		this.addEventLog = function(param) {
+			return $http.post(Unit.monitorApi('/eventLog/add'), param);
+		};
+      //确认事件&&关闭事件
+		this.confirmEvent = function(param) {
+			return $http.post(Unit.monitorApi('/event/ackEventAlarm'), param);
+		};
+		this.closeEvent = function(param) {
+			return $http.post(Unit.monitorApi('/event/closeEventAlarm'), param);
+		};
+        //获取故障、告警列表
+        this.queryDict = function(param) {
+            return $http.post(Unit.monitorApi('/dict/queryDict'), param);
+        };
+        //事件等级 接口
+        this.list = function(param) {
+            return $http.post(Unit.monitorApi('/severity/list'), param);
+        };
+
+
+        /*进入编辑-数据总接口*/
+        ///view/queryViewCdtDic
+        this.queryViewCdtDic = function(param) {
+            return $http.post(Unit.monitorApi('/view/queryViewCdtDic'), param);
+        };
+
+
+        //编辑-查询{viewId:1002}
+        this.queryUserFilterInfo = function(param) {
+            return $http.post(Unit.monitorApi('/view/queryUserFilterInfo'), param);
+        };
+        //编辑-保存-根据视图编辑条件保存视图编
+        /*{
+            viewId:1506,
+            search_param:{
+                sourceId:[1,2,3],
+                severity:[4,5,6],
+                ackStatus:[0,1],
+                notifyStatus:[0,1],
+                timeArea:36000,
+                self_define_search:[
+                    [{field:"SEVERITY",op:"=",value:"a"},{field:"CINAME",op:"=",value:"b"}],
+                    [{field:"SEVERITY",op:"like",value:"c"},{field:"KPIALERTNAME",op:"=",value:"d"}]
+                ]
+            }
+        }*/
+        this.modifyQueryCondition = function(param) {
+            return $http.post(Unit.monitorApi('/view/modifyQueryCondition'), param);
+        };
+
+        /***********自定义接口-开始***********/
+
+        //复制视图/view/copyView{oldId:1506,newName:"hello world"}
+        this.copyView = function(param) {
+            return $http.post(Unit.monitorApi('/view/copyView'), param);
+        };
+        //删除视图view/deleteView{viewId:2103}
+        this.deleteView = function(param) {
+            return $http.post(Unit.monitorApi('/view/deleteView'), param);
+        };
+
+        /***********自定义接口-结束***********/
+
+        //列表查询
+        this.queryEventPage = function(param) {
+			return $http.post(Unit.monitorApi('/eventShow/queryEventPage'), param);
+		};
+		// 关注（订阅）事件台
+		this.subView = function(param) {
+			return $http.post(Unit.monitorApi('/view/subView'), param);
+		};
+		// 取消关注（订阅）事件台
+		this.removeSubView = function(param) {
+			return $http.post(Unit.monitorApi('/view/removeSubView'), param);
+		};
+		// 取消确认告警
+		this.cancleAckedEvent = function(param) {
+			return $http.post(Unit.monitorApi('/event/cancleAckedEvent'), param);
+		};
+		/*top10中查询分类*/
+		this.getTongJiEventModel = function(param) {
+			return $http.post(Unit.monitorApi('/system/getTongJiEventModel'), param);
+		};
+		/*查询标签*/
+		this.queryTag = function(param) {
+			return $http.post(Unit.monitorApi('/eventShow/queryTag'), param);
+		};
+		/*查询应用*/
+		this.queryCiApplication = function(param) {
+			return $http.post(Unit.monitorApi('/eventShow/queryCiApplication'), param);
+		};
+	}]);
+
+})(nameSpace.reg('graph'));

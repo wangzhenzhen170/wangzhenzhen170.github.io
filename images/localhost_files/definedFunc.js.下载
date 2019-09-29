@@ -1,0 +1,168 @@
+(function(graph) {
+
+    'use strict';
+    //右侧浮动层
+    graph.app.directive('definedFunc', function() {
+        return {
+            restrict: 'AE',
+            replace: true,
+            scope: {
+                viewId: '@viewId',
+                viewName: '@viewName',
+                status: '@status',
+				authority:'@authority',
+                newEventsLoad: '&newEventsLoad',
+                definedEventsFirstId: "@definedEventsFirstId",
+				definedNoFollowId: "@definedNoFollowId",
+				newEventsIdAry: '@newEventsIdAry',
+				getSubViews:"&getSubViews"
+            },
+            templateUrl: 'app/directive/definedEvents/definedFunc.html',
+            controller: ['$scope', '$timeout', '$state', 'DefinedEventsService', 'Unit', 'uDialog', 'MonitoringService', function($scope, $timeout, $state, DefinedEventsService, Unit, uDialog, MonitoringService) {
+                $scope.L = L;
+                //进入事件台
+                $scope.fnEdit = function() {
+                        $state.go('tarsier.monitoring.newEvents', {
+                            viewId: $scope.viewId,
+                            viewName: $scope.viewName,
+                            status: $scope.status,
+							noChangePage:3,
+						})
+                    }
+                    //事件台复制
+                    /*$scope.fnCopy = function(e){
+					var dialog = uDialog.input({
+                        title: '复制告警视图',
+                        size: 'definedEvents',
+                        data: $scope.viewName,
+                        placeholder: '请输入告警视图名称',
+                        //remark: '注：通过自监控视图，你通过规则设定需要关注的告警',
+                        //maxLength: 60,
+                        checked: true,
+                        errorMessage: '名称不能为空!',
+                        remark: '通过规则设定为自定义事件台，便于后期快速查看',
+                        maxLength: 60,
+                        overLengthMessage: '超出长度值',
+                        cancel: function(ret) {
+                            console.log(ret)
+                        },
+                        checkConfirm: function(value, defer) {
+                            MonitoringService.isViewExist({viewName: value})
+                            .success(function(result) {
+                                if (!result.data) {
+                                    //复制视图{viewName:"abc"}
+                                    DefinedEventsService.copyView({oldId:$scope.viewId,newName:value})
+                                        .success(function(result) {
+                                            $scope.viewId = result.data;
+                                            $scope.newEventsLoad();
+                                            defer.resolve(); // 关闭弹框
+                                        });
+                                } else {
+                                    Unit.error('该事件台已存在!')
+                                }
+                            })
+                            .error(function(err) {
+                                console.error(err);
+                                defer.reject();
+                            })
+                        }
+                    })
+                }*/
+				/*noChangePage 1新建 2复制 3 编辑*/
+                $scope.fnCopy = function(e) {
+                        $state.go('tarsier.monitoring.newEvents', {
+                                viewId: $scope.viewId,
+                                viewName: $scope.viewName + $scope.L.get('COMMON_BAK'),
+							     status: $scope.status,
+							    noChangePage:2
+                            })
+                            /*DefinedEventsService.copyView({oldId:$scope.viewId,newName:$scope.viewName+'_副本'})
+                            	.success(function(result) {
+                            		$scope.viewId = result.data;
+                            		$scope.newEventsLoad();
+                            		$state.go('tarsier.monitoring.newEvents', {
+                            			viewId: $scope.viewId,
+                            			viewName:$scope.viewName+'_副本'
+                            		})
+
+                            	});*/
+                    }
+                    //事件台删除
+                $scope.fnDelete = function() {
+					if($scope.authority=='false'){
+						Unit.error($scope.L.get('EMV_YOU_DO_NOT_HAVE_PERMISSION_TO_DELETE_THIS_EVENT_DESK'));
+						return false
+					}
+					var dialog = uDialog.confirm({
+                        title: $scope.L.get('COMMON_DELETE'),
+                        content: $scope.L.get('EMV_MAKE_SURE_TO_DELETE_THIS_CUSTOM_EVENT_DESK')+'?',
+                        confirm: function() {
+                            DefinedEventsService.deleteView({
+                                    viewId: $scope.viewId
+                                })
+                                .success(function(result) {
+									$state.go('tarsier.monitoring.events')
+									/*if($scope.status==0){/!*未定义*!/
+
+									}
+									if($scope.status==1){
+										$state.go('tarsier.monitoring.events')
+									}*/
+									$scope.getSubViews();/*true时判断关注的是否为0,0的话删除后点击关注事件台跳转到全部事件*/
+                                    $scope.newEventsLoad();
+                                    Unit.success($scope.L.get('COMMON_SUCCESSFULLY_DELETED'))
+
+                                }).error(function(err) {
+                                    console.error(err)
+                                });
+                        }
+                    })
+
+                }
+				/*关注事件台*/
+				$scope.subView=function(){
+					DefinedEventsService.subView({
+						viewId: $scope.viewId
+					})
+						.success(function(result) {
+							if(result.success){
+								Unit.success(L.get('COMMON_FOLLOWING_SUCCEEDED')+'!');
+								$scope.newEventsLoad();
+								$scope.getSubViews();
+								$state.go('tarsier.monitoring.definedEvents', {
+									viewId:$scope.viewId,
+									type: 1,
+									status: $scope.status==0?1:0
+								});
+							}
+						}).error(function(err) {
+							console.error(err)
+						});
+				}
+				/*取消关注事件台*/
+				$scope.removeSubView=function(){
+					DefinedEventsService.removeSubView({
+						viewId: $scope.viewId
+					})
+						.success(function(result) {
+							if(result.success){
+								Unit.success(L.get('EMV_UNFOLLOW_SUCCESS')+'!');
+								$scope.newEventsLoad();
+								$scope.getSubViews();
+								$state.go('tarsier.monitoring.definedEvents', {
+									viewId:$scope.viewId,
+									type: 1,
+									status: $scope.status==0?1:0
+								});
+							}
+
+
+						}).error(function(err) {
+							console.error(err)
+						});
+				}
+            }]
+        };
+    });
+
+})(nameSpace.reg('graph'));

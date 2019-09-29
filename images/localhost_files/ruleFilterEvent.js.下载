@@ -1,0 +1,532 @@
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('ruleFilterEvent', function() {
+		return {
+			restrict : 'AE',
+			replace : true,
+            scope: {
+				ruleType : '@ruleType',
+				lineLong: '=lineLong',
+				copyValueFun:'=copyValueFun',
+				newRule:'@newRule'
+
+            },
+			templateUrl: 'app/directive/ruleFilterEvent/ruleFilterEvent.html',
+			controller: ['$scope', '$timeout', '$state','DefinedEventsService','Unit','uDialog','MonitoringService','$uibModal',function($scope, $timeout,$state,DefinedEventsService,Unit,uDialog,MonitoringService,$uibModal){
+				$scope.mdelObj={"function": true,ruleType:$scope.ruleType}
+				$scope.searchCI="";
+				MonitoringService.getSelectorCodes({"codeType":14}).success(function(result) {
+					if(result.success){
+						$scope.operators=result.data;
+					}else{
+						Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+					}
+        })
+        $scope.L = L;
+				$scope.$on('sourceIdArray', function(event,data){
+					$scope.sourceId=data;
+				});
+				$scope.$on('ciCodes', function(event,data){
+					$scope.selectedCicodes=data;
+				});
+				$scope.$on('CiPageListArray',function(event,data){
+					$scope.CiPageListArray=data;
+					$scope.nullArray=false;
+				})
+				$scope.$on('searchCI',function(event,data){
+					$scope.searchCI=data;
+				})
+				$scope.$on('ciList', function(event,data){
+					$scope.selectedArray=data;
+					$scope.getCiPageList();
+				});
+				
+				$scope.example=false;
+				$scope.totalPages=0;
+				$scope.transfer=function(){
+					$scope.example=!$scope.example;
+					if($scope.example){
+						$scope.periodType=1;
+					}else{
+						$scope.periodType=0;
+						$scope.selectedCicodes=[];
+						$scope.selectedArray=[];
+						$scope.rules= [
+							[
+								{
+									property: "CINAME",
+									operator:"==",
+									value :"*",
+									propertyDesc:L.get('EMV_EVENT_OBJECT'),
+									operatorDesc:L.get('EMV_EQUAL'),
+								}
+							]
+		
+						];
+						$scope.$emit('ciCodes', $scope.selectedCicodes);
+						$scope.$emit('rules', $scope.rules);
+						$scope.getCiPageList();
+					}
+					$scope.$emit('periodType', $scope.periodType);
+				}
+				$scope.page=1;
+				$scope.getCiPageList=function(){
+					MonitoringService.getCiInfoPageList({
+						"ciCode":$scope.searchCI,
+						"pageSize": 7,
+						"pageNo": $scope.page,
+						}).success(function(result) {
+						if(result.success){
+							$scope.CiPageListtotalRows=result.data.totalRows;
+							$scope.totalPages=result.data.totalPages;
+							if($scope.page==1){
+							
+								$scope.CiPageListArray=result.data.data;
+							}else{
+								if($scope.CiPageListtotalRows > $scope.CiPageListArray.length){
+									$.each(result.data.data,function(index,item){
+										$scope.CiPageListArray.push(item)
+									})
+								}
+							}
+							if($scope.CiPageListArray.length==0){
+								$scope.nullArray=true;
+							}
+							$.each($scope.CiPageListArray,function(index,item1){
+								item1.checked=false;
+							})
+							if($scope.selectedCicodes && $scope.selectedCicodes.length>0){
+								$.each($scope.selectedCicodes,function(index,item){
+								
+									$.each($scope.CiPageListArray,function(index,item1){
+										if(item==item1.ci.ciCode){
+											item1.checked=true;
+										}
+									})
+								})
+								$scope.lineLong();
+							}
+							
+							
+							$scope.loadingIMGexample=false;
+						}
+						
+						
+						
+					})
+					
+				}
+				$scope.$on('periodType',function(event,data){
+					$scope.periodType=data;
+					if($scope.periodType==1){
+						$scope.example=true;
+						
+					}
+					if($scope.periodType==0){
+						$scope.example=false;
+					}
+					$timeout(function () {
+						$scope.lineLong();
+						
+					},4)
+				})
+				$scope.delSelectedFun=function(item){
+					$.each($scope.selectedArray,function(index,item1){
+						var flag=true;
+						if(item.ci.ciCode==item1.ci.ciCode){
+							$scope.selectedArray.splice(index,1);
+							flag=false;
+						}
+						return flag
+					})
+					$.each($scope.CiPageListArray,function(index,item2){
+						if(item.ci.ciCode==item2.ci.ciCode){
+							item2.checked=false;
+						}
+					})
+					$scope.selectedCicodes=[];
+					$.each( $scope.selectedArray,function(index,item){
+						$scope.selectedCicodes.push(item.ci.ciCode)
+					})
+					$scope.$emit('ciCodes', $scope.selectedCicodes);
+				}
+				//子滚动条不随父滚动条而动
+				$.fn.scrollUnique = function() {
+					return $(this).each(function() {
+						var eventType = 'mousewheel';
+						// 火狐是DOMMouseScroll事件
+						if (document.mozHidden !== undefined) {
+							eventType = 'DOMMouseScroll';
+						}
+						$(this).on(eventType, function(event) {
+							// 一些数据
+							var scrollTop = this.scrollTop,
+								scrollHeight = this.scrollHeight,
+								height = this.clientHeight;
+				
+							var delta = (event.originalEvent.wheelDelta) ? event.originalEvent.wheelDelta : -(event.originalEvent.detail || 0);        
+				
+							if ((delta > 0 && scrollTop <= delta) || (delta < 0 && scrollHeight - height - scrollTop <= -1 * delta)) {
+								// IE浏览器下滚动会跨越边界直接影响父级滚动，因此，临界时候手动边界滚动定位
+								this.scrollTop = delta > 0? 0: scrollHeight;
+								// 向上滚 || 向下滚
+								event.preventDefault();
+							}        
+						});
+					}); 
+				};
+				
+				$scope.loadFilter = function() {
+					angular.element('.scrollWrap').scrollUnique();
+					angular.element('.scrollWrap').scroll(function() {
+						var scrollTop = document.getElementById("scrollWrap").scrollTop;
+						var scrollHeight = document.getElementById("scrollWrap").scrollHeight;
+						var offsetHeight = document.getElementById("scrollWrap").offsetHeight;
+						//$scope.loadingIMGexample=false;
+						if (!$scope.$$phase) {
+							$scope.$apply();
+						}
+						if (scrollTop > 200) {
+							$scope.topImg = true;
+						} else {
+							$scope.topImg = false;
+						}
+						
+						if ((scrollHeight - (offsetHeight + scrollTop) <= 0) && ($scope.CiPageListtotalRows > $scope.CiPageListArray.length )) {
+							$scope.page++;
+							if ($scope.page > 1) {
+								$scope.loadingIMGexample = true;
+								if($scope.page <= $scope.totalPages){
+									$scope.getCiPageList();
+								}
+							}
+
+						}
+					});
+
+				}
+				
+				$scope.$on("importFlag",function(event,data){
+					$scope.importFlag=data;
+				})
+				$scope.selectedArray=[];
+				$scope.allCheckedFun=function(){
+					$scope.allChecked=!$scope.allChecked;
+					$.each($scope.CiPageListArray,function(index,item){
+						item.checked=$scope.allChecked;
+					})
+					if($scope.allChecked){
+						$scope.selectedArray=$scope.CiPageListArray;
+					}else{
+						$scope.selectedArray=[];
+					}
+					if($scope.selectedArray.length>100){
+						$scope.allChecked=false;
+						$scope.selectedArray=[];
+						$scope.selectedCicodes=[];
+						$.each($scope.CiPageListArray,function(index,item){
+							item.checked=false;
+						})
+						$scope.$emit('ciCodes', $scope.selectedCicodes);
+						Unit.error(L.get('EMV_NO_MORE_THAN_100_SELECTED_INSTANCES'));
+						
+					}else{
+						$scope.selectedCicodes=[];
+						$.each( $scope.selectedArray,function(index,item){
+							$scope.selectedCicodes.push(item.ci.ciCode)
+						})
+						$scope.$emit('ciCodes', $scope.selectedCicodes);
+					}
+				}
+				$scope.itemChenckedFun=function($index,item){
+					if(!$scope.selectedArray){
+						$scope.selectedArray=[];
+					}
+					
+					var sum=0;
+					$.each($scope.CiPageListArray,function(index,item1){
+						if(item1.checked){
+							sum++
+						}
+					})
+					if(sum>=100){
+						Unit.error(L.get('EMV_NO_MORE_THAN_100_SELECTED_INSTANCES'));
+					}else{
+						item.checked=!item.checked;
+						if(sum==$scope.CiPageListArray.length){
+							$scope.allChecked=true;
+						}else{
+							$scope.allChecked=false;
+						}
+						if(item.checked){
+							$scope.selectedArray.push(item);
+						}else{
+							$.each($scope.selectedArray,function(index,item2){
+								var flag=true;
+								if(item.ci.ciCode==item2.ci.ciCode){
+									$scope.selectedArray.splice(index,1);
+									flag=false;
+								}
+								return flag;
+							})
+						}
+						
+						$scope.selectedCicodes=[];
+						$.each( $scope.selectedArray,function(index,item){
+							$scope.selectedCicodes.push(item.ci.ciCode)
+						})
+						$scope.$emit('ciCodes', $scope.selectedCicodes)
+				
+					}
+					
+					
+				}
+				
+				$scope.openXml=function(file){
+					if(file[0]){
+						var fileName=file[0].type;
+						var idx = fileName.lastIndexOf(".");   
+						if (idx != -1){   
+							var ext = fileName.substr(idx+1).toUpperCase();   
+							var ext = ext.toLowerCase( ); 
+							if (ext != 'sheet' ){
+								Unit.error(L.get('EMV_ONLY_XLSX_CAN_BE_UPLOADED')); 
+								return;  
+							}else{
+								MonitoringService.importSelector(file).success(function(result) {
+									if(result.success){
+										if(result.data.selectorList){
+											if(result.data.selectorList.length>0){
+												$scope.rules=[];
+												$.each(result.data.selectorList, function () {
+													$scope.rules.push(this.selectors)
+													$scope.lineLong();
+													Unit.success(L.get('COMMON_BS_OBJ_SUCCESS_UPLOAD'));
+													if($scope.newRule==1){
+														$scope.$emit('rulesnew', $scope.rules);
+													}else{
+														$scope.$emit('rules', $scope.rules);
+													}
+												});
+												MonitoringService.exportImportMsg({"fileName":result.data.fileName}).success(function(data) {
+													var blob = new Blob([data], {type: "text/plain"});  
+													var objectUrl = URL.createObjectURL(blob);  
+													var a = document.createElement('a');  
+													document.body.appendChild(a);  
+													a.setAttribute('style', 'display:none');  
+													a.setAttribute('href', objectUrl);  
+													var filename = L.get('EMV_RESULT_REPORT')+'.txt';  
+													a.setAttribute('download', filename);  
+													a.click();  
+													URL.revokeObjectURL(objectUrl);  
+												})
+											}else{
+												Unit.error(L.get('EMV_FORMAT_OF_THE_IMPORTED_FILE_NOT_MEET_THE_REQUIREMENTS')); 
+											}
+											
+										}
+									}else{
+										if(result.data){
+											Unit.error(result.data.message+L.get('COMMON_UPLOADFAILED'))
+										}else{
+											Unit.error(L.get('COMMON_UPLOADFAILED'))
+										}
+										
+									}
+								})
+								
+							}   
+						} else {  
+						
+								Unit.error(L.get('EMV_ONLY_XLSX_CAN_BE_UPLOADED')); 
+								return;
+							}   
+						}
+				}
+
+				fetch('assets/template/template.xlsx').then(function(r){return r.blob();}).then(function(r){
+					$scope.urlTemplate = URL.createObjectURL(r);
+				})
+				
+				if($scope.ruleType==1){
+					$scope.mdelObj.except=["SUMMARY","EVENTTITLE","CICATEGORYNAME","CINAME"];
+					$scope.mdelObj.default="SOURCECINAME";
+				}
+				
+				if($scope.newRule==1){
+					$scope.$on('rulesnew', function(event,data){
+						$scope.rules=angular.copy(data);//接受值
+					});
+				
+				}else{
+					$scope.$on('rules', function(event,data){
+						$scope.rules=angular.copy(data);//接受值
+					});
+				}
+				MonitoringService.getModelCode($scope.mdelObj).success(function(result) {
+					if(result.success){
+						$scope.classList=result.data;
+					}else{
+            Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+					}
+				})
+				
+				$scope.rules= [
+					[
+						{
+							property: "CINAME",
+							operator:"==",
+							value :"*",
+							propertyDesc:L.get('EMV_EVENT_OBJECT'),
+							operatorDesc:L.get('EMV_EQUAL'),
+						}
+					]
+
+				];
+				
+				
+
+				//添加或关系
+				$scope.AndaddRuleFun=function(orRule){
+					orRule.push(
+						{
+							property: "CINAME",
+							operator:"==",
+							value :"*",
+							propertyDesc:L.get('EMV_EVENT_OBJECT'),
+							operatorDesc:L.get('EMV_EQUAL'),
+
+						}
+					);
+					$scope.lineLong();
+					if($scope.newRule!=1){
+						$scope.copyValueFun($scope.rules);
+						
+					}
+					if($scope.newRule==1){
+						$scope.$emit('rulesnew', $scope.rules);
+					}else{
+						$scope.$emit('rules', $scope.rules);
+					}
+					
+				}
+				//删除且、或关系
+				$scope.removeAnd=function ($index,rule) {
+					rule.splice($index,1);
+					if($scope.newRule!=1){
+						$scope.copyValueFun($scope.rules);
+						
+					}
+					$scope.lineLong();
+					if($scope.newRule==1){
+						$scope.$emit('rulesnew', $scope.rules);
+					}else{
+						$scope.$emit('rules', $scope.rules);
+					}
+				}
+				//添加且关系
+				$scope.addRule = function(){
+					
+					$scope.rules.push(
+						[
+							{
+								property: "CINAME",
+								operator:"==",
+								value :"*",
+								propertyDesc:L.get('EMV_EVENT_OBJECT'),
+								operatorDesc:L.get('EMV_EQUAL'),
+							}
+						]
+					);
+					$scope.lineLong();
+					if($scope.newRule!=1){
+						$scope.copyValueFun($scope.rules);
+					}
+					if($scope.newRule==1){
+						$scope.$emit('rulesnew', $scope.rules);
+					}else{
+						$scope.$emit('rules', $scope.rules);
+					}
+				}
+
+				//预览列表
+				$scope.previewListFun=function(){
+					var selectorList = [];
+					$.each($scope.rules, function () {
+						var json = {};
+						json.selectors = this;
+						selectorList.push(json);
+					});
+
+					$uibModal.open({
+						size: 'previewList',
+						animation: true,
+						backdrop: 'static',
+						templateUrl: 'app/modal/manageAlert/previewList.html',
+						controller: 'previewCtrl',
+						resolve: {
+							list: function() {
+								return selectorList
+							},
+							sourceId: function() {
+								return $scope.sourceId
+							},
+
+						}
+					});
+				};
+				
+				//select框自定义赋值
+				$scope.selectClassify = function(andrule, value1,value2) {
+					andrule.property = value1;
+					andrule.propertyDesc=value2;
+					if($scope.newRule!=1){
+						$scope.copyValueFun($scope.rules);
+						
+					}
+					if($scope.newRule==1){
+						$scope.$emit('rulesnew', $scope.rules);
+					}else{
+						$scope.$emit('rules', $scope.rules);
+					}
+					
+
+				}
+				$scope.eventValueFun=function(){
+					//$scope.$emit('rules', $scope.rules);
+					if($scope.newRule!=1){
+						$scope.$emit('rules', $scope.rules);
+					}else{
+						$scope.$emit('rulesnew', $scope.rules);
+					}
+					if($scope.newRule!=1){
+						$scope.copyValueFun($scope.rules);
+						
+					}
+				}
+				$scope.selectProp = function(andrule, value1,value2) {
+					andrule.operator = value1;
+					andrule.operatorDesc = value2;
+					if($scope.newRule!=1){
+						$scope.copyValueFun($scope.rules);
+						
+					}
+					if($scope.newRule!=1){
+						$scope.$emit('rules', $scope.rules);
+					}else{
+						$scope.$emit('rulesnew', $scope.rules);
+					}
+					
+
+				}
+
+			}],
+			link:function(scope){
+				scope.lineLong();
+			}
+		};
+	});
+	
+})(nameSpace.reg('graph'));

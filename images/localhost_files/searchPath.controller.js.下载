@@ -1,0 +1,10 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalSearchPathCtrl', function(){
+
+	});
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,87 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalChooseRelationCtrl', ['$uibModal','$scope', '$uibModalInstance', 'title', 'chooseRelationService','cell','Unit','Const','editor','DiagramCiRltService','DiagramCiRltClassService', function($uibModal,$scope, $uibModalInstance, title, chooseRelationService,cell, Unit, Const, editor,DiagramCiRltService, DiagramCiRltClassService){
+        $scope.rlt = {};
+        var $modal = $uibModal;
+//      console.log(cell) //线的属性
+        $scope.relationData = [];//关系数据
+//        $scope.costType = '';//属性
+//        console.log(Unit.getCiDataIdByCell(cell.target))
+        $scope.saveDatas = { //后台数据
+            classId:'',
+            sourceCiId: Unit.getCiDataIdByCell(cell.source),
+            targetCiId: Unit.getCiDataIdByCell(cell.target),
+            attrs:{ }
+        };
+
+        //数据加载
+        $scope.loadData = function(){
+           $scope.loadDataRela();
+        };
+        /*关系数据加载*/
+        $scope.loadDataRela = function(){
+            chooseRelationService.get({ }).then(function(data){
+                // console.log(data.data.data);
+                $scope.relationData = data.data.data;
+//                console.log($scope.relationData)
+            },function(err){console.log('err'+err)})
+        };
+
+        $scope.getRltName = function(id){
+            var i, res;
+            for(i = 0; i < $scope.rlt.rltConfigList.length; i++){
+                if($scope.rlt.rltConfigList[i].ciClass.id === id){
+                    res = $scope.rlt.rltConfigList[i].ciClass.className;
+                    break;
+                }
+            }
+
+            return res;
+        };
+
+        $scope.close = function(){
+            $uibModalInstance.close();
+        };
+        /*数据保存*/
+		$scope.ok = function(){
+            $scope.close();
+            if(!$scope.saveDatas.targetCiId || !angular.isObject($scope.classObj)){
+                Unit.error('连接未成功！')
+            }else{
+                $scope.saveDatas.classId = $scope.classObj.ciClass.id;
+                chooseRelationService.save($scope.saveDatas).success(function(result){
+                    if(result.success){
+                        var edgeId = [Const.RELATION_PREFIX, result.data].join('');
+                        editor.graph.setCellAttr(cell, 'data-id', edgeId);
+                        DiagramCiRltService.queryById(result.data).success(function(ciRltObj){
+                            if(angular.isFunction(cell.getValue().setAttribute)){
+                                cell.getValue().setAttribute('label', $scope.getRltName(ciRltObj.data.ciRlt.classId));
+                            }else {
+                                cell.setValue($scope.getRltName(ciRltObj.data.ciRlt.classId));
+                            }
+                            editor.graph.view.refresh();
+                        });
+                    }else  {
+                        Unit.error(result.message);
+                    }
+                });
+            }
+		};
+
+		$scope.$modal = $uibModalInstance;
+		$scope.title = title;
+
+        DiagramCiRltClassService.queryList({}).success(function(result){
+            $scope.rlt.rltInitEd  = true;
+            $scope.rlt.rltConfigList = result.data;
+        });
+        $scope._refresh();
+
+        $scope.loadData();
+	}]);
+
+
+})(nameSpace.reg('graph'));

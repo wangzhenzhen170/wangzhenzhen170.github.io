@@ -1,0 +1,343 @@
+/**
+ * Created by Administrator on 2017/1/9.
+ */
+(function(graph){
+
+	'use strict';
+	graph.app.service('publicService', ['$http', function($http){
+		this.data = function(scope){
+			var data = [
+				{
+					data: {
+						id:11,
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						id:12,
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						id:13,
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						id:11,
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						id:12,
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						id:13,
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						id:14,
+						currname: '2',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '3',
+						author: '5'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '5',
+						author: '7'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '2',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '3',
+						author: '5'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '5',
+						author: '7'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				},
+				{
+					data: {
+						currname: '3',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '5',
+						team: '4',
+						author: '2'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '6',
+						team: '5',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '4',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '4',
+						team: '2',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '6',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '9',
+						team: '6',
+						author: '4'
+					}
+				},
+				{
+					data: {
+						currname: '1',
+						imgUrl: '../../../assets/images/tarsier/public/u2131.png',
+						labelname: '1',
+						team: '2',
+						author: '8'
+					}
+				}
+			];
+			MockPromise({data:data}).then(function (response) {
+				console.log(response);
+				scope.Disappear=false;
+				scope.data=response.data;
+			}, function (error) {
+				console.log(error);
+			});
+		};
+	}]);
+
+})(nameSpace.reg('graph'));

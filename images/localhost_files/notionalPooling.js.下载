@@ -1,0 +1,557 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('notionalPoolingCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        $scope.activeFlag = true;
+        $scope.typeName = $stateParams.name;
+        //$scope.ruleTitleName='过滤规则';
+        $scope.ruleDetailFlag = true;
+        $scope.isLoading = false;
+        $scope.objs = {};
+        $scope.ruleType = 20;
+        $scope.stateParamsObj = {};
+        $scope.stateParamsObj = $stateParams;
+        //页面滚动条回到初始位置
+        $scope.topFun = function () {
+            $('.content').animate({
+                scrollTop: 0
+            }, 300);
+        }
+        //设置左侧顺序线的长度
+        $scope.lineLong = function () {
+            $timeout(function () {
+                var height = angular.element('.content-following5').height();
+                angular.element('.step-line1').height(height);
+                var height2 = angular.element('.content-following1').height();
+                angular.element('.step-line2').height(height2);
+                var height3 = angular.element('.content-following2').height();
+                angular.element('.step-line3').height(height3);
+            }, 10);
+        };
+        $scope.source = [];
+        //获取管理范围字段
+        MonitoringService.queryDict({ groupId: 1 }).success(function (result) {
+            $scope.source = result.data;
+
+        }).error(function () {
+
+        });
+        // MonitoringService.getCiClassCodes({}).success(function(result) {
+        // 	$scope.CiClassCodes=result.data;
+
+        // }).error(function() {
+
+        // });
+
+        $scope.checkAllFun = function () {
+
+            //ar checked = [];
+            $scope.allCheked = !$scope.allCheked;
+
+            if (!$scope.allCheked) {
+
+                $.each($scope.source, function (index, item) {
+                    item.Cheked = false;
+                });
+                $scope.sourceId = [];
+            } else {
+                $.each($scope.source, function (index, item) {
+                    item.Cheked = true;
+                })
+                $scope.sourceId = null;
+                Unit.error(L.get('EMV_THE_SOURCE_OF_THE_EVENT_CANNOT_BE_UNSELECTED'));
+            }
+
+        }
+        $scope.ckekedSourceFun = function () {
+            var cheked = [];
+            $.each($scope.source, function (index, item) {
+                if (!item.Cheked) {
+                    cheked.push(item.code);
+                }
+            });
+            $timeout(function () {
+
+                if (cheked.length === $scope.source.length) {
+                    $scope.allCheked = false;
+                    $scope.sourceId = [];
+                } else if (cheked.length === 0) {
+                    $scope.allCheked = true;
+                    $scope.sourceId = null;
+                    Unit.error(L.get('EMV_THE_SOURCE_OF_THE_EVENT_CANNOT_BE_UNSELECTED'));
+                } else {
+                    $scope.allCheked = true;
+                    $scope.sourceId = cheked;
+                }
+            }, 1);
+
+        };
+
+        //弹出添加页面
+        $scope.ruleDetailFun = function (ruleDetail) {
+            $scope.freshFlag = false;
+            $scope.rules = [];//筛选规则
+            $scope.topFun();
+            $scope.enrichDataObj = {};
+            $scope.sourceId = [];
+            $scope.$on('ruleTitleName', function (event, data) {
+                $scope.objs.newRuleFatherName = data;
+            })
+            $scope.ruleDetailFlag = true;
+            $scope.objs.userDefined = false;
+            $scope.objs.unuserDefined = false;
+            $scope.enrichStrategyArr = [{}];
+            MonitoringService.getSelectorCodes({
+                codeType: 20
+            }).success(function (result) {
+                $scope.enrichData = result.data;
+
+
+            })
+
+            if (ruleDetail) {
+                $scope.ruleId = ruleDetail.id;
+                $scope.objs.newRuleFatherName = ruleDetail.name;
+                MonitoringService.getRuleById({
+                    'id': ruleDetail.id
+                }).success(function (result) {
+                    if (result) {
+
+                        $scope.result = result.data;
+                        $scope.CIvalue = result.data.action.ciMatches;
+
+                        //默认丰富规则打开
+                        if ($scope.result.default) {
+                            $scope.ruleDetailFlag = false;
+                            $scope.objs.userDefined = true;
+                            $scope.removeButton = false;//修改时显示右上角删除按钮
+                            //console.log(result)
+
+                            $scope.notionalPoolingArray = [
+                                { name: L.get('EMV_ACCORD_TO_THE_SHEMA_GRAPH_COLLECTION'), value: result.data.action.scene },
+                                { name: L.get('EMV_ACCORD_TO_ITS_APPLICATION_COLLECTION'), value: result.data.action.application },
+                                { name: L.get('EMV_ACCORD_TO_CLUSTER_COLLECTION'), value: result.data.action.cluster },
+                                { name: L.get('EMV_ACCORD_TO_ALARM_OBJECT_COLLECTION'), value: result.data.action.ci }
+                            ]
+
+
+                        } else {
+                            //$scope.allCheked=true;
+                            //$.each($scope.source,function(index,item){
+                            //item.Cheked=true;
+
+                            //})
+                            //$scope.removeButton=true;//修改时显示右上角删除按钮
+                            // if($scope.result.selectorList){
+                            // 	$.each($scope.result.selectorList, function () {
+                            // 		$scope.rules.push(this.selectors)
+
+                            // 	});
+                            // }
+                            // $scope.enrichStrategyArr=$scope.result.action.ciMatches;
+                            // if($scope.enrichStrategyArr.length>0){
+                            // 	$.each($scope.enrichStrategyArr,function(index,item){
+                            // 		if(item.ciClassId){
+                            // 			MonitoringService.getCiAttrDefs({classId:item.ciClassId}).success(function(result) {
+                            // 				item.getCiAttrDefs=result.data;
+
+                            // 			}).error(function() {
+
+                            // 			});
+                            // 		}
+                            // 	})
+                            // }
+
+                            // $scope.sourceId=$scope.result.sourceIdList;
+                            // if($scope.sourceId.length==0){
+
+                            // 	$scope.allCheked=false;
+
+                            // 	$.each($scope.source,function(index,item){
+                            // 		item.Cheked=false;
+
+                            // 	})
+                            // }else if($scope.sourceId.length>0){
+
+                            // 	$scope.allCheked=true;
+                            // 	$.each($scope.source,function(index,item){
+                            // 		$.each($scope.sourceId,function(index1,item1){
+                            // 			if(item1==item.code){
+                            // 				item.Cheked=false;
+                            // 			}
+                            // 		})
+                            // 	})
+                            // }
+                            // $timeout(function(){
+                            // 	$.each($scope.enrichStrategyArr,function(index,item){
+                            // 		if(item.matchType==1){
+                            // 			item.ciShow=true;
+                            // 			item.defindeShow=false;
+
+                            // 			$('[name='+index+']')[0].checked=true;
+
+                            // 		}else if(item.matchType==2){
+                            // 			item.ciShow=false;
+                            // 			item.defindeShow=true;
+                            // 			$('[name='+index+']')[1].checked=true;
+                            // 		}
+
+                            // 	})
+                            // },6)
+
+
+                            // $scope.ruleDetailFlag=false;
+                            // $scope.objs.unuserDefined=true;
+
+                            // $scope.ruleId=ruleDetail.id;
+                            // $scope.objs.ruleDetail=$scope.result.description;
+                            // $timeout(function () {
+
+                            // 	$scope.lineLong();
+                            // 	$scope.$broadcast('rules', $scope.rules);
+                            // 	$scope.$broadcast('ruleId', $scope.ruleId);
+                            // 	$scope.$broadcast('freshFlag',$scope.freshFlag)
+                            // 	$scope.$broadcast('removeButton', $scope.removeButton);
+
+                            // },4)
+
+
+                        }
+
+                    }
+
+
+                })
+
+
+            } else {
+                // $scope.allCheked=false;
+                // $.each($scope.source,function(index,item){
+                // 		item.Cheked=false;
+
+                // })
+                // 	$scope.ruleDetailFlag=false;
+                // 	$scope.objs.unuserDefined=true;
+                // 	$timeout(function(){
+                // 		$('#newNameInput').focus();
+                // 	},2)
+                // 	//console.log($scope.inputShow)
+                // 	$scope.rules= [
+                // 		[
+                // 			{
+                // 				property: 'CINAME',
+                // 				operator:'==',
+                // 				value :'*',
+                // 				propertyDesc:'事件对象',
+                // 				operatorDesc:'等于'
+                // 			}
+                // 		]
+
+                // 	];
+                // 	$scope.removeButton=false;
+                // 	$scope.objs.newRuleFatherName='';
+                // 	$scope.ruleId='';
+                // 	$scope.objs.ruleDetail='';
+
+
+                // 	$scope.copyValueFun();
+                // 	$timeout(function () {
+
+                // 		$scope.lineLong();
+                // 		$scope.$broadcast('rules', $scope.rules);
+                // 		$scope.$broadcast('ruleId', $scope.ruleId);
+                // 		$scope.$broadcast('freshFlag',$scope.freshFlag)
+                // 		$scope.$broadcast('removeButton', $scope.removeButton);
+
+                // 	},4)
+            }
+            //  //$scope.ruleDetailFlag=false;
+
+
+        }
+        var flag = true;
+        //缺省保存
+        $scope.saveDefaultRuleFun = function (item) {
+            //var flag = false;
+            $.each($scope.notionalPoolingArray, function (index, item) {
+                switch (index) {
+                    case 0:
+                        $scope.scene = item.value;
+                        break;
+                    case 1:
+                        $scope.application = item.value;
+                        break;
+                    case 2:
+                        $scope.cluster = item.value;
+                        break;
+                    case 3:
+                        $scope.ci = item.value;
+                        break;
+                }
+
+            })
+            if (flag) {
+                flag = false;
+                MonitoringService.saveRule({
+                    'id': $scope.ruleId,
+                    'name': $scope.objs.newRuleFatherName,
+                    'ruleType': 20,
+                    'active': 1,
+                    'priority': 1,
+                    'description': $scope.objs.newRuleFatherName,
+                    'action': {
+                        'application': $scope.application,
+                        'ci': $scope.ci,
+                        'cluster': $scope.cluster,
+                        'scene': $scope.scene,
+                    }
+
+
+
+                }).success(function (result) {
+
+                    if (result.success) {
+                        Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'));
+                        $scope.freshFlag = true;
+                        flag = true;
+                    } else {
+                      Unit.error(L.get('COMMON_SAVE_FAILED'));
+                        item.value = !item.value;
+                        flag = true;
+                    }
+
+                }).error(function () {
+                  Unit.error(L.get('COMMON_SAVE_FAILED'));
+                    item.value = !item.value;
+                    flag = true;
+                });
+            }
+
+            //$scope.ruleDetailFlag=true;
+            //$scope.objs.userDefined=false;
+        };
+        // //规则描述框内容返显
+        // $scope.copyValueFun=function(){
+        // 	$scope.andObj='筛选事件范围：';
+        // 	for(var i=0;i<$scope.rules.length;i++){
+        // 		for(var j=0;j<$scope.rules[i].length;j++){
+        // 			//console.log($scope.rules[i][j].value)
+        // 			if(j==$scope.rules[i].length-1){
+        // 				$scope.andObj+=$scope.rules[i][j].propertyDesc+$scope.rules[i][j].operatorDesc+$scope.rules[i][j].value;
+        // 			}else{
+        // 				$scope.andObj+=$scope.rules[i][j].propertyDesc+$scope.rules[i][j].operatorDesc+$scope.rules[i][j].value+' '+'且'+' ';
+        // 			}
+
+        // 		}
+        // 		if(i<$scope.rules.length-1){
+        // 			$scope.andObj+=' '+'或'+' ';
+        // 		}
+
+        // 	}
+        // 	$scope.objs.ruleDetail=$scope.andObj;
+        // }
+
+
+
+
+        $scope.$on('rules', function (event, data) {
+            $scope.rules = data;//接受值
+            $scope.copyValueFun();
+        });
+        $scope.$on('ruleDetail', function (event, data) {
+            $scope.objs.ruleDetail = data;//接受值
+        });
+        $scope.$on('freshFlag', function (event, data) {
+            $scope.freshFlag = data;//接受值
+        });
+
+
+        // //保存校验
+        // $scope.saveFun=function(flag){
+
+        // 	$.each($scope.enrichStrategyArr,function(index,item){
+
+        // 		if(item.ciShow==true){
+        // 			item.matchType=1;
+        // 		}else if(item.defindeShow==true){
+        // 			item.matchType=2;
+        // 			delete item.ciClassId;
+        // 			delete item.ciAttr;
+        // 		}
+
+        // 	})
+        // 	//console.log($scope.enrichStrategyArr)
+        // 	//console.log($scope.source)
+        // 	if(!$scope.objs.newRuleFatherName){
+        // 		Unit.error(L.get('COMMON_RULE_NAME_CANNOT_BE_EMPTY'))
+        // 		return false;
+        // 	}
+        // 	if($scope.sourceId==null){
+        // 		Unit.error('事件来源不能不选')
+        // 		return false;
+        // 	}
+        // 	//console.log($scope.enrichStrategyArr[0])
+        // 	if(!$scope.enrichStrategyArr[0].eventAttr){
+        // 			Unit.error('丰富字段不能为空')
+        // 			return false;
+        // 	}
+        // 	if(!$scope.enrichStrategyArr[0].ciShow && !$scope.enrichStrategyArr[0].defindeShow){
+        // 			Unit.error('请选择丰富方式')
+        // 			return false;
+        // 	}
+        // 	if($scope.enrichStrategyArr[0].ciShow && !$scope.enrichStrategyArr[0].ciClassId ){
+        // 			Unit.error('请选择CI分类方式')
+        // 			return false;
+        // 	}
+        // 	if($scope.enrichStrategyArr[0].ciShow &&  !$scope.enrichStrategyArr[0].ciAttr){
+        // 		Unit.error('请选择CI属性')
+        // 		return false;
+        // 	}
+        // 	if($scope.ruleId){
+        // 		MonitoringService.checkRuleName( {
+        // 			'name': $scope.objs.newRuleFatherName,
+        // 			'id': $scope.ruleId,
+        // 			'ruleType':20
+        // 		}).success(function(result){
+        // 			if(result.success==true){
+        // 				$scope.saveLastFun(flag);
+        // 			}else{
+        // 				 Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+        // 			}
+        // 		})
+        // 	}else{
+        // 		MonitoringService.checkRuleName( {
+        // 			'name': $scope.objs.newRuleFatherName,
+        // 			'ruleType':20
+        // 		}).success(function(result){
+        // 			if(result.success==true){
+        // 				$scope.saveLastFun(flag);
+        // 			}else{
+        // 				 Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+        // 			}
+        // 		})
+        // 	}
+
+
+
+        // }
+        // //取消按钮
+        // $scope.cancelFun=function(){
+        // 	$scope.ruleDetailFlag=true;
+        // 	$scope.objs.userDefined=false;
+        // 	$scope.objs.unuserDefined=false;
+        // }
+
+
+        // 自定义下拉框
+        $('.environment-edit-wrap').on('click', '.select-wrap', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu').stop().slideToggle(150);
+            //console.log()
+            $(this).find('input').toggle();
+
+        });
+        $('.environment-edit-wrap').on('click', '.select-wrap1', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu1').stop().slideToggle(150);
+
+        });
+        $('.environment-edit-wrap').on('click', '.drop-menu li', function () {
+            var ele = $(this).parent().siblings('.select-choice');
+            ele.html($(this).html());
+        });
+        $(document).on('click', function () {
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+            $('.select-wrap1').find('.drop-menu1').stop().slideUp(150);
+            $('.search-inp').hide();
+        });
+
+        $(document).on('click', function () {
+            // $('.select-wrap1').removeClass('active');
+            $scope.objs.listShowFlag = false;
+            if (!$scope.$$phase) {
+                $scope.$apply();
+            }
+            $scope.lineLong();
+            $scope.$broadcast('importFlag', false)
+            //console.log($scope.mailContentFlag)
+        });
+        // 拖拽缩放功能
+        var parentW;
+        $timeout(function () {
+            parentW = $('.preview-wrapper').width() / 0.4;
+        }, 1);
+
+        $('.drag-scale').bind('mousedown', function (e) {
+            var dragW = $('.drag-scale').width() + 2;
+            var leftW = $('.preview-wrapper').width();
+            var disX = e.pageX;
+
+            $(document).bind('mousemove', function (e) {
+                var _disX = e.pageX;
+                var _leftW = leftW + (_disX - disX);
+                var marginLeft = leftW + (_disX - disX) + dragW;
+
+                if (_leftW < 400) {
+                    _leftW = 400;
+                    marginLeft = 400 + dragW;
+                }
+
+                if (_leftW > (parentW - 500 - dragW)) {
+                    _leftW = parentW - 500 - dragW;
+                    marginLeft = _leftW + dragW;
+                }
+
+                $('.preview-wrapper').width(_leftW);
+                $('.environment-edit-wrap').css('margin-left', marginLeft);
+            });
+
+            $(document).bind('mouseup', function () {
+                $(document).unbind('mousemove');
+                $(document).unbind('mouseup');
+            });
+
+            return false;
+        });
+
+    }]);
+	/*
+	 * 高亮搜索关键词
+	 * @param: 文本内容
+	 * @param： 搜索关键词
+	 * html标签中使用指令 ng-bind-html
+	 */
+
+    graph.app.filter('selectCI', function () {
+        return function (input, arr) {
+            var classCode = '';
+            angular.forEach(arr, function (item) {
+                if (item.id === input) {
+                    classCode = item.classCode;
+                }
+            });
+            return classCode;
+        }
+    })
+    graph.app.filter('selectCIAttr', function () {
+        return function (input, arr) {
+            var proName = '';
+            angular.forEach(arr, function (item) {
+                if (item.proName === input) {
+                    proName = item.proName;
+                }
+            });
+            return proName;
+        };
+    });
+
+})(nameSpace.reg('graph'));

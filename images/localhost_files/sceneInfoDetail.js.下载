@@ -1,0 +1,359 @@
+(function (graph) {
+
+    'use strict';
+
+    var app = graph.app;
+
+    // us means Uinnova Graph
+    app.directive('ugSceneInfoDetail', ['SceneService', 'CiMonitorService', function (SceneService, CiMonitorService) {
+
+        return {
+            restrict: 'E',
+            replace: false,
+            templateUrl: 'app/directive/sceneInfo/sceneInfoDetail.html',
+            scope: {
+                sceneId: '=',
+                viewId: '=',
+                ciId: '=',
+                activeTab: '=?'
+            },
+            link: function (scope, ele, attrs) {
+                scope.kpiDatas = null;
+                scope.chartCiKpi = {
+                    ciHex: '',
+                    kpiHex: ''
+                };
+                scope.chartDurationItems = [
+                    {
+                        label: '1 ' + graph.translate('HOUR'),
+                        duration: 3600 * 1000 // 毫秒数
+                    },
+                    {
+                        label: '5 ' + graph.translate('HOURS'),
+                        duration: 5 * 3600 * 1000 // 毫秒数
+                    },
+                    {
+                        label: graph.translate('DAY'),
+                        duration: 24 * 3600 * 1000 // 毫秒数
+                    },
+                    {
+                        label: graph.translate('WEEK'),
+                        duration: 7 * 24 * 3600 * 1000 // 毫秒数
+                    }
+                ];
+                scope.chartCfg = {
+                    duration: scope.chartDurationItems[0].duration
+                };
+
+
+                function label2Date (l) {
+                    return new Date(l.replace(/-/g, '/'));
+                }
+
+                function _2dgt (n) {
+                    return ('00' + n).slice(-2);
+                }
+
+                function formatDate (d) {
+
+                    return d.getFullYear() + '-' +
+                        _2dgt((d.getMonth() + 1)) + '-' +
+                        _2dgt(d.getDate()) + ' ' +
+                        _2dgt(d.getHours()) + ':' +
+                        _2dgt(d.getMinutes()) + ':' +
+                        _2dgt(d.getSeconds());
+                }
+
+                // 获取KPI数据
+                function getKpiData (ciId, kpiId) {
+
+                    scope.chartCiKpi.ciHex = ciId;
+                    scope.chartCiKpi.kpiHex = kpiId;
+
+                    if (!scope.chartCfg.duration) {
+                        scope.kpiDatas = null;
+                        console.error(L.get('EMV_PERFORMANCE_TREND_HAS_NO_TIME_FRAME'));
+                        return ;
+                    }
+
+                    var kpiDatas = {
+                            title: '-',
+                            items: []
+                        };
+
+                    CiMonitorService.getPerformanceChart({
+                        kpiHex: kpiId,
+                        ciHex: ciId,
+                        startTime: formatDate(new Date((new Date).getTime() - scope.chartCfg.duration)),
+                        endTime: formatDate(new Date((new Date).getTime() + 24 * 3600 * 1000)), // 当前时间向后延1天以保证时间准确性
+                        kpiInstance: ""
+
+                    }).then(function (ret) {
+
+                        var d = ret.data.datas;
+
+                        kpiDatas.title = d.subTitle + ' - ' + d.title;
+
+                        try {
+
+                            d.items = JSON.parse(d.values);
+
+                            if (d.items[0]) {
+
+                                angular.forEach(d.items[0].value, function (d) {
+                                    kpiDatas.items.push({
+                                        value: +d.value,
+                                        time: label2Date(d.label)
+                                    });
+                                });
+
+                            }
+
+                        } catch (e) {
+                            console.error(e);
+                        }
+
+
+                    }, function (ret) {
+                        console.error(ret);
+
+                    }).finally(function() {
+                        scope.kpiDatas = kpiDatas;
+                    });
+                }
+
+                scope.actLogs = [];
+                // 监听操作完成动作
+                scope.$on('SCENE_FINISH_ACT', function (e, d) {
+                    scope.actLogs.unshift(d);
+                    scope.activeTab = 'actionLog';
+                });
+
+                // 显示指标趋势图
+                scope.$on('SCENE_SHOW_CHART', function (e, d) {
+                    getKpiData(d.ciId, d.kpiId);
+                    scope.activeTab = 'chart';
+                });
+
+                // 显示告警
+                scope.$on('SCENEDETAIL_REFRESH_ALARM', function () {
+                    scope.activeTab = 'alarm';
+                });
+
+
+                // 更改时间周期后重新查询数据
+                scope.$watch('chartCfg.duration', function (nv, ov) {
+                    if (!(scope.chartCiKpi.ciHex && scope.chartCiKpi.kpiHex)) {
+                        console.log('No CI and KPI');
+                        return ;
+                    }
+
+                    getKpiData(scope.chartCiKpi.ciHex, scope.chartCiKpi.kpiHex);
+                });
+            }
+        };
+
+
+    }]);
+
+    // 告警详细信息
+    app.directive('ugSceneAlarm', ['SceneService', function (SceneService) {
+        return {
+            restrict: 'E',
+            templateUrl: 'app/directive/sceneInfo/sceneAlarm.html',
+            scope: {
+                sceneId: '=',
+                viewId: '=',
+                ciId: '='
+            },
+            link: function (scope, ele, attrs) {
+
+                scope.alarmFilter = {
+                    belong: 'getAlarmByScene'
+                };
+
+                scope._watchers = [];
+                scope.queryParam = {
+                    page: 1,
+                    pageSize: 500,
+                    like: '',
+                    order: ''
+                };
+
+                // 为分页控件提供一个总数，大于等于实际总数
+                scope.totalAlarmCount = 1;
+
+                // 获取场景所有告警
+                scope.getAlarmByScene = function () {
+                    var param = {
+                            sceneid: scope.sceneId
+                        };
+
+                    angular.extend(param, scope.queryParam);
+                    SceneService.getAlarmDetailByScene(param).then(function (ret) {
+                        console.log(ret);
+//                        scope.alarmTitles = ret.data.data.title;
+//                        scope.alarmDatas = ret.data.data.data;
+                        scope.alarms = ret.data.data;
+//                        scope.totalAlarmCount = scope.alarms.count * param.pageSize;
+                    }, function (ret) {
+                        console.error(ret);
+                        scope.alarms = null;
+                    });
+                };
+
+                // 获取当前视图告警
+                scope.getAlarmByView = function () {
+
+                    var param = {
+                            viewid: scope.viewId
+                        };
+                    angular.extend(param, scope.queryParam);
+                    SceneService.getAlarmDetailByView(param).then(function (ret) {
+                        console.log(ret);
+//                        scope.alarmTitles = ret.data.data.title;
+//                        scope.alarmDatas = ret.data.data.data;
+                        scope.alarms = ret.data.data;
+//                        scope.totalAlarmCount = scope.alarms.count * param.pageSize;
+                    }, function (ret) {
+                        console.error(ret);
+                        scope.alarms = null;
+                    });
+                };
+
+                // 获取当前CI告警
+                scope.getAlarmByCI = function () {
+                    if (scope.ciId && (scope.ciId.id || scope.ciId.viewid)) {
+
+                        var param = {
+                                id: {id: scope.ciId.id, viewid: scope.ciId.viewid},
+                                viewid: scope.viewId
+                            };
+                        angular.extend(param, scope.queryParam);
+
+                        SceneService.getAlarmDetailByNode(param).then(function (ret) {
+                            console.log(ret);
+    //                        scope.alarmTitles = ret.data.data.title;
+    //                        scope.alarmDatas = ret.data.data.data;
+                            scope.alarms = ret.data.data;
+//                            scope.totalAlarmCount = scope.alarms.count * param.pageSize;
+                        }, function (ret) {
+                            console.error(ret);
+                            scope.alarms = null;
+                        });
+
+                    } else {
+                        scope.alarms = null
+                    }
+                };
+
+                // 刷新告警
+                scope.refreshAlarm = function (force) {
+
+                    // 当元素控件可见或者强迫刷新时才进行刷新
+                    if (force || ele.is(':visible')) {
+                        scope[scope.alarmFilter.belong] && scope[scope.alarmFilter.belong]();
+                    }
+                };
+
+				/**
+				 * 关闭告警
+				 */
+				scope.closeEvent = function(item){
+					if(!item._isDisabled && !item._lock){
+						item._lock = true;
+						SceneService.closeEvent(item[scope.alarms.title[0]])
+							.success(function(){
+								item._isDisabled = true;
+								item._lock = false;
+								scope.$emit('CLOSE_EVENT');
+								scope._refresh();
+							})
+							.error(function(){
+								item._lock = false;
+								item._isDisabled = false;
+								scope._refresh();
+							});
+					}
+				};
+
+//                scope.getAlarmByScene();
+
+                scope._watchers.push(
+                    scope.$watch('alarmFilter.belong', function (nv, od) {
+                        scope[nv] && scope[nv]();
+                    })
+                );
+
+                // 监听所选节点的改变
+                scope._watchers.push(
+                    scope.$watch('ciId', function (nv, od) {
+
+//                        if ('getAlarmByCI' == scope.alarmFilter.belong) {
+//                            scope.getAlarmByCI();
+//                        }
+
+                        if (scope.ciId.id || scope.ciId.viewid) {
+                            if (scope.alarmFilter.belong == 'getAlarmByCI') {
+                                scope.refreshAlarm();
+                            } else {
+                                if (ele.is(':visible'))
+                                    scope.alarmFilter.belong = 'getAlarmByCI';
+                            }
+                        } else {
+//                            scope.refreshAlarm();
+                            if (ele.is(':visible'))
+                                    scope.alarmFilter.belong = 'getAlarmByView';
+                        }
+
+                    }, true)
+                );
+
+                // 监听视图的改变
+                scope._watchers.push(
+                    scope.$watch('viewId', function (nv, od) {
+
+                        if ('getAlarmByView' == scope.alarmFilter.belong) {
+//                            scope.getAlarmByView();
+                            scope.refreshAlarm();
+                        }
+                    })
+                );
+
+                // 监听刷新告警命令
+                scope.$on('SCENEDETAIL_REFRESH_ALARM', function () {
+                    // 如果当前选中了CI或节点，则直接显示当前CI的告警
+                    if (scope.ciId.id || scope.ciId.viewid) {
+                        if (scope.alarmFilter.belong == 'getAlarmByCI') {
+                            scope.refreshAlarm(true);
+                        } else {
+                            scope.alarmFilter.belong = 'getAlarmByCI';
+                        }
+                    } else {
+
+                        if (scope.alarmFilter.belong == 'getAlarmByView') {
+                            scope.refreshAlarm(true);
+                        } else {
+                            scope.alarmFilter.belong = 'getAlarmByView';
+                        }
+
+                    }
+                });
+
+
+                ele.on('$destroy', function () {
+                    try {
+
+                        // 移除$watch
+                        angular.forEach(scope._watchers, function(wt) {
+                            wt();
+                        });
+                    } catch (e) {
+                        console.error(e);
+                    }
+                });
+            }
+        }
+    }]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

@@ -1,0 +1,72 @@
+(function(graph) {
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, Unit, MonitoringService, item, type, fn) {
+
+		$scope.cancel = function() {
+			$uibModalInstance.close();
+		};
+		//console.log(item);
+		if(type==1){
+			$scope.title = L.get('EMV_CLOSE_EVENT_TITLE');
+			$scope.infoContent=L.get('COMMON_ALARM');
+		}
+		if(type==2){
+			$scope.title = L.get('EMV_CLOSE_FAULT_TITLE');
+			$scope.infoContent=L.get('COMMON_INCIDENT');
+		}
+		$scope.ok = function() {
+			if ($scope.closeInfo && $scope.closeInfo.length > 200) {
+				Unit.error(L.get('EMV_DESCRIPTION_LIMIT_HINT'));
+				return;
+			}
+			var params = {
+				closeInfo: $scope.closeInfo,
+			};
+			
+			if(type==1){/*告警*/
+				params.serials=[];
+				params.serials.push(item.serial||item.SERIAL);
+				//$scope.title = '告警关闭';
+				//$scope.infoContent='告警';
+				MonitoringService.closeFault(params).success(function(data) {
+					if (data.success) {
+						Unit.success(L.get('COMMON_CLOSED_SUCCESSFUL'));
+						$uibModalInstance.close();
+						fn();
+					} else {
+						Unit.error(data.message);
+					}
+
+				});
+			}
+			if(type==2){/*故障*/
+				params.incidentIds=[];
+				params.incidentIds.push(item.id)
+				//$scope.title = '故障关闭';
+				//$scope.infoContent='故障';
+				MonitoringService.closeEvent(params).success(function(data) {
+					if (data.success) {
+						Unit.success(L.get('COMMON_CLOSED_SUCCESSFUL'));
+						$uibModalInstance.close();
+						fn();
+					} else {
+						Unit.error(data.message);
+					}
+
+				});
+			}
+
+
+
+		};
+
+
+
+	};
+
+	graph.app.controller('ModalColseAlertCtrl', ['$scope', '$uibModalInstance', 'Unit', 'MonitoringService', 'item', 'type', 'fn', controller]);
+
+
+})(nameSpace.reg('graph'));

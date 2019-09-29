@@ -1,0 +1,205 @@
+/**
+ * Created by uinnova on 2017/7/10.
+ */
+(function(graph){
+	var POSITIVE_INTEGER_NUM_EXP = /^(0+)?[1-9]([0-9]+)?$/;
+	'use strict';
+	graph.app.directive('ngPagination', function() {
+		return {
+			restrict: 'E',
+			templateUrl:'app/directive/ngPagination/ngPagination.html',
+			replace: true,
+			scope: {
+				callback: '&',
+				totalCount: '@',
+				currentPage: "=",
+				pageSizeOption:'=',
+				pageSize: "="
+			},
+			link: function ($scope, element, attr) {
+                $scope.L=L;
+				$scope.preFlag=false;
+				$scope.pagingBtnNum = Number(attr.pagingBtnNum || 7);
+				$scope.currentPage = $scope.currentPage || 1;
+				$scope.pageSize = $scope.pageSize || 10;
+				$scope.hasRecord = true;
+				$scope.showPaging = false;
+				$scope.leftArrow=false;
+				$scope.rightArrow=true;
+				if($scope.pageSizeOption){
+					$scope.selectPage=true;
+				}else{
+					$scope.selectPage=false;
+				}
+				$scope.pagingClicked = function () {
+
+					if (this.page.index != "...") {
+						$scope.currentPage = this.page.index;
+						this.$parent.pages.forEach(function (page) {
+							page.clazz = "";
+							if (page.index == $scope.currentPage) {
+								page.clazz = "cur";
+							}
+						});
+						if($scope.currentPage==1){
+							$scope.leftArrow=false;
+						}
+						else{
+							$scope.leftArrow=true;
+						}
+						if ($scope.currentPage < $scope.totalPage) {
+							$scope.rightArrow=true;
+						}else{
+							$scope.rightArrow=false;
+						}
+						$scope.callback({"data": {"currentPage": $scope.currentPage, "pageSize": $scope.pageSize}});
+					}
+				};
+
+				$scope.preClicked = function () {
+					if ($scope.currentPage > 1) {
+						$scope.currentPage = Number($scope.currentPage) - 1;
+						renderPagingAndCallBack();
+						$scope.leftArrow=true;
+					}else{
+						$scope.leftArrow=false;
+					}
+					if ($scope.currentPage < $scope.totalPage) {
+						$scope.rightArrow=true;
+					}else{
+						$scope.rightArrow=false;
+					}
+				};
+
+				$scope.nextClicked = function () {
+					if ($scope.currentPage < $scope.totalPage) {
+						$scope.currentPage = Number($scope.currentPage) + 1;
+						renderPagingAndCallBack();
+						$scope.rightArrow=true;
+					}else{
+						$scope.rightArrow=false;
+					}
+					if($scope.currentPage==1){
+						$scope.leftArrow=false;
+					}
+					else{
+						$scope.leftArrow=true;
+					}
+				};
+
+
+				$scope.goClicked = function () {
+
+					if (!POSITIVE_INTEGER_NUM_EXP.test($scope.goPage)) {
+						$scope.goPage = "";
+					}
+
+					if ($scope.goPage && $scope.goPage != $scope.currentPage && $scope.goPage <= $scope.totalPage) {
+						$scope.currentPage = $scope.goPage;
+						renderPagingAndCallBack();
+					}
+					if($scope.currentPage==1){
+						$scope.leftArrow=false;
+					}
+					else{
+						$scope.leftArrow=true;
+					}
+					if ($scope.currentPage < $scope.totalPage) {
+						$scope.rightArrow=true;
+					}else{
+						$scope.rightArrow=false;
+					}
+				};
+
+
+				$scope.firstClicked = function () {
+					if ($scope.currentPage > 1) {
+						$scope.currentPage = 1;
+						renderPagingAndCallBack();
+					}
+				};
+
+				$scope.lastClicked = function () {
+					if ($scope.currentPage < $scope.totalPage) {
+						$scope.currentPage = $scope.totalPage;
+						renderPagingAndCallBack();
+					}
+				};
+
+				$scope.pageSizeChanged = function (changedValue) {
+					$scope.currentPage = 1;
+					$scope.pageSize = changedValue;
+					renderPagingAndCallBack()
+				};
+				function renderPagingAndCallBack() {
+					$scope.pages.forEach(function (page) {
+						page.clazz = "";
+					});
+					$scope.callback({"data": {"currentPage": $scope.currentPage, "pageSize": $scope.pageSize}});
+				}
+
+				function renderPageNumbers() {
+					$scope.pages = [];
+					var curPage = Number($scope.currentPage);
+					var halfPages = Math.floor($scope.pagingBtnNum / 2);
+					if ($scope.totalPage <= $scope.pagingBtnNum) {
+						initPages(1, $scope.totalPage, curPage);
+					}
+					else {
+						if (curPage <= halfPages) {
+							initPages(1, halfPages + 2, curPage);
+							$scope.pages.push({"index": "...", "clazz": ""});
+							$scope.pages.push({"index": $scope.totalPage, "clazz": ""});
+						}
+						else if (curPage > $scope.totalPage - halfPages) {
+							$scope.pages.push({"index": 1, "clazz": ""});
+							$scope.pages.push({"index": "...", "clazz": ""});
+							initPages($scope.totalPage - (halfPages + 1), $scope.totalPage, curPage);
+						}
+						else {
+							$scope.pages.push({"index": 1, "clazz": ""});
+							$scope.pages.push({"index": "...", "clazz": ""});
+							initPages(curPage - (halfPages - 2), curPage + (halfPages - 2), curPage);
+							$scope.pages.push({"index": "...", "clazz": ""});
+							$scope.pages.push({"index": $scope.totalPage, "clazz": ""});
+						}
+					}
+				}
+
+				function initPages(start, end, currentPage) {
+					for (var i = start; i <= end; i++) {
+						if (currentPage == i) {
+							$scope.pages.push({"index": i, "clazz": "cur"});
+						}
+						else {
+							$scope.pages.push({"index": i, "clazz": ""});
+						}
+					}
+				}
+
+
+				$scope.$watch("totalCount", function (newValue) {
+					if (newValue > 0) {
+						$scope.showPaging = true;
+						$scope.hasRecord = true;
+						$scope.totalPage = Math.ceil($scope.totalCount / $scope.pageSize);
+
+						if ($scope.totalPage < $scope.currentPage) {
+							$scope.currentPage = $scope.totalPage;
+						}
+						renderPageNumbers();
+					} else if (newValue) {
+						$scope.hasRecord = false;
+						$scope.showPaging = false;
+					}
+				});
+
+				$scope.$watchGroup(["currentPage", "pageSize"], function () {
+					$scope.totalPage = Math.ceil($scope.totalCount / $scope.pageSize);
+					renderPageNumbers();
+				});
+			}
+		};
+	});
+
+})(nameSpace.reg('graph'));

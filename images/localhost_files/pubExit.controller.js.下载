@@ -1,0 +1,23 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalPubExitCtrl',['$scope', '$uibModalInstance','items', 'mineService','title',
+         function($scope, $uibModalInstance,items,mineService,title) {
+            $scope.title = title;
+            // 确定按钮
+            $scope.ok = function () {
+                  $uibModalInstance.close({ok: true});
+            };
+            // 取消按钮
+            $scope.cancel = function () {
+                $uibModalInstance.close({ok: false});
+            };
+            $scope.fb_edit=function(){
+                 $uibModalInstance.close({edit:true})
+            }
+            $scope.btnOK = true;
+            $scope.btnCancel = true;
+        }])
+})(nameSpace.reg('graph'));

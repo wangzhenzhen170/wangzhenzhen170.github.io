@@ -1,0 +1,65 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.directive('public', function() {
+		return {
+			restrict:'A',
+			templateUrl:'app/directive/publicDirective/publicDirective.html',
+			link:function(scope,ele){
+				// scope.publicClick = function() {
+				// 	console.log(ele);
+				// 	alert(2)
+				// };
+				// scope.currname = function() {
+				// 	// scope.publicSearchVal=scope.option.data.currname;
+				// 	// $('.publicsearch').val(scope.option.data.currname);
+				// 	scope.option.publicSearch = scope.thebox.data.currname;
+				// 	scope.tmp=[];
+				// 	for(var i=0;i<scope.boxs.length;i++) {
+				// 		if(scope.boxs[i].data.currname==scope.thebox.data.currname){
+				// 			scope.tmp.push(scope.thebox);
+				// 		}
+				// 	}
+				// 	scope.boxs=scope.tmp;
+				// };
+				scope.getlabelname = function() {
+					scope.option.publicSearch = scope.thebox.data.labelname;
+					scope.labelname=[];
+					for(var i=0;i<scope.boxs.length;i++) {
+						if(scope.boxs[i].data.labelname==scope.thebox.data.labelname){
+							scope.labelname.push(scope.thebox);
+						}
+					}
+					scope.boxs=scope.labelname;
+				};
+				scope.Getteam = function() {
+					scope.option.publicSearch = scope.thebox.data.team;
+					scope.teams=[];
+					for(var i=0;i<scope.boxs.length;i++) {
+						if(scope.boxs[i].data.team==scope.thebox.data.team){
+							scope.teams.push(scope.thebox);
+						}
+					}
+					scope.boxs=scope.teams;
+				};
+				scope.Getauthor = function() {
+					scope.option.publicSearch = scope.thebox.data.author;
+					scope.authors=[];
+					for(var i=0;i<scope.boxs.length;i++) {
+						if(scope.boxs[i].data.author==scope.thebox.data.author){
+							scope.authors.push(scope.thebox);
+						}
+					}
+					scope.boxs=scope.authors;
+				}
+			},
+			scope:{
+				option:'=',
+				thebox: '=',
+				boxs:'='
+			}
+		}
+	});
+})(nameSpace.reg('graph'));
+

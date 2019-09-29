@@ -1,0 +1,229 @@
+(function () {
+
+	'use strict';
+
+	var app = angular.module('ljwColorPicker', []);
+
+	app.controller('LjwDirectiveColorPickerCtrl', ['$scope', '$element', '$timeout', 'ToolbarAction',
+		function ($scope, $element, $timeout, ToolbarAction) {
+			var editor = $scope.params.editor;
+			var choice = $scope.choice;
+			var ac=editor.toolbar.tbAction;
+
+			// console.log(ac);
+			$scope.colorView = function ($event) {
+				var style = $event.target.style;
+				$scope.colorViewText = $scope.toHex(style.backgroundColor);
+
+				if (choice === 'setCellColor') {
+					ac.setCellColor(style.backgroundColor);
+				}
+
+				if (choice === 'setStrokeColor') {
+					ac.setStrokeColor(style.backgroundColor);
+				}
+
+				if (choice === 'setFontColor') {
+					ac.setFontColor(style.backgroundColor);
+				}
+
+				if (choice === 'setEdgeColor') {
+					ac.setEdgeColor(style.backgroundColor);
+				}
+			};
+
+			var colorArr1 = $element[0].children[0].children[0].children;
+			var colorArr2 = $element[0].children[0].children[1].children;
+
+			$scope.rgbArr1 =
+				[
+					'rgb(255,255,255)',
+					'rgb(229,229,229)',
+					'rgb(207,207,207)',
+					'rgb(184,184,184)',
+					'rgb(161,161,161)',
+					'rgb(138,138,138)',
+					'rgb(115,115,115)',
+					'rgb(92,92,92)',
+					'rgb(69,69,69)',
+					'rgb(50,50,50',
+					'rgb(23,23,23)',
+					'rgb(0,0,0)'
+				];
+
+			$scope.rgbArr2 =
+				[
+					'rgb(255, 204, 204)',
+					'rgb(255, 230, 204)',
+					'rgb(255, 255, 204)',
+					'rgb(230, 255, 204)',
+					'rgb(204, 255, 204)',
+					'rgb(204, 255, 230)',
+					'rgb(204, 255, 255)',
+					'rgb(204, 229, 255)',
+					'rgb(204, 204, 255)',
+					'rgb(229, 204, 255)',
+					'rgb(255, 204, 255)',
+					'rgb(255, 204, 230)',
+					'rgb(255, 153, 153)',
+					'rgb(255, 204, 153)',
+					'rgb(255, 255, 153)',
+					'rgb(204, 255, 153)',
+					'rgb(153, 255, 153)',
+					'rgb(153, 255, 204)',
+					'rgb(153, 255, 255)',
+					'rgb(153, 204, 255)',
+					'rgb(153, 153, 255)',
+					'rgb(204, 153, 255)',
+					'rgb(255, 153, 255)',
+					'rgb(255, 153, 204)',
+					'rgb(255, 102, 102)',
+					'rgb(255, 179, 102)',
+					'rgb(255, 255, 102)',
+					'rgb(179, 255, 102)',
+					'rgb(102, 255, 102)',
+					'rgb(102, 255, 179)',
+					'rgb(102, 255, 255)',
+					'rgb(102, 178, 255)',
+					'rgb(102, 102, 255)',
+					'rgb(178, 102, 255)',
+					'rgb(255, 102, 255)',
+					'rgb(255, 102, 179)',
+					'rgb(255, 51, 51)',
+					'rgb(255, 153, 51)',
+					'rgb(255, 255, 51)',
+					'rgb(153, 255, 51)',
+					'rgb(51, 255, 51)',
+					'rgb(51, 255, 153)',
+					'rgb(51, 255, 255)',
+					'rgb(51, 153, 255)',
+					'rgb(51, 51, 255)',
+					'rgb(153, 51, 255)',
+					'rgb(255, 51, 255)',
+					'rgb(255, 51, 153)',
+					'rgb(255, 0, 0)',
+					'rgb(255, 128, 0)',
+					'rgb(255, 255, 0)',
+					'rgb(128, 255, 0)',
+					'rgb(0, 255, 0)',
+					'rgb(0, 255, 128)',
+					'rgb(0, 255, 255)',
+					'rgb(0, 127, 255)',
+					'rgb(0, 0, 255)',
+					'rgb(127, 0, 255)',
+					'rgb(255, 0, 255)',
+					'rgb(255, 0, 128)',
+					'rgb(204, 0, 0)',
+					'rgb(204, 102, 0)',
+					'rgb(204, 204, 0)',
+					'rgb(102, 204, 0)',
+					'rgb(0, 204, 0)',
+					'rgb(0, 204, 102)',
+					'rgb(0, 204, 204)',
+					'rgb(0, 102, 204)',
+					'rgb(0, 0, 204)',
+					'rgb(102, 0, 204)',
+					'rgb(204, 0, 204)',
+					'rgb(204, 0, 102)',
+					'rgb(153, 0, 0)',
+					'rgb(153, 76, 0)',
+					'rgb(153, 153, 0)',
+					'rgb(77, 153, 0)',
+					'rgb(0, 153, 0)',
+					'rgb(0, 153, 77)',
+					'rgb(0, 153, 153)',
+					'rgb(0, 76, 153)',
+					'rgb(0, 0, 153)',
+					'rgb(76, 0, 153)',
+					'rgb(153, 0, 153)',
+					'rgb(153, 0, 77)',
+					'rgb(102, 0, 0)',
+					'rgb(102, 51, 0)',
+					'rgb(102, 102, 0)',
+					'rgb(51, 102, 0)',
+					'rgb(0, 102, 0)',
+					'rgb(0, 102, 51)',
+					'rgb(0, 102, 102)',
+					'rgb(0, 51, 102)',
+					'rgb(0, 0, 102)',
+					'rgb(51, 0, 102)',
+					'rgb(102, 0, 102)',
+					'rgb(102, 0, 51)',
+					'rgb(51, 0, 0)',
+					'rgb(51, 26, 0)',
+					'rgb(51, 51, 0)',
+					'rgb(26, 51, 0)',
+					'rgb(0, 51, 0)',
+					'rgb(0, 51, 26)',
+					'rgb(0, 51, 51)',
+					'rgb(0, 25, 51)',
+					'rgb(0, 0, 51)',
+					'rgb(25, 0, 51)',
+					'rgb(51, 0, 51)',
+					'rgb(51, 0, 26)'
+				];
+
+			$scope.checkLast = function ($last) {
+				if ($last) {
+					// console.log('渲染结束');
+
+					$timeout(function () {
+						var length1 = colorArr1.length;
+						var length2 = colorArr2.length;
+
+						for (var i = 0; i < length1 - 1; i++) {
+							// console.log(colorArr1[i])
+							colorArr1[i].style.backgroundColor = $scope.rgbArr1[i];
+						}
+
+						for (var i = 0; i < length2 - 1; i++) {
+							// console.log(choice);
+							colorArr2[i].style.backgroundColor = $scope.rgbArr2[i];
+						}
+					});
+				}
+			};
+
+			$scope.toHex = function (rgb) {
+				var regexp = /[0-9]{0,3}/g;
+				//利用正则表达式去掉多余的部分，将rgb中的数字提取
+
+				var re = rgb.match(regexp);
+				var hexColor = "#";
+				var hex = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'];
+				for (var i = 0; i < re.length; i++) {
+					var r = null, c = re[i], l = c;
+					var hexAr = [];
+					while (c > 16) {
+						r = c % 16;
+						c = (c / 16) >> 0;
+						hexAr.push(hex[r]);
+					}
+					hexAr.push(hex[c]);
+					if (l < 16 && l != "") {
+						hexAr.push(0)
+					}
+					hexColor += hexAr.reverse().join('');
+				}
+				return hexColor;
+			};
+		}]);
+
+	app.directive('ljwColorPicker', [function () {
+
+		return {
+			restrict: 'A',
+			templateUrl: 'app/directive/ljwColorPicker/ljwColor.html',
+			controller: 'LjwDirectiveColorPickerCtrl',
+			scope: true,
+			compile: function () {
+				return function (scope) {
+					// console.log(scope)
+				};
+			}
+		};
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

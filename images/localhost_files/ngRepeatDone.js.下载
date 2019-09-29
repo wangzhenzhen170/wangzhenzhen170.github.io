@@ -1,0 +1,17 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.directive('ngRepeatDone', ['$timeout', function($timeout) {
+		return function(scope, element, attrs) {
+			if (scope.$last) {
+				$timeout(function(){
+					scope.$eval(attrs.ngRepeatDone);
+				});
+			}
+		};
+	}]);
+
+
+})(nameSpace.reg('graph'));

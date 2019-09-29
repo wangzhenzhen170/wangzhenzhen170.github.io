@@ -1,0 +1,808 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('dictionaryCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', 'Upload', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, Upload) {
+
+        var audio = new Audio();
+        var lastItem = null;
+        $scope.obj = {};
+        function resetList() {
+            if (lastItem) {
+                lastItem.playFlag = false;
+
+            }
+            $scope._refresh();
+
+        }
+        $scope.playAudioFun = function (item) {
+            if (!audio.paused) {
+                resetList();
+                audio.pause();
+            }
+            if (lastItem !== item) {
+                lastItem = item;
+                audio.src = item.voicePlayUrl;
+                item.playFlag = !item.playFlag;
+                audio.play();
+            } else {
+                lastItem = null;
+            }
+        };
+
+        $scope.closeAudioFun = function () {
+            if (!audio.paused) {
+                resetList();
+                audio.pause();
+            }
+        };
+
+
+        audio.onpause = resetList;
+        audio.onended = resetList;
+        audio.onerror = function (e) {
+            console.error(e);
+        };
+
+        //查询事件定义级别列表
+        $scope.queryServityFun = function () {
+            MonitoringService.severitylist({}).success(function (result) {
+                if (result.success) {
+                    $scope.ServityList = result.data;
+                } else {
+                    Unit.error(L.get('EMV_RANK_LIST_FAILED_TO_GET'));
+                }
+
+
+            }).error(function () {
+                Unit.error(L.get('EMV_RANK_LIST_FAILED_TO_GET'));
+            });
+        };
+
+        //取消按钮
+        $scope.cancelFun = function () {
+            $scope.ruleDetailFlag = false;
+            $scope.emptruleDetailFlag = true;
+            $scope.fixedruleDetailFlag = false;
+        };
+        //打开列表
+        $scope.openFun = function () {
+            $scope.ruleDetailFlag = true;
+            $scope.fixedruleDetailFlag = false;
+            $scope.emptruleDetailFlag = false;
+        };
+        $scope.cancelFun();
+        $scope.arr = [];
+        $scope.queryDictGroup = function () {
+            MonitoringService.queryDictGroup({}).success(function (result) {
+                if (result.success) {
+                    $scope.dictionArr = result.data;
+                } else {
+                    Unit.error(L.get('COMMON_BS_OBJ_FAILURE'));
+                }
+
+
+            }).error(function () {
+              Unit.error(L.get('COMMON_BS_OBJ_FAILURE'));
+            });
+        };
+
+        $(document).click(function () {
+            $scope.closeAudioFun();
+        });
+        $scope.groupID = '';
+        //查询字典表
+        $scope.queryDictFun = function (id, groupName, visible) {
+            //console.log(visible)
+            if (visible === undefined) {
+                visible = 1;
+            }
+            //console.log(id)
+            $scope.groupID = id;
+            $scope.groupNameString = '';
+            $scope.dictionarGroupId = id;
+            $scope.checkedDictionary = [];
+            $scope.allChked = false;
+
+            MonitoringService.queryDict({ 'groupId': id }).success(function (result) {
+                if (result.success) {
+                    $scope.groupNameString = groupName;
+                    $scope.arr = result.data;
+                    $scope.obj.visible = visible;
+                    $scope.openFun();
+                } else {
+                  Unit.error(L.get('COMMON_BS_OBJ_FAILURE'));
+                }
+
+            }).error(function () {
+              Unit.error(L.get('COMMON_BS_OBJ_FAILURE'));
+            });
+        };
+        //删除字典表
+        $scope.delDict = function () {
+
+            if ($scope.checkedDictionary.length === 0) {
+                Unit.error(L.get('COMMON_SELECT_DATA'));
+                return;
+            }
+            var dlg = uDialog.confirm({
+                title: L.get('COMMON_CONFIRM'),
+                content: L.get('COMMON_PLEASE_CONFIRM_WHETHER_TO_DELETE'),
+                size: 'mine',
+                confirm: function (ret) {
+                    if (ret.ok) {
+                        var arr = [];
+                        $.each($scope.arr, function () {
+                            if (!this.checked) {
+                                arr.push(this);
+                            }
+                        });
+
+                        $scope.arr = arr;
+                        MonitoringService.delDict($scope.checkedDictionary).success(function (result) {
+                            if (result.success) {
+                                $scope.queryDictFun($scope.dictionarGroupId, $scope.groupNameString, $scope.obj.visible)
+                            } else {
+                                Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+                            }
+                            $scope.allChked = false;
+                        }).error(function () {
+                            Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+                        });
+                    }
+                }
+            });
+
+        }
+        //删除事件定义级别
+        $scope.delservevity = function () {
+            if ($scope.checkSevervity.length === 0) {
+              Unit.error(L.get('COMMON_SELECT_DATA'));
+                return;
+            }
+            var dlg = uDialog.confirm({
+              title: L.get('COMMON_CONFIRM'),
+              content: L.get('COMMON_PLEASE_CONFIRM_WHETHER_TO_DELETE'),
+                size: 'mine',
+                confirm: function (ret) {
+                    if (ret.ok) {
+                        var ServityList = [];
+
+
+                        $.each($scope.ServityList, function () {
+                            if (!this.checked) {
+                                ServityList.push(this);
+                            }
+                        });
+
+                        $scope.ServityList = ServityList;
+
+                        // console.log($scope.arr);
+                        MonitoringService.delSeverity($scope.checkSevervity).success(function (result) {
+                            if (result.success) {
+                                $scope.queryServityFun();
+                            } else {
+                              Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+                            }
+                            $scope.allChkedSevervity = false;
+                        }).error(function () {
+                          Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+                        });
+                        // console.log($scope.checkDIndex)
+
+                    }
+                }
+            });
+
+        }
+        //单个删除字典表
+        $scope.detleOneDictionaryFun = function (id, $index) {
+            if (id) {
+                $scope.checkedDictionary = [];
+                $scope.checkedDictionary.push(id);
+                $scope.delDict();
+            } else {
+                $scope.arr.splice($index, 1);
+            }
+
+
+        }
+        //单个删除事件级别定义
+        $scope.detleOneSevervityFun = function (id, $index) {
+            if (id) {
+                $scope.checkSevervity = [];
+                $scope.checkSevervity.push(id);
+                $scope.delservevity();
+            } else {
+                $scope.ServityList.splice($index, 1);
+            }
+
+
+        };
+        //删除字典组
+        $scope.delDictGroupFun = function (id) {
+            var dlg = uDialog.confirm({
+              title: L.get('COMMON_CONFIRM'),
+              content: L.get('COMMON_PLEASE_CONFIRM_WHETHER_TO_DELETE'),
+                size: 'mine',
+                confirm: function (ret) {
+                    if (ret.ok) {
+                        MonitoringService.delDictGroup(
+                            [id]
+                        ).success(function (result) {
+                            if (result.success) {
+                                $scope.queryDictGroup();
+                                $scope.cancelFun();
+
+                            } else {
+                              Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+                            }
+                        }).error(function () {
+                          Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+                        });
+                    }
+                }
+            });
+
+        };
+        $scope.queryDictGroup();
+        $scope.dictionaryListEditFun = function (flag, index) {
+            //console.log(index)
+            var flagDo = true;
+            $.each($scope.dictionArr, function (index, item) {
+                if (item.groupName === '') {
+                    Unit.error(L.get('EMV_DICTIONARY_NAME_CANNOT_BE_EMPTY'));
+                    flagDo = false;
+                    return;
+                }
+
+                item.editFlag = false;
+            })
+            $timeout(function () {
+                //console.log($('.d-title-input').eq(index).find('input').val())
+                $('.d-title-input').eq(index).find('input').focus()
+            }, 1);
+
+            if (flagDo) {
+                if (flag) {
+                    flag.editFlag = true;
+                }
+            }
+
+
+
+        };
+
+		/*$scope.getOneDicFun=function(){
+
+		}*/
+        //修改某个字典表
+        $scope.saveDictFun = function (obj) {
+            MonitoringService.saveDict(obj).success(function (result) {
+                if (result.success) {
+                    $scope.queryDictFun($scope.dictionarGroupId, $scope.groupNameString, $scope.obj.visible);
+                } else {
+                  Unit.error(L.get('COMMON_SAVE_FAILED'));
+                }
+            }).error(function () {
+              Unit.error(L.get('COMMON_SAVE_FAILED'));
+            });
+        };
+        $scope.OneDictionary = {};//存储当前编辑的字典
+        $scope.bulrSaveFun = function (item) {
+            $scope.OneDictionary.groupId = $scope.dictionarGroupId;
+            if (item.id) {
+                if (item.code === '' || item.code === undefined || item.code === null) {
+                    Unit.error(L.get('EMV_ENCODING_CANNOT_BE_EMPTY'));
+                    return;
+                }
+                if ($scope.groupID === 1 && item.code === 0) {
+                    Unit.error(L.get('EMV_EVENT_SOURCE_ENCODING_CANNOT_BE')+'0');
+                    return;
+                }
+                if (item.chineseName === '' || item.chineseName === undefined || item.chineseName === null) {
+                    Unit.error(L.get('COMMON_CHINESE_NAME_CANNOT_BE_EMPTY'));
+                    return;
+                }
+                if (item.englishName === '' || item.englishName === undefined || item.englishName === null) {
+                    if ($scope.groupID !== 1) {
+                        Unit.error(L.get('COMMON_ENGLISH_NAME_CANNOT_BE_EMPTY'));
+                    } else {
+                        Unit.error(L.get('EMV_LINK_ADDRESS_CANNOT_BE_EMPTY'));
+                    }
+
+                    return;
+                }
+
+                /*if(item.englishName && item.code && item.chineseName ){
+                    item.readFlag=false;
+                }*/
+                $scope.OneDictionary.id = item.id;
+                $scope.OneDictionary.code = item.code;
+                $scope.OneDictionary.chineseName = item.chineseName;
+                $scope.OneDictionary.englishName = item.englishName;
+                $scope.OneDictionary.groupId = $scope.dictionarGroupId;
+                MonitoringService.checkCodeByGroupId({
+                    id: item.id,
+                    code: item.code,
+                    groupId: $scope.dictionarGroupId
+                }).success(function (result) {
+                    if (result.success) {
+                        if (item.englishName && item.code && item.chineseName) {
+                            item.readFlag = false;
+                        }
+                        $scope.saveDictFun($scope.OneDictionary);
+
+                    } else {
+                        Unit.error(L.get('EMV_THE_DICTIONARY_CODE_ALREADY_EXISTS'));
+                    }
+                }).error(function () {
+                    Unit.error(L.get('EMV_DICTIONARY_TABLE_NAME_VERIFICATION_FAILED'));
+                });
+
+            } else {
+                if (item.englishName && item.code && item.chineseName) {
+                    if ($scope.groupID === 1 && item.code === 0) {
+                      Unit.error(L.get('EMV_EVENT_SOURCE_ENCODING_CANNOT_BE')+'0');
+                        return;
+                    }
+                    $scope.OneDictionary.id = '';
+                    $scope.OneDictionary.code = item.code;
+                    $scope.OneDictionary.chineseName = item.chineseName;
+                    $scope.OneDictionary.englishName = item.englishName;
+                    $scope.OneDictionary.groupId = $scope.dictionarGroupId;
+                    MonitoringService.checkCodeByGroupId({
+                        code: item.code,
+                        groupId: $scope.dictionarGroupId
+                    }).success(function (result) {
+                        if (result.success) {
+                            item.readFlag = false;
+                            $scope.saveDictFun($scope.OneDictionary);
+
+
+                        } else {
+
+                            Unit.error(L.get('EMV_THE_DICTIONARY_NAME_ALREADY_EXISTS'));
+                        }
+                    }).error(function () {
+                        Unit.error(L.get('EMV_DICTIONARY_TABLE_NAME_VERIFICATION_FAILED'));
+                    });
+                    //$scope.saveDictFun($scope.OneDictionary);
+                } else {
+                    if (item.code === '' || item.code === undefined || item.code === null) {
+
+                        Unit.error(L.get('EMV_ENCODING_CANNOT_BE_EMPTY'));
+                        return;
+                    }
+                    //console.log(item.code)
+                    if ($scope.groupID === 1 && item.code === 0) {
+                        Unit.error(L.get('EMV_EVENT_SOURCE_ENCODING_CANNOT_BE')+'0');
+                        return;
+                    }
+                    if (item.chineseName === '' || item.chineseName === undefined || item.chineseName === null) {
+                        Unit.error(L.get('COMMON_CHINESE_NAME_CANNOT_BE_EMPTY'));
+                        return;
+                    }
+                    if (item.englishName === '' || item.englishName === undefined || item.englishName === null) {
+                        if ($scope.groupID !== 1) {
+                          Unit.error(L.get('COMMON_ENGLISH_NAME_CANNOT_BE_EMPTY'));
+                        } else {
+                          Unit.error(L.get('EMV_LINK_ADDRESS_CANNOT_BE_EMPTY'));
+                        }
+
+                        return;
+                    }
+                }
+            }
+
+
+
+        };
+
+        //事件级别定义保存
+        $scope.saveServiceFun = function (item) {
+            MonitoringService.saveSeverity(item).success(function (result) {
+                if (result.success) {
+                    //$scope.queryServityFun();
+                    $scope.queryServityColorFun = function () {
+                        MonitoringService.severitylist({}).success(function (result) {
+                            if (result.success) {
+                                var color = JSON.stringify(result);
+                                localStorage.setItem('colorkey', color);
+                            } else {
+                                console.log('刷新cookie失败');
+                            }
+
+
+                        }).error(function () {
+                            console.log('刷新cookie失败');
+                        });
+                    };
+                    $scope.queryServityColorFun();
+                    $scope.queryServityFun();
+
+
+                } else {
+                  Unit.error(L.get('COMMON_SAVE_FAILED'));
+                }
+            }).error(function () {
+              Unit.error(L.get('COMMON_SAVE_FAILED'));
+            });
+        };
+        $scope.servitySaveFun = function (item) {
+            if (item.id) {
+                if (item.color === '' || item.color === undefined || item.color === null) {
+                    Unit.error(L.get('EMV_COLOR_CODE_CANNOT_BE_EMPTY'));
+                    return;
+                }
+                if (item.chineseName === '' || item.chineseName === undefined || item.chineseName === null) {
+                    Unit.error(L.get('COMMON_CHINESE_NAME_CANNOT_BE_EMPTY'));
+                    return;
+                }
+                if (item.englishName === '' || item.englishName === undefined || item.englishName === null) {
+                  Unit.error(L.get('COMMON_ENGLISH_NAME_CANNOT_BE_EMPTY'));
+                    return;
+                }
+				/*if(item.englishName && item.code && item.chineseName ){
+				 item.readFlag=false;
+				 }*/
+                if (item.englishName && item.color && item.chineseName) {
+                    item.readFlag = false;
+                    $scope.saveServiceFun(item);
+
+                }
+
+				/*MonitoringService.validateSeverity({
+					'id': item.id,
+					'severity': item.severity,
+				}).success(function(result) {
+					if(result.success==true){
+
+
+					}else{
+						Unit.error('该字典编码已存在')
+					}
+				}).error(function() {
+
+				});*/
+
+            } else {
+                if (item.englishName && item.color && item.chineseName) {
+                    MonitoringService.validateSeverity({
+                        severity: item.severity,
+                    }).success(function (result) {
+                        if (result.success) {
+                            if (item.englishName && item.color && item.chineseName) {
+                                item.readFlag = false;
+                            }
+                            $scope.saveServiceFun(item);
+
+                        } else {
+                            Unit.error(L.get('EMV_THIS_LEVEL_VALUE_ALREADY_EXISTS'));
+                        }
+                    }).error(function () {
+                        Unit.error(L.get('EMV_SAVE_LEVEL_VALUE_FAILED'));
+                    });
+
+                    //$scope.saveDictFun($scope.OneDictionary);
+                } else {
+                    if (item.color === '' || item.color === undefined || item.color === null) {
+                      Unit.error(L.get('EMV_COLOR_CODE_CANNOT_BE_EMPTY'));
+                        return;
+                    }
+                    if (item.chineseName === '' || item.chineseName === undefined || item.chineseName === null) {
+                      Unit.error(L.get('COMMON_CHINESE_NAME_CANNOT_BE_EMPTY'));
+                        return;
+                    }
+                    if (item.englishName === '' || item.englishName === undefined || item.englishName === null) {
+                      Unit.error(L.get('COMMON_ENGLISH_NAME_CANNOT_BE_EMPTY'));
+                        return;
+                    }
+                }
+            }
+
+
+
+        };
+        $scope.readFlagFun = function (item) {
+            item.readFlag = true;
+        };
+
+        $scope.sumCheckFun = function () {
+            $scope.checkedDictionary = [];
+            $scope.checkDIndex = [];
+            $scope.checkSevervity = [];
+            var sum = 0;
+            $.each($scope.arr, function (index, item) {
+                if (item.checked) {
+                    sum++;
+                    $scope.checkedDictionary.push(item.id);
+                    $scope.checkDIndex.push(index);
+                    if ($scope.arr.length === sum) {
+                        $scope.allChked = true;
+                    } else {
+                        $scope.allChked = false;
+                    }
+                }
+
+            });
+
+            if ($scope.ServityList && $scope.ServityList.length > 0) {
+                $.each($scope.ServityList, function (index, item) {
+                    if (item.checked) {
+                        sum++;
+                        $scope.checkSevervity.push(item.id);
+                        if ($scope.ServityList.length === sum) {
+                            $scope.allChkedSevervity = true;
+                        } else {
+                            $scope.allChkedSevervity = false;
+                        }
+                    }
+
+                });
+            }
+
+            //console.log($scope.checkedDictionary)
+
+        };
+        //全选按钮
+        $scope.allCkeckedFun = function () {
+            $scope.allChked = !$scope.allChked;
+            $scope.checkedDictionary = [];
+            $scope.checkDIndex = [];
+            $.each($scope.arr, function (index, item) {
+                //console.log(item);
+                item.flag = $scope.allChked;
+                item.checked = $scope.allChked;
+                $scope.checkedDictionary.push(item.id);
+                $scope.checkDIndex.push(index);
+                //console.log(item.flag)
+
+            });
+        };
+        //事件级别全选按钮
+        $scope.allCkeckedSevervityFun = function () {
+            $scope.allChkedSevervity = !$scope.allChkedSevervity;
+            $scope.checkSevervity = [];
+            $.each($scope.ServityList, function (index, item) {
+                //console.log(item);
+                item.flag = $scope.allChkedSevervity;
+                item.checked = $scope.allChkedSevervity;
+                $scope.checkSevervity.push(item.id);
+
+
+            });
+        };
+        $scope.addDictionartGroupFun = function (item) {
+            //console.log(editFlag)
+            if (!item.groupName) {
+                Unit.error(L.get('EMV_DICTIONARY_TABLE_NAME_CANNOT_BE_EMPTY'));
+                return;
+            }
+            MonitoringService.checkGroupName({
+                id: item.id,
+                groupName: item.groupName
+            }).success(function (result) {
+                if (result.success) {
+                    MonitoringService.saveDictGroup({
+                        id: item.id,
+                        groupName: item.groupName
+                    }).success(function (result) {
+                        if (result.success) {
+                            $scope.queryDictGroup();
+                            $scope.queryDictFun(item.id, item.groupName, $scope.obj.visible)
+                            $.each($scope.arr, function (index, item) {
+                                item.editFlag = false;
+                            });
+
+                        } else {
+                            Unit.error(L.get('EMV_NEW_DICTIONARY_TABLE_FAILED'));
+                        }
+
+
+                    }).error(function () {
+                        Unit.error(L.get('EMV_NEW_DICTIONARY_TABLE_FAILED'));
+                    });
+
+                } else {
+                    Unit.error(L.get('EMV_DICTIONARY_TABLE_NAME_ALREADY_EXISTS'));
+                }
+
+            }).error(function () {
+              Unit.error(L.get('EMV_DICTIONARY_TABLE_NAME_ALREADY_EXISTS'));
+            });
+
+        };
+        //添加字典
+        $scope.addDictionFun = function () {
+            $scope.arr.push({ readFlag: true });
+            //console.log($scope.arr.chineseName)
+        };
+        //添加事件级别定义
+        $scope.addServityFun = function () {
+            $scope.ServityList.push({ readFlag: true });
+
+        };
+        //新增弹框
+        $scope.addRuleFun = function () {
+            //console.log($scope.obj.visible)
+            //$scope.$apply();
+            //console.log($scope.obj.visible)
+            uDialog.input({
+                title: L.get('EMV_DICTIONARY_TABLE_NAME'),
+                // data: '',
+                placeholder: L.get('EMV_DICTIONARY_TABLE_NAME'),
+                checked: true,
+                errorMessage:  L.get('EMV_DICTIONARY_TABLE_NAME_CANNOT_BE_EMPTY'),
+                //remark:'字典表名称可用于字典表查询，合理的字典表名称有利于记忆与理解！',
+                maxLength: '32',
+                overLengthMessage: L.get('EMV_DICTIONARY_TABLE_NAME_CANNOT_BE_EMPTY',{n:32}),
+                checkConfirm: function (data, defer) {
+                    MonitoringService.checkGroupName({
+                        groupName: data,
+                    }).success(function (result) {
+                        if (result.success) {
+
+                            MonitoringService.saveDictGroup({
+                                groupName: data,
+                            }).success(function (result) {
+                                if (result.success) {
+                                    defer.resolve(data);
+                                    $scope.queryDictGroup();
+                                    $scope.queryDictFun(result.data, data)
+
+                                } else {
+                                    Unit.error(L.get('EMV_NEW_DICTIONARY_TABLE_FAILED'));
+                                }
+
+                            }).error(function () {
+                              Unit.error(L.get('EMV_NEW_DICTIONARY_TABLE_FAILED'));
+                            });
+                        } else {
+                            Unit.error(L.get('EMV_THE_DICTIONARY_TABLE_NAME_ALREADY_EXISTS'));
+                        }
+
+                    }).error(function () {
+                      Unit.error(L.get('EMV_THE_DICTIONARY_TABLE_NAME_ALREADY_EXISTS'));
+                    });
+
+                    // console.log(result);
+                    // $scope.ruleDetailFun('', result.value);
+                }
+            });
+
+
+        };
+
+
+        $scope.openXml = function (file, x) {
+            //console.log(file)
+            if (file.length >= 1) {
+                if (file[0].type !== 'audio/mp3' && file[0].type !== 'audio/x-ms-wma') {
+                    Unit.error(L.get('EMV_PLEASE_SELECT_A_FILE_IN_X_FORMAT',{x:'MP3'}));
+                    // $timeout(function(){
+                    // 	$scope.queryServityFun();
+                    // },3)
+                    return;
+                }
+                if (file[0].size > 1024 * 1024 * 10) {
+                    Unit.error(L.get('EMV_AUDIO_FILES_CANNOT_EXCEED')+'10MB');
+                    // $timeout(function(){
+                    // 	$scope.queryServityFun();
+                    // },3)
+                    return;
+                }
+
+                if (file[0].size === 0) {
+                    Unit.error(L.get('EMV_AUDIO_FILE_CORRUPTION'));
+                    // $timeout(function(){
+                    // 	$scope.queryServityFun();
+                    // },3)
+                    return;
+                }
+                var audio1 = new Audio();
+                audio1.onloadeddata = function () {
+                    MonitoringService.uploadVoiceFile(file).success(function (result) {
+                        //console.log(result.data)
+                        x.voiceName = result.data.voiceName;
+                        x.voiceUrl = result.data.voiceUrl;
+                        //console.log(x)
+                        if (x.severity && x.englishName && x.color && x.chineseName) {
+                            //$scope.servitySaveFun(x)
+                        } else {
+                            Unit.error(L.get('EMV_PLEASE_COMPLETE_OTHER_INFORMATION'));
+                        }
+
+
+                        //console.log(x)
+                    }).error(function () {
+                        Unit.error(L.get('EMV_UPLOAD_SOUND_FAILED'));
+                    });
+                };
+                audio1.onerror = function (e) {
+                    //console.log(e)
+                    Unit.error(L.get('EMV_THIS_AUDIO_FILE_IS_NOT_SUPPORTED') + e);
+                };
+                audio1.src = URL.createObjectURL(file[0]);
+                //audio1.play();
+            }
+
+
+
+
+
+
+
+        };
+        $scope.deletVoiceFun = function (item) {
+            item.voiceName = '';
+            MonitoringService.removeVoiceSource({ voiceUrl: item.voiceUrl, id: item.id }).success(function (result) {
+                if (result.success) {
+                    $scope.queryServityFun();
+                    Unit.error(L.get('EMV_DELETE_SOUND_SUCCESSFULLY'));
+                } else {
+                    Unit.error(L.get('EMV_DELETING_SOUND_FAILED'));
+                }
+
+            }).error(function () {
+                Unit.error(L.get('EMV_DELETING_SOUND_FAILED'));
+            });
+        };
+
+
+        // 拖拽缩放功能
+        var parentW;
+        $timeout(function () {
+            parentW = $('.preview-wrapper').width() / 0.4;
+        }, 1);
+
+        $('.drag-scale').bind('mousedown', function (e) {
+            var dragW = $('.drag-scale').width() + 2;
+            var leftW = $('.preview-wrapper').width();
+            var disX = e.pageX;
+
+            $(document).bind('mousemove', function (e) {
+                var _disX = e.pageX;
+                var _leftW = leftW + (_disX - disX);
+                var marginLeft = leftW + (_disX - disX) + dragW;
+
+                if (_leftW < 400) {
+                    _leftW = 400;
+                    marginLeft = 400 + dragW;
+                }
+
+                if (_leftW > (parentW - 500 - dragW)) {
+                    _leftW = parentW - 500 - dragW;
+                    marginLeft = _leftW + dragW;
+                }
+
+                $('.preview-wrapper').width(_leftW);
+                $('.environment-edit-wrap').css('margin-left', marginLeft);
+            });
+
+            $(document).bind('mouseup', function () {
+                $(document).unbind('mousemove');
+                $(document).unbind('mouseup');
+            });
+
+            return false;
+        });
+
+    }]);
+	/*
+	 * 高亮搜索关键词
+	 * @param: 文本内容
+	 * @param： 搜索关键词
+	 * html标签中使用指令 ng-bind-html
+	 */
+
+    graph.app.filter('trustUrl', ['$sce', function ($sce) {
+        return function (recordingUrl) {
+            return $sce.trustAsResourceUrl(recordingUrl);
+        };
+    }]);
+
+})(nameSpace.reg('graph'));

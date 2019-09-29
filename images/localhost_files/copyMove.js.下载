@@ -1,0 +1,14 @@
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('copyMove', function() {
+		return {
+			restrict : 'E',
+			replace : true,
+			templateUrl: 'app/directive/floatingLayer/copyMove.html'
+		};
+		$scope.L = L;
+	});
+
+})(nameSpace.reg('graph'));

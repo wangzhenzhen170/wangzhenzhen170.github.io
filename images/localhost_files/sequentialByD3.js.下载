@@ -1,0 +1,37 @@
+(function(graph) {
+
+	'use strict';
+
+	graph.app.directive('sequentialD3', ['Unit', function(Unit) {
+		return {
+			restrict: 'E',
+			replace: true,
+			template: '<div class="sequential"></div>',
+			scope: {
+				'data': '=',
+				'ishistory': '=',
+				'scalex': '=',
+				'axisx': '='
+			},
+			link: function(scope, element, attrs) {
+
+				scope.$watch('data', function(nv, ov) {
+					if (nv) {
+						updateSeq();
+					}
+				});
+
+				function updateSeq() {
+					//当前时序图
+					if (!scope.ishistory) {
+
+					}
+				}
+
+			}
+		}
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

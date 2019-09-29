@@ -1,0 +1,90 @@
+
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('UserAuth', ['$q', '$timeout', 'UserService', 'Unit', '$cookies', function($q, $timeout, UserService, Unit, $cookies){
+
+		var u = {};
+
+        /**
+         * 退出登录
+         */
+        u.logout = function () {
+            // to-do 执行退出登录的接口
+            // 清除token
+            $cookies.remove('token', {path: '/'});
+            // 清除用户信息
+            localStorage.removeItem('userInfo');
+
+            u.gotoLogin();
+
+            // 跳转页面
+//            window.location.href = window.location.pathname;
+        };
+
+        /**
+         * 转到登录
+         */
+        u.gotoLogin = function () {
+            var loginInfo = localStorage.getItem('configLoginInfo');
+            if (loginInfo) {
+                Unit.jumpToLogin(JSON.parse(loginInfo).data.ssoServerRoot);
+            } else {
+                UserService.getLoginInfo().success(function(res) {
+                    window.localStorage.setItem('configLoginInfo', JSON.stringify(res));
+
+                    Unit.jumpToLogin(res.data.ssoServerRoot);
+                });
+            }
+        }
+
+        /**
+         * 获取登录配置信息
+         */
+        u.fetchLoginInfo = function () {
+            UserService.getLoginInfo().success(function(res) {
+                window.localStorage.setItem('configLoginInfo', JSON.stringify(res));
+            })
+        }
+
+        /**
+         * 获取用户信息
+         */
+        u.fetchUserInfo = function () {
+            if (!this.user) {
+                this.user = {};
+            }
+            var that = this;
+            if (!this._gotUser) {
+                this._gotUser = 'fetching';
+                $q(function(resolve, reject) {
+                    UserService.getCurUser().then(function(ret){
+                        var result = ret.data;
+                        if (result.success) {
+                            angular.extend(that.user, result.data)
+                            that._gotUser = 'done';
+                            resolve(result.data);
+                        } else {
+
+                            that._gotUser = null;
+                            console.error(ret);
+                        }
+
+                    }, function(err) {
+                        console.error(err);
+                        that._gotUser = null;
+
+                        reject(err);
+                    });
+                });
+            }
+
+            return this.user;
+        };
+
+        return u;
+	}]);
+
+})(nameSpace.reg('graph'));

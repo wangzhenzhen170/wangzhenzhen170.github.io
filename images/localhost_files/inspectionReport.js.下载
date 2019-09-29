@@ -1,0 +1,250 @@
+(function (graph) {
+
+	'use strict';
+    //巡检报表
+	graph.app.directive('inspReport', function () {
+		return {
+			restrict: 'AE',
+			replace: true,
+			scope: {
+                report: '=',
+                ondutyDuration: '=',
+                checkRsFlag: '=',
+                partNum: '@',
+                partSize: '=',
+                partSizeArr: '=',
+                newReportConcerns: '=',
+                activeEventsSerial: '=',
+                closedEventsSerial: '=',
+                roomName: '@',
+                roomCodes: '=',
+                concerns: '='
+
+			},
+			templateUrl: 'app/directive/inspectionReport/inspectionReport.html',
+			controller: ['$scope', '$rootScope', '$state', 'Unit', '$filter', 'MonitoringService', 'OScreenService', '$timeout', '$interval', '$uibModal', 'uDialog', 'DefinedEventsService',
+				function ($scope, $rootScope, $state, Unit, $filter, MonitoringService, OScreenService, $timeout, $interval, $uibModal, uDialog, DefinedEventsService) {
+                    $scope.activeEvents = [];
+                    $scope.closedEvents = [];
+                    $scope.concerns = [];
+                    $scope.showCheckTableFlag = false;
+                    $scope.newReportConcerns = [];//all
+                    $scope.concernTimeInputFlag = false;
+                    $scope.concernTime = '';
+                    $scope.concernDescInputFlag = false;
+                    $scope.concernDesc = '';
+                    $scope.roomDefault = [];
+                    $scope.roomSel = [];
+                    $scope.selectRoomListFlag = [];
+                    $scope.selectRoomLiNum = -1;
+                    $scope.rooms = [];
+                    $scope.activeEventsSerial = '';//all
+                    $scope.closedEventsSerial = '';//all
+
+                    //新增报表关注事项查询
+                    $scope.queryNewReportConcerns =  function () {
+                        MonitoringService.queryConcerns({roomName: $scope.roomName, daysCount: 10}).success(function(result){
+                            if(result.success) {
+                                if(result.data) {
+                                    var res = result.data;
+                                    for(var i = 0;i<res.length; i++) {
+                                        if(res[i].concernsTime) {
+                                            var cTime = res[i].concernsTime.toString();
+                                            var concernsTime = cTime.substring(0,4)+'/'+cTime.substring(4,6)+'/'+cTime.substring(6,8)+' '+cTime.substring(8,10)+':'+cTime.substring(10,12);
+                                            res[i].concernsTime = concernsTime;
+                                        }
+                                    }
+                                    $scope.concerns = res;
+                                }
+                            }
+                        }).error(function(error){
+                            console.log(error);
+                        });
+                    };
+
+                    $scope.newReportEventsSerial = function (stage, events) {
+                        if(stage === 1){
+                            var acevents = [];
+                            for(var i = 0; i< events.length; i++) {
+                                acevents.push(events[i].serial);
+                            }
+                            $scope.activeEventsSerial = acevents.join(',');
+                        }
+                        if(stage === 2) {
+                            var clevents = [];
+                            for(var j = 0; j< events.length; j++) {
+                                clevents.push(events[j].serial);
+                            }
+                            $scope.closedEventsSerial = clevents.join(',');
+                        }
+                        
+                    };
+
+                    //新增报表告警查询
+                    $scope.queryNewReportEvents = function () {
+                        MonitoringService.queryActiveEventsByRoomName({roomName: $scope.roomName}).success(function(result){
+                            if(result.success) {
+                                if(result.data) {
+                                    $scope.activeEvents = result.data;
+                                    $scope.newReportEventsSerial(1,result.data);
+                                }
+                            }
+                        }).error(function(error){
+                            console.log(error);
+                        });
+                        MonitoringService.queryClosedEventsByRoomName({roomName: $scope.roomName}).success(function(result){
+                            if(result.success) {
+                                if(result.data) {
+                                    $scope.closedEvents = result.data;
+                                    $scope.newReportEventsSerial(2,result.data);
+                                }
+                                
+                            }
+                        }).error(function(error){
+                            console.log(error);
+                        });
+                    };
+
+                    //根据房间名称查询房间
+                    $scope.queryRoomsByName = function () {
+                        MonitoringService.queryRoomsByName({roomName: $scope.roomName}).success(function(result) {
+                            if(result.success) {
+                                $scope.roomCodes = result.data.join('、');
+                                $scope.rooms = result.data;
+                                if($scope.report.id === undefined){
+                                    $scope.queryNewReportEvents();
+                                    $scope.queryNewReportConcerns();
+                                    $scope.queryConcernsToday();
+                                }
+                            }
+                        }).error(function(error){
+                            console.log(error);
+                        });
+                    };
+                    $timeout(function(){
+                        $scope.queryRoomsByName();
+                    },3000);
+                   
+
+                    //查询当天关注事项
+                    $scope.queryConcernsToday = function () {
+                        MonitoringService.queryConcernsToday({roomName: $scope.roomName}).success(function(result){
+                            if(result.success) {
+                                if(result.data) {
+                                    var res = result.data;
+                                    for(var i = 0;i<res.length; i++) {
+                                        if(res[i].concernsTime) {
+                                            var cTime = res[i].concernsTime.toString();
+                                            // var concernsTime = cTime.substring(0,4)+'/'+cTime.substring(4,6)+'/'+cTime.substring(6,8)+' '+cTime.substring(8,10)+':'+cTime.substring(10,12);
+                                            var concernsTime = cTime.substring(4,6)+'/'+cTime.substring(6,8)+' '+cTime.substring(8,10)+':'+cTime.substring(10,12);
+                                            res[i].concernsTime = concernsTime;
+                                        }
+                                    }				
+                                    $scope.concernsToday = res;
+                                    $scope.newReportConcerns = res;
+                                    var num = $scope.concernsToday.length;
+                                    for (var i = 0; i<num; i++) {
+                                        $scope.selectRoomListFlag.push(false);
+                                        $scope.roomDefault.push($scope.concernsToday[i].roomCode);
+                                        $scope.roomSel.push($scope.concernsToday[i].roomCode);
+                                    }
+                                    
+            
+                                }
+                            }
+                        }).error(function(error){
+                            console.log(error);
+                        });
+                    };
+
+                    $scope.selectRoomLi = function (item, i) {
+                        $timeout(function(){
+                            $scope.newReportConcerns[i].roomCode = item;
+                            $scope.roomDefault[i] = item;
+                            $scope.roomSel[i] = item;
+                            $scope.selectRoomListFlag[i] = !$scope.selectRoomListFlag[i];
+                        },100);
+                    };
+
+                    $scope.selectRoom = function (num) {
+                        if($scope.rooms.length ===0){
+                            Unit.error('请输入正确房间名称');
+                        } else {
+                            $scope.selectRoomListFlag[num] = !$scope.selectRoomListFlag[num];
+                        }
+                    };
+
+                    $scope.inputConcernTime = function () {
+                        $scope.concernTimeInputFlag = true;
+                    };
+            
+                    $scope.inputConcernDesc = function () {
+                        $scope.concernDescInputFlag = true;
+                    };
+
+                    $scope.uploadFile = function (file, index) {
+                        var formData = new FormData();
+                        formData.append('file',file);
+                        MonitoringService.uploadFile(formData).success(function(result){
+                            if(result.data){
+                                $scope.newReportConcerns[index].concernsUrl = result.data;
+                            }
+                        }).error(function(error){
+                            console.log(error);
+                        });
+            
+                    };
+
+                    $scope.deleteRow = function (index) {
+                        $scope.newReportConcerns.splice(index, 1);
+                        $scope.roomDefault.splice(index, 1);
+                        $scope.roomSel.splice(index, 1);
+                        $scope.selectRoomListFlag.splice(index, 1);
+                    };
+                
+                    //添加关注事项行
+                    $scope.addConcern = function () {
+                        console.log($scope.newReportConcerns)
+                        var index = $scope.newReportConcerns.length-1;
+                        if(index>=0){
+                            if(($scope.newReportConcerns[index].concernsDateTime!==''&&
+                            $scope.newReportConcerns[index].concernsDateTime!==undefined)||($scope.newReportConcerns[index].concernsTime!==''&&$scope.newReportConcerns[index].concernsTime!==undefined)){
+                                $scope.newReportConcerns.push({});
+                                $scope.roomDefault.push('');
+                                $scope.roomSel.push('');
+                                $scope.selectRoomListFlag.push(false);
+                            } else {
+                                Unit.error('请完善检查结果信息!');
+                            }
+                        } else {
+                            $scope.newReportConcerns.push({});
+                            $scope.roomDefault.push('');
+                            $scope.roomSel.push('');
+                            $scope.selectRoomListFlag.push(false);
+                        }
+                    };
+
+                    $scope.showCheckTable = function () {
+                        $scope.showCheckTableFlag = !$scope.showCheckTableFlag;
+                    };
+
+                    // $scope.addRoom = function () {  
+                    //     $scope.partSizeArr.push('');
+                    //     $scope.partSize = $scope.partSizeArr.length; 
+                    // };
+
+                    document.onclick = function(e) {
+                        var cname = e.target.className;
+                        if(cname !== 'full ng-binding' && cname !== 'ng-binding ng-scope') {
+                            for(var i = 0;i<$scope.selectRoomListFlag.length; i++){
+                                $scope.selectRoomListFlag[i] = false;
+                            }                          
+                        }
+                    };
+
+
+				}]
+		};
+	});
+
+})(nameSpace.reg('graph'));

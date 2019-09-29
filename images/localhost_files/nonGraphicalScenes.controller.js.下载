@@ -1,0 +1,567 @@
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('nonGraphicalScenesCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        $scope.typeName = $stateParams.name;
+        console.log($stateParams)
+        $scope.stateParamsObj = {};
+        $scope.stateParamsObj = $stateParams;
+        $scope.ruleType = 3;
+        $scope.ruleDetailFlag = true;
+        $scope.ruleTitleName = L.get('EMV_COMPRESSION_RULE');
+        $scope.event$flag = [];
+        $scope.freshFlag = false;
+        $scope.event$rule = [
+            {
+                'title': L.get('EMV_EVENT_SOURCE')+ 'ID',
+                'name': 'SourceEventID'
+            },
+            {
+                'title': L.get('EMV_EVENT_DESCRIPTION_INFORMATION'),
+                'name': 'Summary'
+            },
+            {
+                'title':  L.get('COMMON_EVENT_LEVEL') ,
+                'name': 'Severity'
+
+            },
+            {
+                'title': L.get('COMMON_BS_OBJ_EVENT_COL_FIRSTTIME') ,
+                'name': 'FirstOccurrence'
+            },
+            {
+                'title':  L.get('COMMON_OCCURRENCE_TIME'),
+                'name': 'LastOccurrence'
+            },
+            {
+                'title': L.get('COMMON_EVENT_TITLE'),
+                'name': 'EventTitle'
+            },
+            {
+                'title':  L.get('EMV_ORIGINAL_EVENT_LEVEL'),
+                'name': 'SourceSeverity'
+            },
+            {
+                'title':  L.get('EMV_ORIGINAL_EVENT_DESCRIPTION'),
+                'name': 'SourceSummary'
+            }
+        ];
+
+
+        $scope.ruleDetailFlag = true;
+        $scope.showAndContent = false;
+        $scope.objs = {};
+        $scope.event$flag = [];
+        $scope.overUpdateword = [];
+
+        //设置左侧顺序线的长度
+        $scope.lineLong = function () {
+            $timeout(function () {
+                var height = angular.element('.content-following5').height();
+                angular.element('.step-line1').height(height);
+                var height2 = angular.element('.content-following1').height();
+                angular.element('.step-line2').height(height2);
+                var height3 = angular.element('.content-following2').height();
+                angular.element('.step-line3').height(height3);
+            }, 10);
+        };
+
+
+        //弹出添加页面
+        $scope.ruleDetailFun = function (ruleDetail) {
+
+            MonitoringService.getModelCode({ 'function': true, ruleType: 0 }).success(function (result) {
+                if (result.success) {
+                    $scope.classList = result.data;
+
+                    $scope.event$rule = [];
+                    $scope.rules = [];
+                    $scope.topFun();
+                    if (ruleDetail) {
+                        $scope.removeButton = true;
+                        $scope.ruleId = ruleDetail.id;
+                        MonitoringService.getRuleById({
+                            id: ruleDetail.id
+                        }).success(function (result) {
+                            if (result) {
+                              $scope.event$rule = [
+                                {
+                                    'title': L.get('EMV_EVENT_SOURCE')+ 'ID',
+                                    'name': 'SourceEventID'
+                                },
+                                {
+                                    'title': L.get('EMV_EVENT_DESCRIPTION_INFORMATION'),
+                                    'name': 'Summary'
+                                },
+                                {
+                                    'title':  L.get('COMMON_EVENT_LEVEL') ,
+                                    'name': 'Severity'
+                    
+                                },
+                                {
+                                    'title': L.get('COMMON_BS_OBJ_EVENT_COL_FIRSTTIME') ,
+                                    'name': 'FirstOccurrence'
+                                },
+                                {
+                                    'title':  L.get('COMMON_OCCURRENCE_TIME'),
+                                    'name': 'LastOccurrence'
+                                },
+                                {
+                                    'title': L.get('COMMON_EVENT_TITLE'),
+                                    'name': 'EventTitle'
+                                },
+                                {
+                                    'title':  L.get('EMV_ORIGINAL_EVENT_LEVEL'),
+                                    'name': 'SourceSeverity'
+                                },
+                                {
+                                    'title':  L.get('EMV_ORIGINAL_EVENT_DESCRIPTION'),
+                                    'name': 'SourceSummary'
+                                }
+                            ];
+                                $scope.result = result.data;
+                                $scope.objs.newRuleFatherName = ruleDetail.name;
+                                $scope.objs.ruleDetail = $scope.result.description;
+                                $scope.event$flag = $scope.result.action.identifier.split('_');
+                                $scope.sourceId = $scope.result.sourceIdList;
+                                $scope.overUpdateword = $scope.result.action.properties;
+                                if ($scope.result.selectorList) {
+                                    $.each($scope.result.selectorList, function () {
+                                        $scope.rules.push(this.selectors)
+                                    });
+                                }
+
+                                var diff = [];
+                                for (var i = 0; i < $scope.event$rule.length; i++) {
+                                    var item1 = $scope.event$rule[i];
+                                    var has = false;
+                                    for (var j = 0; j < $scope.overUpdateword.length; j++) {
+                                        var item2 = $scope.overUpdateword[j];
+
+                                        if (item1.name === item2.name) {
+                                            has = true;
+                                        }
+                                    }
+
+                                    if (!has) {
+                                        diff.push(item1);
+                                    }
+                                }
+                                $scope.event$rule = diff;
+                                $scope.ruleDetailFlag = false;
+                                $timeout(function () {
+                                    $scope.lineLong();
+                                    $scope.$broadcast('sourceId', $scope.sourceId);
+                                    $scope.$broadcast('rules', $scope.rules);
+                                    $scope.$broadcast('ruleId', $scope.ruleId);
+                                    $scope.$broadcast('freshFlag', $scope.freshFlag)
+                                    $scope.$broadcast('removeButton', $scope.removeButton);
+                                    $scope.$broadcast('sourceIdArray', $scope.sourceId)
+                                    //
+                                },300);
+                            }
+
+
+                        })
+                    } else {
+                        $timeout(function () {
+                            $('#newNameInput').focus();
+                        })
+                        $scope.sourceId = [];
+                        $scope.removeButton = false;
+                        $scope.rules = [
+                            [
+                                {
+                                    property: 'CINAME',
+                                    operator: '==',
+                                    value: '*',
+                                    propertyDesc: L.get('EMV_EVENT_OBJECT'),
+                                    operatorDesc: L.get('EMV_EQUAL'),
+                                }
+                            ]
+
+                        ];
+                        $scope.event$rule = [
+                          {
+                              'title': L.get('EMV_SOURCE_EVENT')+ 'ID',
+                              'name': 'SourceEventID'
+                          },
+                          {
+                              'title': L.get('EMV_EVENT_DESCRIPTION_INFORMATION'),
+                              'name': 'Summary'
+                          },
+                          {
+                              'title':  L.get('COMMON_EVENT_LEVEL') ,
+                              'name': 'Severity'
+              
+                          },
+                          {
+                              'title': L.get('COMMON_BS_OBJ_EVENT_COL_FIRSTTIME') ,
+                              'name': 'FirstOccurrence'
+                          },
+                          {
+                              'title':  L.get('COMMON_LAST_TIME'),
+                              'name': 'LastOccurrence'
+                          },
+                          {
+                              'title': L.get('COMMON_EVENT_TITLE'),
+                              'name': 'EventTitle'
+                          },
+                          {
+                              'title':  L.get('EMV_ORIGINAL_EVENT_LEVEL'),
+                              'name': 'SourceSeverity'
+                          },
+                          {
+                              'title':  L.get('EMV_ORIGINAL_EVENT_DESCRIPTION'),
+                              'name': 'SourceSummary'
+                          }
+                      ];
+                        $scope.objs.newRuleFatherName = '';
+                        $scope.ruleId = '';
+                        $scope.objs.ruleDetail = '';
+                        $scope.event$flag = [];
+                        $scope.overUpdateword = [];
+                        $scope.copyValueFun($scope.rules);
+                        $scope.ruleDetailFlag = false;
+                        $timeout(function () {
+                            $scope.lineLong();
+                            $scope.$broadcast('sourceId', $scope.sourceId);
+                            $scope.$broadcast('rules', $scope.rules);
+                            $scope.$broadcast('ruleId', $scope.ruleId);
+                            $scope.$broadcast('freshFlag', $scope.freshFlag);
+                            $scope.$broadcast('removeButton', $scope.removeButton);
+                            $scope.$broadcast('sourceIdArray', $scope.sourceId);
+                            //
+                        },300);
+
+                    }
+
+                } else {
+                  Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                }
+
+            })
+
+
+        }
+
+
+
+
+
+
+
+
+
+        //页面滚动条回到初始位置
+        $scope.topFun = function () {
+            $('.content').animate({
+                scrollTop: 0
+            }, 300);
+        }
+
+
+        //更新字段事件
+        $scope.updateInformaFun = function (eventflag) {
+
+            $.each($scope.event$rule, function (index, item) {
+                item.bdcolor = false;
+            })
+            $.each($scope.overUpdateword, function (index, item) {
+                item.bdcolor = true;
+            })
+            eventflag.bdcolor = true;
+        };
+        $scope.updateInformaFun1 = function (word) {
+            $.each($scope.event$rule, function (index, item) {
+                item.bdcolor = false;
+            })
+            $.each($scope.overUpdateword, function (index, item) {
+                item.bdcolor = true;
+            })
+            word.bdcolor = false;
+        };
+        $scope.overUpdateword = [];
+        $scope.newOverUpdateFun = function () {
+
+            for (var i = 0; i < $scope.event$rule.length; i++) {
+
+                if ($scope.event$rule[i].bdcolor) {
+                    $scope.overUpdateword.push($scope.event$rule[i]);
+                    $scope.event$rule.splice(i, 1);
+
+
+                }
+            }
+
+
+        };
+        $scope.overNewUpdateFun = function () {
+            for (var i = 0; i < $scope.overUpdateword.length; i++) {
+                if (!$scope.overUpdateword[i].bdcolor) {
+                    $scope.event$rule.push($scope.overUpdateword[i])
+                    $scope.overUpdateword.splice(i, 1);
+                }
+            }
+        };
+
+
+        //事件压缩标识选择框
+        $scope.event$flagFun = function (value) {
+            $scope.event$flag.push(value.display);
+            $timeout(function () {
+                $scope.lineLong();
+            }, 2)
+        };
+
+        //事件压缩标识删除
+        $scope.removeeventflagFun = function (e) {
+            var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+            if (keycode === 8) {
+                e.preventDefault();
+                if ($scope.event$flag.length > 0) {
+                    $scope.event$flag[$scope.event$flag.length - 1];
+                    $scope.event$flag.splice($scope.event$flag.length - 1, 1);
+                }
+
+            }
+            if (keycode != 8) {
+                $('.select-choice1').attr('contenteditable', false)
+            }
+            $('.select-choice1').attr('contenteditable', true);
+            $timeout(function () {
+                $scope.lineLong();
+            }, 2)
+
+        }
+        //规则描述框内容返显
+        $scope.copyValueFun = function (rules) {
+
+            $scope.andObj = L.get('EMV_FILER_EVENT_RANGE')+':';
+            for (var i = 0; i < rules.length; i++) {
+                for (var j = 0; j < rules[i].length; j++) {
+                    //console.log($scope.rules[i][j].value)
+                    if (j === rules[i].length - 1) {
+                        $scope.andObj += rules[i][j].propertyDesc + rules[i][j].operatorDesc + rules[i][j].value;
+                    } else {
+                        $scope.andObj += rules[i][j].propertyDesc + rules[i][j].operatorDesc + rules[i][j].value + ' ' + L.get('COMMON_AND') + ' ';
+                    }
+
+                }
+                if (i < rules.length - 1) {
+                    $scope.andObj += ' ' + L.get('COMMON_OR') + ' ';
+                }
+
+            }
+            $scope.objs.ruleDetail = $scope.andObj;
+        }
+
+
+        //保存调用接口函数
+        $scope.saveLastFun = function (flag) {
+            var selectorList = [];
+            $.each($scope.rules, function () {
+                var json = {};
+                json.selectors = this;
+                selectorList.push(json);
+            });
+            var checkStingLong = JSON.stringify(selectorList);
+            if (checkStingLong.length > 4096) {
+              Unit.error(L.get('EMV_FILTER_CONDITION_CHARACTER_LENGTH_CANNOT_EXCEED')+'4000')
+                return false;
+            }
+            if ($scope.objs.ruleDetail.length > 512) {
+              Unit.error(L.get('EMV_DESCRIPTION_CHARACTER_LENGTH_CANNOT_EXCEED')+'500')
+                return false;
+            }
+            MonitoringService.saveRule({
+                id: $scope.ruleId,
+                name: $scope.objs.newRuleFatherName,
+                ruleType: 3,
+                active: flag,
+                priority: 1,
+                description: $scope.objs.ruleDetail,
+                selectorList: selectorList,
+                action: {
+                    identifier: $scope.event$flag.join('_'),
+                    properties: $scope.overUpdateword
+                },
+                sourceIdList: $scope.sourceId
+            }).success(function (result) {
+                if (result.success) {
+                    Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'));
+                    $scope.freshFlag = !$scope.freshFlag;
+                    $scope.ruleDetailFlag = true;
+                    $scope.$broadcast('saveId', result.data);
+                } else {
+                  Unit.error(L.get('COMMON_SAVE_FAILED'));
+                    $scope.$broadcast('saveId', result.data);
+                }
+
+
+            })
+
+        }
+        //保存
+        $scope.saveFun = function (flag) {
+            if ($scope.sourceId === null) {
+              Unit.error(L.get('EMV_THE_SOURCE_OF_THE_EVENT_CANNOT_BE_UNSELECTED'))
+                return false;
+            }
+            if ($scope.event$flag.length === 0) {
+                $('.select-choice1').css('border-color', 'red');
+                Unit.error(L.get('EMV_EVENT_COMPRESSION_ID_CANNOT_BE_EMPTY'));
+                return false;
+            }
+            if ($scope.overUpdateword.length === 0) {
+                $('.new-filed').css('border-color', 'red');
+                Unit.error(L.get('EMV_SELECTED_UPDATE_FIELD')+L.get('COMMON_INFORMATION')+L.get('COMMON_IT_CANNOT_BE_NULL'));
+                return false;
+            }
+            if (!$scope.objs.newRuleFatherName) {
+                $('.new-name').css('border-color', 'red');
+                Unit.error(L.get('COMMON_RULE_NAME_CANNOT_BE_EMPTY'))
+                return false;
+            }
+            if ($scope.ruleId) {
+                MonitoringService.checkRuleName({
+                    name: $scope.objs.newRuleFatherName,
+                    id: $scope.ruleId,
+                    ruleType: 3
+                }).success(function (result) {
+                    if (result.success) {
+                        $scope.saveLastFun(flag);
+                    } else {
+                      Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+                    }
+                })
+            } else {
+                MonitoringService.checkRuleName({
+                    name: $scope.objs.newRuleFatherName,
+                    ruleType: 3
+                }).success(function (result) {
+                    if (result.success) {
+                        $scope.saveLastFun(flag);
+                    } else {
+                      Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+                    }
+                })
+            }
+
+
+
+        }
+        //取消按钮
+        $scope.cancelFun = function () {
+            $scope.ruleDetailFlag = true;
+        }
+
+        $scope.$on('ruleTitleName', function (event, data) {
+            $scope.objs.newRuleFatherName = data;
+        })
+        $scope.$on('rules', function (event, data) {
+            $scope.rules = data;//接受值
+            //$scope.copyValueFun($scope.rules);
+        });
+        $scope.$on('ruleDetail', function (event, data) {
+            $scope.objs.ruleDetail = data;//接受值
+        });
+        $scope.$on('freshFlag', function (event, data) {
+            $scope.freshFlag = data;//接受值
+        });
+        $scope.$on('sourceId', function (event, data) {
+            $scope.sourceId = data;
+            $scope.$broadcast('sourceIdArray', $scope.sourceId)
+        })
+        $scope.$on('copyFlag', function (event, data) {
+            $scope.copyFlag = data;
+        })
+        $scope.$on('saveCopyId', function (event, data) {
+            $scope.saveId = data;
+            $scope.$broadcast('saveId', $scope.saveId);
+        })
+        // 自定义下拉框
+        $('.environment-edit-wrap').on('click', '.select-wrap', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu').stop().slideToggle(150);
+
+        });
+        $('.environment-edit-wrap').on('click', '.select-wrap1', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu1').stop().slideToggle(150);
+
+        });
+        $('.environment-edit-wrap').on('click', '.drop-menu li', function () {
+            var ele = $(this).parent().siblings('.select-choice');
+            ele.html($(this).html());
+        });
+        $(document).on('click', function () {
+            $scope.$broadcast('importFlag', false)
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+            $('.select-wrap1').find('.drop-menu1').stop().slideUp(150);
+        });
+
+        // 拖拽缩放功能
+        var parentW;
+        $timeout(function () {
+            parentW = $('.preview-wrapper').width() / 0.4;
+        }, 1);
+
+        $('.drag-scale').bind('mousedown', function (e) {
+            var dragW = $('.drag-scale').width() + 2;
+            var leftW = $('.preview-wrapper').width();
+            var disX = e.pageX;
+
+            $(document).bind('mousemove', function (e) {
+                var _disX = e.pageX;
+                var _leftW = leftW + (_disX - disX);
+                var marginLeft = leftW + (_disX - disX) + dragW;
+
+                if (_leftW < 400) {
+                    _leftW = 400;
+                    marginLeft = 400 + dragW;
+                }
+
+                if (_leftW > (parentW - 500 - dragW)) {
+                    _leftW = parentW - 500 - dragW;
+                    marginLeft = _leftW + dragW;
+                }
+
+                $('.preview-wrapper').width(_leftW);
+                $('.environment-edit-wrap').css('margin-left', marginLeft);
+            });
+
+            $(document).bind('mouseup', function () {
+                $(document).unbind('mousemove');
+                $(document).unbind('mouseup');
+            });
+
+            return false;
+        });
+
+    }]);
+	/*
+	 * 高亮搜索关键词
+	 * @param: 文本内容
+	 * @param： 搜索关键词
+	 * html标签中使用指令 ng-bind-html
+	 */
+    graph.app.filter('highlightWord', ['$sce', function ($sce) {
+        return function (text, keyword) {
+            if (!keyword) {
+                return $sce.trustAsHtml(text);
+            }
+            text = encodeURI(text);
+            keyword = encodeURI(keyword);
+
+            var reg = new RegExp(keyword, 'gi')
+            var result = text.replace(reg, '<span class="highlightedText">$&</span>');
+            result = decodeURI(result);
+            return $sce.trustAsHtml(result);
+        }
+    }]);
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,509 @@
+(function (graph, self) {
+
+    'use strict';
+
+    graph.app.controller('definedEventsCtrl', ['$scope', '$rootScope', '$state', 'Unit', '$filter', 'MonitoringService', '$timeout', '$interval', '$uibModal', 'uDialog', 'DefinedEventsService', '$cookies',
+        function ($scope, $rootScope, $state, Unit, $filter, MonitoringService, $timeout, $interval, $uibModal, uDialog, DefinedEventsService, $cookies) {
+            var jumpParams = {};
+            $scope.typeTitle = {
+                1: L.get('EMV_ACTIVITY_EVENT'),
+                2: L.get('EMV_CONFIRMED_EVENT'),
+                3: L.get('EMV_CLOSED_EVENT'),
+                4: L.get('EMV_MAINTENANCE_PERIOD_EVENT')
+            };
+            $scope.definedShowType = Number($state.params.type);//:1未确认、2已确认、3历史、4维护期
+            $scope.titleNavSecond = $scope.typeTitle[$scope.definedShowType];//默认活动事件
+            $scope.showTypeFlag = false;
+            $scope.currentPage = 1;
+            $scope.busy = true;
+            $scope.showEmpty = true;
+            $scope.eventList = [];
+            $scope.pageSize = 50;
+            $scope.pageSizeOption = [50, 100, 150];
+            $scope.pageFlag = 2;//全部事件为1；自定义事件为2
+            $scope.isOsreen = 0;
+
+            $scope.viewId = String($state.params.viewId);
+            $scope.dataPreview = [];//预览数据
+            $scope.dataPreviewLoadding = true;//预览数据
+            $timeout(function () {
+                $scope.$broadcast('closebtnstatus', 1);
+            });
+            $scope.definedShowStatus = $state.params.status === '1';//'0'未关注 '1'关注
+            $scope.goBackUrl = $state.params.status;
+            $scope.viewParams = {
+                viewId: $scope.viewId
+            };
+            $scope.typeMap = {
+                1: 'activeEvent',
+                2: 'isConfirmed',
+                3: 'isHistory',
+                4: 'isDiscard'
+            };
+
+            $scope.toggleType = function (e) {
+                e && e.stopPropagation();
+                $scope.showTypeFlag = !$scope.showTypeFlag;
+            };
+            $scope.fnBody = function () {
+                $scope.showTypeFlag = false;
+            }
+
+            $scope.getCurType = function (item, i) {
+                $scope.definedShowType = i + 1;
+                $scope.titleNavSecond = item;
+                $scope.showTypeFlag = false;
+                $scope.showAlertDetail = false;
+                $scope.$broadcast('showAlertDetail', $scope.showAlertDetail);
+                $scope.loadData();
+                $scope.showEmpty = true;
+            };
+            //每天凌晨00:30刷新页面
+            $scope.reloadPage = function () {
+                $timeout.cancel($scope.reloadTimer);
+                $scope.reloadTimer = null;
+                $scope.reloadTimer = $timeout(function () {
+                    var d = new Date();
+                    if (d.getHours() === 0 && d.getMinutes() === 30) {
+                        location.reload();
+                    }
+                    $scope.reloadPage();
+                }, 60000);
+
+            };
+            $scope.reloadPage();
+
+            $scope.titleNavfirstName = $state.params.viewName;
+
+            $scope.viewName = $state.params.viewName;
+
+            $scope.titleNavSecond = $scope.typeTitle[$scope.definedShowType];
+            // switch ($scope.definedShowType) {
+            //     case 1:
+            //         $scope.viewParams.isAck = false;
+            //         jumpParams = { viewId: $state.params.viewId };
+            //         $scope.jumpUrl = 'tarsier.monitoring.oScreen';
+            //         break;
+            //     case 2:
+            //         $scope.viewParams.isAck = true;
+            //         jumpParams = { 'acknowLedged': '已确认', viewId: $state.params.viewId };
+            //         $scope.jumpUrl = "tarsier.monitoring.oScreen";
+            //         break;
+            //     case 3:
+            //         $scope.isHistory = true;
+            //         $scope.viewParams.isHistory = true;
+            //         jumpParams = { 'isHisOrW': 3, viewId: $state.params.viewId };
+            //         $scope.jumpUrl = "tarsier.monitoring.historyOscreen";
+            //         break;
+            //     default:
+            //         $scope.viewParams.isWeihuPeriod = true;
+            //         $scope.isWeihuPeriod = true;
+            // }
+
+            $scope.goToOscreen = function () {
+                if ($scope.jumpUrl) {
+                    var url = $state.href($scope.jumpUrl, jumpParams);
+                    window.open(url, '_blank');
+                }
+            };
+            if ($scope.viewId && $scope.viewId !== 'undefined') {
+                DefinedEventsService.queryUserFilterInfo({ viewId: $scope.viewId })
+                    .success(function (result) {
+                        if (result.data) {
+                            $scope.authority = result.data.authority;
+                        }
+                    })
+                    .error(function (err) {
+                        console.error(err);
+                    });
+            }
+
+            //关注事件台
+            $scope.subView = function () {
+                DefinedEventsService.subView({
+                    viewId: $scope.viewId
+                })
+                    .success(function (result) {
+                        if (result.success) {
+                            Unit.success(L.get('COMMON_FOLLOWING_SUCCEEDED'));
+                            //$scope.newEventsLoad();
+                            //$scope.getSubViews();
+                            $state.go('tarsier.monitoring.definedEvents', {
+                                viewId: $scope.viewId,
+                                type: 1,
+                                status: $state.params.status === '0' ? 1 : 0
+                            });
+                            //console.log($scope.viewId);
+                            $scope.menu.removeMenu($scope.viewId);
+                            $scope.menu.addMenu({
+                                label: $scope.viewName,
+                                id: $scope.viewId,
+                                code: '0602',
+                                isDisallowFavorite: true,
+                                goJumpUrl: 'tarsier.monitoring.events',
+                                moduUrl: '/index.html#/tarsier/monitoring/events',
+                                parentCode: '06',
+                                iconClassName: 'ts ts-star-empty',
+                                menuName: $scope.viewName,
+                                menuId: $scope.viewId
+                            }, $scope.allfollowId);
+                            $scope.menu.open($scope.allfollowId);
+                            $scope.menu.setSelect($scope.viewId);
+                            $scope.menu.orderMenuFirst($scope.viewId);
+
+                        }
+                    }).error(function (err) {
+                        console.error(err);
+                    });
+            };
+            /*取消关注事件台*/
+            $scope.removeSubView = function () {
+                DefinedEventsService.removeSubView({
+                    viewId: $scope.viewId
+                })
+                    .success(function (result) {
+                        if (result.success) {
+                            Unit.success(L.get('COMMON_CANCEL_OK'));
+                            //$scope.newEventsLoad();
+                            //$scope.getSubViews();
+                            $state.go('tarsier.monitoring.definedEvents', {
+                                viewId: $scope.viewId,
+                                type: 1,
+                                status: $state.params.status === '0' ? 1 : 0
+                            });
+                            $scope.menu.removeMenu($scope.viewId);
+                            $scope.menu.addMenu({
+                                label: $scope.viewName,
+                                id: $scope.viewId,
+                                code: '0602',
+                                isDisallowFavorite: true,
+                                goJumpUrl: 'tarsier.monitoring.definedEvents',
+                                moduUrl: '/index.html#/tarsier/monitoring/definedEvents',
+                                parentCode: '06',
+                                iconClassName: 'ts ts-maintenance-2',
+                                menuName: $scope.viewName,
+                                menuId: $scope.viewId
+                            }, $scope.definedfollowId);
+                            $scope.menu.open($scope.definedfollowId);
+                            $scope.menu.setSelect($scope.viewId);
+                        }
+                    }).error(function (err) {
+                        console.error(err)
+                    });
+            };
+            $scope.weibo_searchKey = function () {
+                $scope.currentPage = 1;
+                $scope.eventList = [];
+                $scope.dataPreviewLoad();
+            };
+            $scope.weibo_searchInputKey = function (e) {
+                if (event.keyCode === 13) {
+                    $scope.weibo_searchKey();
+                }
+            };
+
+            //数据预览
+            $scope.dataPreviewLoad = function () {
+                if (!$scope.viewId || $scope.viewId === 'undefined') {
+                    return;
+                }
+                $scope.eventList = [];
+                $scope.busy = true;
+                $scope.viewParams.weibo_search = $scope.weibo_search;
+                $scope.viewParams.pageNum = Number($scope.currentPage);
+                $scope.viewParams.pageSize = $scope.pageSize;
+                DefinedEventsService.queryEventPage($scope.viewParams)
+                    .success(function (result) {
+                        if (result.data) {
+                            $scope.eventList = result.data.data;
+                            $scope.totalRows = result.data.totalRows;
+                            $scope.eventEmpty = result.data.data.length === 0;
+                            $scope.eventList.forEach(function (val) {
+                                val.active = val.SERIAL === $scope.nowSelectActive;
+                            });
+                        }
+                        $scope.busy = false;
+                        $scope.setTimer();
+                    })
+                    .error(function (err) {
+                        console.error(err);
+                        $scope.setTimer();
+                    });
+            };
+            //定时刷新
+            $scope.setTimer = function () {
+                $scope.timer && $timeout.cancel($scope.timer);
+                $scope.timer = null;
+                if ($state.includes('tarsier.monitoring.definedEvents') && ($scope.definedShowType !== 3) && ($scope.definedShowType !== 4)) {
+                    $scope.timer = $timeout(function () {
+                        $scope.loadData();
+                    }, 30000);
+                };
+
+            };
+            //点击更多信息，弹出框出现
+            $scope.getMoreDetailFun1 = function (flag, item, css) {
+                var params = {
+                    serial: item.serial
+                };
+
+                if ($scope.isHistory) {
+                    params.history = true;
+                }
+                uDialog.dialog({
+                    class: 'detailMore',
+                    animation: true,
+                    backdrop: 'static',
+                    templateUrl: 'app/modal/manageAlert/detailMore.html',
+                    controller: 'detailMoreCtrl',
+                    resolve: {
+                        flag: function () {
+                            return flag
+                        },
+                        data: function () {
+                            return item
+                        },
+                        params: function () {
+                            return params
+                        },
+                        css: function () {
+                            return css
+                        },
+                    }
+                });
+            };
+            $scope.initLoad = function () {
+                $scope.eventList = [];
+                $scope.currentPage = 1;
+                $scope.isEnd = false;
+                $scope.loadData();
+                $scope.$emit('updateCount');
+                $timeout.cancel($scope.timer);
+
+            };
+
+
+            $scope.loadData = function () {
+                $scope.viewParams.isAck = null;
+                $scope.viewParams.isHistory = null;
+                $scope.viewParams.isWeihuPeriod = null;
+                Object.keys($scope.typeMap).forEach(function (v) {
+                    $scope[$scope.typeMap[v]] = false;
+                });
+
+                $scope[$scope.typeMap[$scope.definedShowType]] = true;
+                switch ($scope.definedShowType) {
+                    case 1:
+                        $scope.viewParams.isAck = false;
+                        jumpParams = { viewId: $state.params.viewId };
+                        $scope.jumpUrl = 'tarsier.monitoring.oScreen';
+                        break;
+                    case 2:
+                        $scope.viewParams.isAck = true;
+                        jumpParams = { 'acknowLedged': '已确认', viewId: $state.params.viewId };
+                        $scope.jumpUrl = "tarsier.monitoring.oScreen";
+                        break;
+                    case 3:
+                        $scope.viewParams.isHistory = true;
+                        jumpParams = { 'isHisOrW': 3, viewId: $state.params.viewId };
+                        $scope.jumpUrl = "tarsier.monitoring.historyOscreen";
+                        break;
+                    default:
+                        $scope.viewParams.isWeihuPeriod = true;
+                }
+                $scope.eventList = [];
+                $scope.isEnd = false;
+                $scope.dataPreviewLoad();
+
+            };
+            //离开页面时清除定时器
+            $scope.$on('$destroy', function () {
+                if ($scope.timer) {
+                    $timeout.cancel($scope.timer);
+                }
+            });
+            var scrollWrap = $('.list-wrap').eq(0);
+            $scope.$on('showEmpty', function (event, data) {
+                $scope.eventList.forEach(function (v) {
+                    v.active = false;
+                });
+                $scope.showEmpty = data;
+            });
+            //告警详情
+            $scope.getAlertInfo = function (item, $event, index) {
+                $scope.defiendItem = item;
+                $scope.definedIndex = index;
+                $event && $event.stopPropagation();
+                $scope.showSmallDetail = false;
+                $scope.showAlertDetail = true;
+                $scope.showFaultDetail = false;
+                $scope.showEmpty = false;
+                $scope.sceneId = null;
+                $scope.$broadcast('item', item);
+                $scope.$broadcast('showAlertDetail', $scope.showAlertDetail);
+                $scope.$broadcast('history', $scope.isHistory);
+                $scope.eventList.forEach(function (val, i) {
+                    val.active = false;
+                });
+                item.active = true;
+                $scope.nowSelectActive = item.SERIAL;
+
+            };
+            //阻止冒泡
+            $scope.stopPropagation = function ($event) {
+                $event.stopPropagation();
+            };
+
+            //拖动改变左右比例
+            var parentW;
+            $timeout(function () {
+                parentW = $('.events-list-wrap').width() / 0.4;
+            }, 1);
+            $('.drag-scale').bind('mousedown', function (e) {
+                var dragW = $('.drag-scale').width() + 1;
+                var leftW = $('.events-list-wrap').width();
+                var disX = e.pageX;
+                $(document).bind('mousemove', function (e) {
+                    var _disX = e.pageX;
+                    var _leftW = leftW + (_disX - disX);
+                    var marginLeft = leftW + (_disX - disX) + dragW;
+
+                    if (_leftW < 400) {
+                        _leftW = 400;
+                        marginLeft = 400 + dragW;
+                    }
+
+                    if (_leftW > (parentW - 350 - dragW)) {
+                        _leftW = parentW - 350 - dragW;
+                        marginLeft = _leftW + dragW;
+                    }
+
+                    $('.events-list-wrap').width(_leftW);
+                    $('.fault-detail-wrap').css('margin-left', marginLeft);
+                });
+
+                $(document).bind('mouseup', function () {
+                    $(document).unbind('mousemove');
+                    $(document).unbind('mouseup');
+                });
+
+                return false;
+            });
+            /*分页*/
+            $scope.paging = function (data) {
+                $scope.pageSize = data.pageSize;
+                $scope.currentPage = data.currentPage;
+                $scope.loadData();
+
+            };
+            $rootScope.DefindConfirmClose = function (viewId) {
+                $scope.showEmpty = true;
+                $scope.showFaultDetail = false;
+                $scope.showAlertDetail = false;
+                $scope.showdetail = false;
+                $scope.loadData();
+                //$scope.queryViewCount(Number(viewId));
+            };
+            $rootScope.DefindSendChangeFn = function () {
+                $scope.showEmpty = true;
+                $scope.showFaultDetail = false;
+                $scope.showAlertDetail = false;
+                $scope.showdetail = false;
+                $scope.loadData();
+            };
+            $scope.fnEdit = function () {
+                $state.go('tarsier.monitoring.newEvents', {
+                    viewId: $scope.viewId,
+                    viewName: $scope.viewName,
+                    status: $scope.definedShowStatus,
+                    noChangePage: 3,
+                });
+            };
+            /*noChangePage 1新建 2复制 3 编辑*/
+            $scope.fnCopy = function () {
+                $state.go('tarsier.monitoring.newEvents', {
+                    viewId: $scope.viewId,
+                    viewName: $scope.viewName + L.get('COMMON_BAK'),
+                    status: $scope.definedShowStatus,
+                    noChangePage: 2
+                });
+                window.rootNav && window.rootNav.setBreadcrumbs([{ label: $scope.viewName + L.get('COMMON_BAK') }]);
+
+            };
+            $scope.fnDelete = function () {
+                if (!$scope.authority) {
+                    Unit.error(L.get('COMMON_ERROR_NOT_PERMISSION'));
+                    return;
+                }
+                var dialog = uDialog.confirm({
+                    title: L.get('COMMON_DELETE'),
+                    content: L.get('EMV_MAKE_SURE_TO_DELETE_THIS_CUSTOM_EVENT_DESK') + '？',
+                    confirm: function () {
+                        DefinedEventsService.deleteView({
+                            viewId: $scope.viewId
+                        })
+                            .success(function (result) {
+                                if (result.success) {
+                                    $state.go('tarsier.monitoring.events', {
+                                        viewId: 'aaa'
+                                    });
+                                    window.rootNav && window.rootNav.setBreadcrumbs([{ label: '全部故障' }]);
+
+                                    //删除菜单并跳转到全部故障
+                                    $scope.menu.removeMenu($scope.viewId);
+                                    $scope.menu.open($scope.allfollowId);
+                                    $scope.menu.setSelect('999999999999999');
+                                    Unit.success(L.get('COMMON_SUCCESSFULLY_DELETED'));
+                                } else {
+                                    var errorMsg = result.message ? result.message : L.get('COMMON_BS_OBJ_FAILURE_DELETE');
+                                    Unit.error(errorMsg);
+                                }
+
+
+                            }).error(function (err) {
+                                console.error(err);
+                            });
+                    }
+                });
+
+            };
+
+
+        }
+    ]);
+
+    //最大告警数量
+    graph.app.filter('maxCount', function () {
+        return function (str, max) {
+            var num = window.parseInt(str);
+            return num <= max ? num : max + '+';
+        }
+    });
+
+
+    //自定义过滤
+    graph.app.filter('mySearchDefined', function () {
+        return function (item, searchvalue) {
+            if (!searchvalue) {
+                return item;
+            }
+            var result = [];
+            $.each(item, function () {
+                if (this.CINAME && this.CINAME.toUpperCase().indexOf(searchvalue.toUpperCase()) != -1) {
+                    result.push(this);
+                } else if (this.SOURCEALERTKEY && this.SOURCEALERTKEY.toUpperCase().indexOf(searchvalue.toUpperCase()) != -1) {
+                    result.push(this);
+                } else if (this.ciname && this.ciname.toUpperCase().indexOf(searchvalue.toUpperCase()) != -1) {
+                    result.push(this);
+                } else if (this.sourcealertkey && this.sourcealertkey.toUpperCase().indexOf(searchvalue.toUpperCase()) != -1) {
+                    result.push(this);
+                }
+            });
+            return result;
+
+        }
+
+    });
+
+})(nameSpace.reg('graph'), nameSpace.reg('monitor.current'));
+

@@ -1,0 +1,85 @@
+(function (graph) {
+
+    'use strict';
+    //告警详情页面
+    graph.app.directive('selectTime', function () {
+        return {
+            restrict: 'AE',
+            replace: true,
+
+            templateUrl: 'app/directive/timeSelect/timeSelect.html',
+            controller: ['$scope', '$timeout', '$state', 'Unit', 'uDialog', 'MonitoringService', '$uibModal', function ($scope, $timeout, $state, Unit, uDialog, MonitoringService, $uibModal) {
+                function timeNumber(small, large, arr) {
+                    for (var i = small; i < large; i++) {
+                        arr.push(i);
+                    }
+                    return arr;
+                };
+                $scope.L=L;
+                $scope.day = [];
+                $scope.hour = [];
+                $scope.minate = [];
+                $scope.seconds = [];
+                function dateFormFun(time) {
+                    if (time < 10) {
+                        time = "0" + time;
+                    }
+                    return time;
+                };
+                function calculateTime(day, hour, minate, seconds) {
+                    var time = day * 24 * 3600 + hour * 3600 + minate * 60 + seconds
+                    return time;
+                }
+                timeNumber(0, 24, $scope.hour);
+                timeNumber(0, 60, $scope.minate);
+                timeNumber(0, 60, $scope.seconds);
+                timeNumber(0, 100, $scope.day);
+                $scope.timeDay = 0;
+                $scope.timeHour = 0;
+                $scope.timeMinate = 0;
+                $scope.timeSeconds = 0;
+                $scope.$on('timeOutTime', function (event, data) {
+                    $scope.timeDay = parseInt((data - (data % (3600 * 24))) / (3600 * 24));
+                    data = data - $scope.timeDay * 3600 * 24;
+                    $scope.timeHour = parseInt((data - (data % 3600)) / 3600);
+                    data = data - $scope.timeHour * 3600;
+                    $scope.timeMinate = parseInt((data - (data % 60)) / 60);
+                    $scope.timeSeconds = data - $scope.timeMinate * 60;
+                })
+                $scope.getChangeFun = function () {
+                    $scope.$emit('duration', calculateTime($scope.timeDay, $scope.timeHour, $scope.timeMinate, $scope.timeSeconds))
+                }
+                $scope.selectHourFun = function (item) {
+                    $scope.timeHour = item;
+                    //$scope.timeHour=dateFormFun($scope.timeHour);
+                    calculateTime($scope.timeDay, $scope.timeHour, $scope.timeMinate, $scope.timeSeconds)
+                    $scope.$emit('duration', calculateTime($scope.timeDay, $scope.timeHour, $scope.timeMinate, $scope.timeSeconds))
+                }
+                $scope.selectMinateFun = function (item) {
+                    $scope.timeMinate = item;
+                    //$scope.timeMinate=dateFormFun($scope.timeMinate);
+                    calculateTime($scope.timeDay, $scope.timeHour, $scope.timeMinate, $scope.timeSeconds)
+                    $scope.$emit('duration', calculateTime($scope.timeDay, $scope.timeHour, $scope.timeMinate, $scope.timeSeconds))
+                }
+                $scope.selectDayFun = function (item) {
+                    $scope.timeDay = item;
+                    //$scope.timeMinate=dateFormFun($scope.timeMinate);
+                    calculateTime($scope.timeDay, $scope.timeHour, $scope.timeMinate, $scope.timeSeconds)
+                    $scope.$emit('duration', calculateTime($scope.timeDay, $scope.timeHour, $scope.timeMinate, $scope.timeSeconds))
+                }
+                $scope.selectSecondsFun = function (item) {
+                    $scope.timeSeconds = item;
+                    //$scope.timeSeconds=dateFormFun($scope.timeSeconds);
+                    calculateTime($scope.timeDay, $scope.timeHour, $scope.timeMinate, $scope.timeSeconds)
+                    $scope.$emit('duration', calculateTime($scope.timeDay, $scope.timeHour, $scope.timeMinate, $scope.timeSeconds))
+                }
+                $scope.timeList = function () {
+                    $('.select-time').show();
+                }
+
+
+            }]
+        };
+    });
+
+})(nameSpace.reg('graph'));

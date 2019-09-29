@@ -1,0 +1,232 @@
+(function (graph) {
+
+    'use strict';
+    //右侧浮动层
+    graph.app.directive('ruleLeftlist', function () {
+        return {
+            restrict: 'AE',
+            replace: true,
+            scope: {
+                typeName: '@typeName',
+                ruleType: '@ruleType',
+                ruleDetailFun: '=ruleDetailFun',
+                activeFlag: '@activeFlag',
+                stateParamsObj: '@stateParamsObj'
+            },
+            templateUrl: 'app/directive/ruleLeftlist/ruleLeftlist.html',
+            controller: ['$scope', '$timeout', '$state', 'DefinedEventsService', 'Unit', 'uDialog', 'MonitoringService', function ($scope, $timeout, $state, DefinedEventsService, Unit, uDialog, MonitoringService) {
+                $scope.loadingIMG = false;
+                $scope.compressRuleArray = [];
+                $scope.compressRuleAll = [];
+                $scope.$on('saveId', function (event, data) {
+                    $scope.id = data;
+                })
+                $scope.L = L;
+
+                $scope.stateParamsObj = angular.fromJson($scope.stateParamsObj);
+                if ($scope.stateParamsObj) {
+                    $scope.searchName = $scope.stateParamsObj.ruleName;
+                }
+
+                //console.log(angular.fromJson($scope.stateParamsObj))
+                //$scope$scope.stateParams
+                //查询规则列表数据
+                $scope.loadingData = function (pageSize, page, ruletype, name, id, watch) {
+
+                    $scope.ruleDetailobj = {};
+                    MonitoringService.queryRule({
+                        pageSize: pageSize,
+                        pageNum: page,
+                        name: name,
+                        ruleType: ruletype,
+                        id: id
+                    }).success(function (result) {
+                        $scope.compressRuleAll = result;
+                        $scope.totalPages = result.data.totalPages;
+                        if (page === 1) {
+                            $scope.compressRuleArray = result.data.data;
+                        } else {
+                            $scope.compressRuleArray = $scope.compressRuleArray.concat(result.data.data);
+                        }
+                        $.each($scope.compressRuleArray, function (index, item) {
+                            if (item.id === $scope.id) {
+                                item.bg = true;
+                                $scope.ruleDetailobj = item;
+                                if (watch) {
+                                    $scope.ruleDetailFun($scope.ruleDetailobj)
+                                }
+                                //console.log($scope.ruleDetailobj)
+
+                            }
+                        })
+
+                    }).error(function () {
+
+                    });
+                };
+
+                $scope.searchListIDFun = function () {
+                    //console.log($scope.stateParamsObj.ruleID)
+                    if ($scope.stateParamsObj) {
+                        if ($scope.stateParamsObj.ruleID) {
+                            $scope.compressRuleAll = [];
+                            $scope.compressRuleArray = [];
+                            $scope.page = 1;
+                            $scope.loadingData(14, 1, $scope.ruleType, $scope.stateParamsObj.ruleName, $scope.stateParamsObj.ruleID);
+                            $.each($scope.compressRuleArray, function (index, item) {
+                                item.bg = true;
+                            })
+                            //ruleDetail.bg=true;
+                            //console.log($scope.compressRuleAll)
+                            var ruleDetail = {};
+                            ruleDetail.id = $scope.stateParamsObj.ruleID;
+                            ruleDetail.name = $scope.stateParamsObj.ruleName;
+                            $scope.id = $scope.stateParamsObj.ruleID;
+                            $scope.ruleDetailFun(ruleDetail);
+                        } else if ($scope.stateParamsObj.ruleType) {
+                            $scope.ruleDetailFun('');
+                        } else {
+                            $scope.load();
+                        }
+
+
+                    }
+                    //var params = $scope.stateParams
+                    //console.log(params.ruleID)
+
+                }
+
+                //debugger;
+                $scope.compressRuleArray = [];
+                //debugger;
+                $scope.compressRuleAll = [];
+                $scope.page = 1;
+                //debugger;
+                //$scope.loadingData(14,$scope.page,$scope.ruleType)
+                //激活反激活事件
+                $scope.activeRuleFun = function (ruleDetail) {
+                    if (ruleDetail.active === 1) {
+                        $scope.note = L.get('COMMON_CONFIRM')+' '+L.get('COMMON_CANCEL')+' '+L.get('COMMON_ACTIVATION')+'?';
+                    } else {
+                        $scope.note =  L.get('COMMON_CONFIRM')+' '+L.get('COMMON_ACTIVATION')+'?';
+                    }
+                    var active;
+                    if (ruleDetail.active === 0) {
+                        active = 1
+                    } else {
+                        active = 0
+                    }
+                    var dlg = uDialog.confirm({
+                        title: L.get('COMMON_CONFIRM'),
+                        content: $scope.note,
+                        size: 'mine',
+                        confirm: function (ret) {
+                            if (ret.ok) {
+                                MonitoringService.activeRule({
+                                    'id': [ruleDetail.id],
+                                    'active': active
+                                }).success(function (result) {
+
+                                    if (ruleDetail.active === 0) {
+                                        ruleDetail.active = 1
+                                    } else {
+                                        ruleDetail.active = 0
+                                    }
+                                    $scope.loadingIMG = false;
+                                }).error(function () {
+
+                                });
+
+                            }
+                        }
+                    });
+
+
+                }
+                $scope.bgFun = function (ruleDetail) {
+                    $.each($scope.compressRuleArray, function (index, item) {
+                        item.bg = false;
+                    })
+                    ruleDetail.bg = true;
+
+                    $scope.id = ruleDetail.id;
+                    $scope.ruleDetailFun(ruleDetail);
+                    //console.log(ruleDetail)
+                    //$scope.$apply();
+
+
+                }
+                //搜索查询
+                $scope.searchList = function () {
+                    $scope.compressRuleAll = [];
+                    $scope.compressRuleArray = [];
+                    $scope.page = 1;
+                    $scope.loadingData(14, $scope.page, $scope.ruleType, $scope.searchName);
+
+                }
+                //分页刷新数据
+                $scope.load = function () {
+                    angular.element('.result-list').scroll(function () {
+                        var scrollTop = document.getElementById('result-list').scrollTop;
+                        var scrollHeight = document.getElementById('result-list').scrollHeight;
+                        var offsetHeight = document.getElementById('result-list').offsetHeight;
+                        $scope.loadingIMG = false;
+                        $scope.$apply();
+                        if (scrollTop > 1000) {
+                            $scope.topImg = true;
+                        } else {
+                            $scope.topImg = false;
+                        }
+                        if ($scope.compressRuleAll.data) {
+                            if (scrollHeight - (offsetHeight + scrollTop) <= 0 && ($scope.compressRuleAll.data.totalRows > $scope.compressRuleArray.length)) {
+
+                                $scope.page++;
+                                if ($scope.page > 1) {
+                                    if ($scope.page <= $scope.totalPages) {
+                                        $scope.loadingIMG = true;
+                                        $scope.loadingData(14, $scope.page, $scope.ruleType, $scope.searchName);
+                                    }
+
+                                }
+
+                            }
+                        }
+
+                    });
+
+                }
+                $scope.searchListIDFun();
+                $scope.$parent.$watch('freshFlag', function (prop, callback) {
+                    console.log(prop)
+                    $scope.page = 1;
+                    $scope.compressRuleArray = [];
+                    $scope.compressRuleAll = [];
+                    $scope.loadingData(14, $scope.page, $scope.ruleType, $scope.searchName, $scope.id);
+                });
+                $scope.$parent.$watch('copyFlag', function (prop, callback) {
+                    if (typeof (prop) !== 'undefined') {
+                        $scope.page = 1;
+                        $scope.compressRuleArray = [];
+                        $scope.compressRuleAll = [];
+                        $scope.loadingData(14, $scope.page, $scope.ruleType, $scope.searchName, $scope.id, true);
+                    }
+
+
+                });
+                //新增弹框
+                $scope.addRuleFun = function () {
+                    $scope.searchName = '';
+                    //$scope.loadingData(14, $scope.page, $scope.ruleType, $scope.searchName)
+                    $.each($scope.compressRuleArray, function (index, item) {
+                        item.bg = false;
+                    });
+                    $scope.id = '';
+                    $scope.ruleDetailFun('');
+
+
+                }
+            }]
+        };
+    });
+
+})(nameSpace.reg('graph'));

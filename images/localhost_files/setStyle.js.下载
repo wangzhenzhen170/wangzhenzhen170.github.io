@@ -1,0 +1,18 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.directive('mySetStyle', function() {
+		return function(scope, element, attrs) {
+			console.log(scope.$parent.rectSideLength);
+			console.log(element);
+			console.log(attrs);
+			element[0].style.backgroundColor = scope.item.color;
+
+			element[0].style.width = scope.$parent.rectSideLength + 'px';
+			element[0].style.height = scope.$parent.rectSideLength + 'px';
+		};
+	});
+
+})(nameSpace.reg('graph'));

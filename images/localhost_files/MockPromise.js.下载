@@ -1,0 +1,29 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('MockPromise', function(){
+
+		/**
+           * 返回Promise格式的假数据
+         * @param {Object} options  - 参数对象
+         * @param {Object}  options.data - 要返回的数据
+         * @param {Boolean}  options.fail - 是否需要返回失败状态，默认为成功状态
+         */
+
+		return function(options){
+
+			var promise = new Promise(function(resolve, reject) {
+				if(!options.fail){
+					resolve(options.data);
+				}else{
+					reject('失败');
+				}
+			});
+
+			return promise;
+
+		};
+	});
+
+})(nameSpace.reg('graph'));

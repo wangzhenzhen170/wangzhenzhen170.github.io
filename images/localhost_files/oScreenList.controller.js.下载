@@ -1,0 +1,2438 @@
+(function (graph, self) {
+
+    'use strict';
+
+    graph.app.controller('oScreenListCtrl', ['$scope', '$cookies', '$rootScope', '$state', 'OScreenService', 'MonitoringService', 'Const', 'oScreenConst', 'uDialog', 'Unit', '$timeout', '$uibModal', '$interval', 'orderByFilter', function ($scope, $cookies, $rootScope, $state, OScreenService, MonitoringService, Const, oScreenConst, uDialog, Unit, $timeout, $uibModal, $interval, orderByFilter) {
+        //每页默认的页码
+        $scope.oscreenPageSize = Math.floor((document.documentElement.clientHeight - 160) / 40);
+        $scope.pageSizeOption = [$scope.oscreenPageSize, 50, 100, 150];
+        //false不换行，true换行
+        $scope.warpFlag = false;
+        $scope.totalPages; //数据总分页数；
+        $scope.search_param_in = {};
+        $scope.search_param_in.SEVERITY = [];
+        //table列宽调整
+        $scope.tableMode = 'OverflowResizer';
+        $scope.viewId = $state.params.viewId ? Number($state.params.viewId) : 1;
+        //已确认页面
+        $scope.acknowLedged = $state.params.acknowLedged;
+        $scope.totalWarningLight;
+        $scope.allTableDiff;
+        //序列号
+        $scope.sortTitleChageNo = true;
+        //排序时求数量的接口参数传不传的标志
+        $scope.isOsreen = 1;
+        /*data-params*/
+        $scope.search_param = {};
+        $scope.params = {
+            pageNum: 1,
+            latestTime: 0,
+            viewId: $scope.viewId,
+            pageSize: $scope.oscreenPageSize,
+
+        }
+        //表头每列宽度
+        $scope.fileCodeLen = {
+            'SERIAL': 140, //序列号
+            'ACKNOWLEDGED': 100, //状态
+            'SEVERITY': 100, //级别
+            'SUMMARY': 480, //告警描述
+            'SOURCECINAME': 140, //事件对象
+            'SOURCEALERTKEY': 140, //事件指标
+            'SOURCENAME': 120, //告警来源
+            'TALLY': 100, //次数
+            'CICATEGORYNAME': 140, //所属分类
+            'KPINAME': 140, //关联指标
+            'CIAPPLICATION': 140, //归属应用
+            '部门负责人': 140, //部门负责人
+            'CIMGMTTEAM': 140, //归属部门
+            'CIOWNER': 140, //负责人
+            'IFNOTIFY': 120, //是否通知
+            'ALARMTICKET': 120, //是否派单
+            'GRADE': 120, //是否升级
+            '确认信息': 150, //确认信息
+            '确认时间': 150, //确认时间
+            'FIRSTOCCURRENCE': 160, //首次发生时间
+            'LASTOCCURRENCE': 160, //最后发生时间
+            'INSTANTTIME': 170, //持续时间
+            'operate': 100
+
+        }
+        //总条数
+        $scope.oscreenTotalRows;
+        $scope.pageNum = 1;
+        $scope.data;
+        $scope.dataii = []; //二级数据
+        $scope.dataLength; //已加载数据总数
+        $scope.checkIds = []; //选中的id集
+        $scope.isSearch = false;
+        $scope.audioPushed = false; //判断告警是否暂停
+        $scope.alarmLamp; //告警显示灯
+        $scope.checkItemVal = {}; //获得选中item值
+        $scope.queryDict4 = null; //搜索-状态变量
+        $scope.severityListShow = false;
+        $scope.sourceIdListShow = false;
+        $scope.dataloadding = true; //数据加载
+        $scope.selectDefTimeFlag = false;
+        var oDate = new Date();
+        var intStartTime = oDate.getFullYear() + '/' + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + '/' + oDate.getDate();
+        $scope.startD = intStartTime; //获取系统的年；
+        var intEndTime = oDate.getFullYear() + '/' + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + '/' + oDate.getDate()
+        $scope.endD = intEndTime;   //获取系统的年；
+        $scope.startTimeHour = '00:00:00';
+        $scope.endTimeHour = '00:00:00';
+        $scope.$on('startTimeHour', function (event, msg) {
+            $scope.startTimeHour = msg;
+        });
+        $scope.$on('endTimeHour', function (event, msg) {
+            $scope.endTimeHour = msg;
+        });
+        $scope.dSelectDefTime = function (e) {
+            e.stopPropagation();
+            $scope.selectTimeFl = true;
+            $scope.selectDefTimeFlag = true;
+        }
+        $scope.dGoToTimeSearch = function () {
+            if (!$('#startTime').val() || !$scope.startTimeHour) {
+                Unit.error(L.get('EMV_PLEASE_SELECT_THE_START_TIME'));
+                return false;
+            }
+            if (!$('#endTime').val() || !$scope.endTimeHour) {
+                Unit.error(L.get('EMV_PLEASE_SELECT_THE_END_TIME'));
+                return false;
+            }
+            var startTime = ($('#startTime').val() + ' ' + $scope.startTimeHour);
+            var endTime = $('#endTime').val() + ' ' + $scope.endTimeHour;
+            $scope.startTime = new Date(startTime).getTime();
+            $scope.endTime = new Date(endTime).getTime();
+            if ($scope.startTime > $scope.endTime) {
+                Unit.error(L.get('COMMON_ENDTIMEMUSTBEGREATERTHANTHESTARTTIME'));
+                return false;
+            }
+            $scope.startD = $('#startTime').val();
+            $scope.endD = $('#endTime').val();
+            $scope.startTimeHour = $scope.startTimeHour;
+            $scope.endTimeHour = $scope.endTimeHour;
+            $scope.params.latestTime = null;
+            $scope.params.startTime = $scope.startTime;
+            $scope.params.endTime = $scope.endTime;
+            $scope.params.pageNum = 1;
+            $scope.currentPage = 1;
+            var startGetD = $scope.startD.split('/');
+            var endGetD = $scope.endD.split('/')
+            $scope.selectedTime = startGetD[1] + '.' + startGetD[2] + '-' + endGetD[1] + '.' + endGetD[2];
+            $scope.showTitleDefalt = $scope.startD + ' ' + $scope.startTimeHour + ' - ' + $scope.endD + ' ' + $scope.endTimeHour;
+            $scope.titleAndDataLoad($scope.params);
+            $scope.selectTimeFl = false;
+            $scope.selectDefTimeFlag = false;
+        }
+        $scope.dGoBack = function () {
+            $scope.selectTimeFl = false;
+            $scope.selectDefTimeFlag = false;
+        }
+
+        $scope.isWrapLine = function () {
+            $scope.warpFlag = !$scope.warpFlag
+        };
+
+        $scope.clearLocalStorage = function () {
+            localStorage.removeItem('storageCheckIds');
+            localStorage.removeItem('storageCheckItems');
+        }
+        $scope.clearLocalStorage();
+        $scope.setSelectStorage = function () {
+            try {
+                var storageCheckIdStr = JSON.stringify($scope.checkIds);
+                localStorage.setItem('storageCheckIds', storageCheckIdStr);
+                var storageCheckItemStr = JSON.stringify($scope.checkItemVal);
+                localStorage.setItem('storageCheckItems', storageCheckItemStr);
+            } catch (e) {
+                console.log(e.message);
+            }
+
+        };
+        //每天凌晨00:30刷新页面
+        $scope.reloadPage = function () {
+            $timeout.cancel($scope.reloadTimer);
+            $scope.reloadTimer = null;
+            $scope.reloadTimer = $timeout(function () {
+                var d = new Date();
+                if (d.getHours() === 0 && d.getMinutes() === 30) {
+                    location.reload();
+                }
+                $scope.reloadPage();
+            }, 60000);
+
+        };
+        $scope.reloadPage();
+        //点击告警选中
+        $scope.selectBody = function (item) {
+            $scope.dataii.forEach(function (val, index) {
+                val.seleteOsBody = false;
+            });
+            if (item) {
+                $scope.selectBodySerial = item.SERIAL;
+                item.seleteOsBody = true;
+            }
+        }
+        $scope.fnBody = function () {
+            $('.rightClickBox').css('display', 'none');
+            $scope.markSign = false;
+            $scope.showAddAppFlag = false;
+            $scope.changeSkinTipShow = false;
+            $scope.allTableDiffFlag = false;
+            $scope.selectDiagramType = []; //视图类型input框
+            $scope.queryDict4 = []; //关闭状态input框
+            $scope.severityListShow = false;
+            $scope.sourceIdListShow = false;
+            $scope.ifnotfyList = [];
+            $scope.alarmticketList = [];
+            $scope.gradeList = [];
+            $scope.markSign = false;
+            $scope.selectBody();
+        };
+
+        //点击更多信息，弹出框出现
+        $scope.pageFlag = 2;
+        $scope.$on('close', function (event, data) {
+            if (data) {
+                $scope.dataii.forEach(function (item1, index) {
+                    item1.newDetailShow = false;
+                });
+                $scope.selectBody();
+            }
+        })
+
+        $scope.getMoreDetailFun = function (flag, item, css, e) {
+            $scope.allTableDiffFlag = false;
+            $scope.showAddAppFlag = false;
+            $('.rightClickBox').css('display', 'none');
+            $scope.selectBody(item);
+            $scope.markSign = false;
+            if (item.newDetailShow) {
+                $scope.$emit('newDetailShow', false)
+                $scope.dataii.forEach(function (item1, index) {
+                    item1.newDetailShow = false;
+                });
+            } else {
+                $scope.$emit('newDetailShow', true);
+                $scope.dataii.forEach(function (item1, index) {
+                    item1.newDetailShow = item.SERIAL === item1.SERIAL
+                })
+
+            }
+
+            $scope.$emit('item', item);
+            $scope.$emit('pageFlag', flag);
+            $scope.$emit('css', css);
+        }
+        /***************************数据刷新开始***********************/
+        $scope.countdown = 10000;//默认10秒
+        var audio = document.createElement('audio');
+        document.body.appendChild(audio)
+        //var audio = new Audio();
+        $scope.curPlayLeavel = null;//当前播放声音等级
+        /*获取声音配置*/
+        $scope.voiceSwitch = function () {
+            OScreenService.voiceSwitch()
+                .success(function (result) {
+                    if (result.success) {
+                        if (result.data) {
+                            //$scope.allNoAckEvent true 全部告警中有未确认的告警即发生声音 false 则timeArea时间范围内有新告警即发生声音
+                            $scope.allNoAckEvent = result.data.allNoAckEvent;
+                            $scope.countdown = result.data.timeArea;
+                            if ($scope.allNoAckEvent) {
+                                audio.loop = true;//循环播放
+                            }
+                        }
+                    } else {
+                        Unit.error(L.get('EMV_INTERFACE_CONNECTION_FAILED'));
+                    }
+                }).error(function (err) {
+                    Unit.error(L.get('EMV_INTERFACE_CONNECTION_FAILED'));
+                })
+        }
+        $scope.voiceSwitch();
+        /*30s查询是否有新告警*/
+        $scope.openVoice = true;
+        $scope.showVoiceMain = L.get('EMV_TURN_OFF_THE_SOUND');
+        try {
+            $scope.getColorkey = JSON.parse(localStorage.getItem('colorkey'));
+        } catch (e) {
+            console.log(e.message);
+        }
+        if ($scope.getColorkey && $scope.getColorkey.data) {
+            $scope.colorObj = $scope.getColorkey.data;
+        }
+        $scope.queryLatest30sLargestLevel = function () {
+            var parm = {
+                viewId: $scope.viewId
+            }
+            //severity=100的 是已恢复告警 前台不用考虑severity返回什么路径，播放什么
+            OScreenService.queryLatest30sLargestLevel(parm)
+                .success(function (result) {
+                    if (result.data !== null && typeof result.data === 'object' && $scope.openVoice) {//声音开关开
+                        if (($scope.allNoAckEvent && $scope.curPlayLeavel !== result.data.severity) || !$scope.allNoAckEvent) {
+                            if (result.data.voicePlayUrl) {
+                                audio.src = result.data.voicePlayUrl;
+                                audio.play();
+                            } else {
+                                audio.src = '';
+                                audio.pause();
+                            }
+                            if ($scope.allNoAckEvent) {
+                                $scope.curPlayLeavel = result.data.severity;
+                            }
+                        }
+                    } else {
+                        audio.src = '';
+                        audio.pause();
+                        $scope.curPlayLeavel = null;
+                    }
+
+                }).error(function (err) {
+                    console.log(err)
+                })
+        }
+
+        /*关闭或打开声音*/
+        $scope.fnStopVoice = function () {
+            if ($scope.openVoice) {
+                $scope.openVoice = false;
+                $scope.showVoiceMain = L.get('EMV_TURN_ON_THE_SOUND');
+                audio.src = '';
+                audio.pause();
+                $scope.curPlayLeavel = null;
+            } else {
+                $scope.openVoice = true;
+                $scope.showVoiceMain = L.get('EMV_TURN_OFF_THE_SOUND');
+                $scope.curPlayLeavel = null;
+                $scope.queryLatest30sLargestLevel();
+            }
+
+        }
+        $scope.settime = function () {
+            $scope.params.search_param = null;
+            $scope.params.search_param = $scope.search_param_in;
+            $scope.titleAndDataLoad($scope.params, false, false);
+            $scope.queryLatest30sLargestLevel();
+
+        };
+        //停止自动刷新
+        $scope.clearTimer = function () {
+            if ($scope.setTimer) {
+                $timeout.cancel($scope.setTimer);
+                $scope.setTimer = null;
+            }
+        };
+        //切换页面时停止自动刷新
+        $scope.$on('$routeChangeStart', function (angularEvent, current, previous) {
+            $scope.clearTimer();
+        });
+
+        /***************************数据刷新结束***********************/
+        /*点击设置从后台获取所有表头*/
+        $scope.allTableDiffFlag = false;
+        $scope.allTableColumnDiff = function () {
+            OScreenService.queryTableColumnDiff({
+                viewId: $scope.viewId
+            })
+                .success(function (result) {
+                    $scope.allTableDiff = result.data ? result.data : [];
+                    /*拖动排序*/
+                    $scope.sortableOptions = {
+                        update: function (e, ui) {
+                        },
+                        stop: function (e, ui) {
+                        }
+                    };
+                    var dataWatcher = $scope.$watchCollection('allTableDiff', function () {
+                        //销毁监听器
+                        dataWatcher();
+                    });
+
+                }).error(function (err) {
+                    console.log(err)
+                })
+        }
+        $scope.allTableColumnDiff();
+        /*操作*/
+        $scope.showDetailTitele = function (e) {
+            e && e.stopPropagation();
+            $scope.allTableDiffFlag = true;
+        }
+        $scope.TabletTitleSelect = function (e, item) {
+            item.selected = !item.selected;
+        }
+        /*自定义表头排序*/
+        $scope.showSortBox = function (item) {
+            item.mouseFlag = true
+        }
+        $scope.hideSortBox = function (item) {
+            item.mouseFlag = false;
+            item.clickFlag = false;
+        }
+        $scope.toShowSortBox = function (item, e) {
+            e && e.stopPropagation();
+            item.clickFlag = true;
+
+        }
+        $scope.toSaveName = function (item, e, index) {
+            e.stopPropagation();
+            if (!item.colTitle) {
+                Unit.error(L.get('COMMON_NAME_IS_REQUIRED'));
+                return false;
+            }
+            var errorFlag = true;
+            $scope.allTableDiff.forEach(function (val, d) {
+                if (item.colTitle === val.colTitle && index !== d) {
+                    Unit.error(L.get('COMMON_NAME_CANNOT_BE_RENAMED'));
+                    errorFlag = false;
+                }
+            })
+
+            if (!errorFlag) {
+                return false;
+            }
+            item.editFlag = false;
+            $scope.saveTitle(true);
+
+        }
+        $scope.toEditName = function (item, e) {
+            e && e.stopPropagation();
+            item.editFlag = true;
+
+        }
+        $scope.sortTitleLi = function (type, item, index, e) {
+            e && e.stopPropagation();
+            switch (type) {
+                case 1://置顶
+                    if (index === 0) {
+                        return false;
+                    }
+                    $scope.allTableDiff.splice(index, 1);
+                    $scope.allTableDiff.unshift(item);
+                    break;
+                case 2://置底
+                    if (index === $scope.allTableDiff.length - 1) {
+                        return false;
+                    }
+                    $scope.allTableDiff.splice(index, 1);
+                    $scope.allTableDiff.push(item);
+                    break;
+                case 3://上移
+                    if (index === 0) {
+                        return false;
+                    }
+                    var preItem = $scope.allTableDiff[index - 1]
+                    $scope.allTableDiff[index] = preItem;
+                    $scope.allTableDiff[index - 1] = item;
+                    break;
+                case 4://下移
+                    if (index === $scope.allTableDiff.length - 1) {
+                        return false;
+                    }
+                    var nextItem = $scope.allTableDiff[index + 1]
+                    $scope.allTableDiff[index] = nextItem;
+                    $scope.allTableDiff[index + 1] = item;
+                    break;
+            }
+            item.clickFlag = false;
+        }
+
+        //应用
+        $scope.applayTitle = function () {
+            $scope.newOsTitle = [];
+            //应用后的新表头
+            $scope.newOsTitleSearch = [];
+            //搜索框
+            $scope.osTitleSearch = [];
+            $scope.allTableDiff.forEach(function (data, index) {
+                data.editFlag = false;
+                if (data.selected) {
+                    $scope.newOsTitle.push(data);
+                }
+            })
+            $scope.osTitle = $scope.newOsTitle;
+            $scope.allTableDiffFlag = false;
+        }
+        //自定义title 保存
+        $scope.saveTitle = function (status) {
+            if (!$scope.authorityLimit) {
+                Unit.error(L.get('EMV_YOU_DO_NOT_HAVE_PERMISSION_FOR_THIS_OPERATION'));
+                return false;
+            }
+
+            var saveFlag = true;
+            $scope.allTableDiff.forEach(function (val, index) {
+                if (val.editFlag) {
+                    Unit.error(L.get('EMV_PLEASE_SAVE_THE_MODIFIED_NAME_FIRST'));
+                    saveFlag = false;
+                }
+            })
+            if (!saveFlag) {
+                return false;
+            }
+            OScreenService.modifyTitles({
+                viewId: $scope.viewId,
+                saveColums: $scope.allTableDiff
+            })
+                .success(function (result) {
+                    if (result.success) {
+                        if (!status) {
+                            $scope.allTableDiffFlag = false;
+                        }
+                        $scope.titleLoad();
+
+                    }
+                }).error(function (err) {
+                    console.log(err)
+                })
+
+        }
+        $scope.firstSortFlag = true;
+        //title数据加载
+        $scope.titleLoad = function () {
+            OScreenService.queryTableColumn({
+                viewId: $scope.viewId
+            })
+                .success(function (result) {
+                    $scope.osTitle = result.data ? result.data : [];
+                    $scope.osTitleSearch = result.data ? result.data : [];
+                }).error(function (err) {
+                    console.log(err)
+                })
+        }
+        $scope.titleLoad();
+        //点击表头排序
+        $scope.showSortFlag = function (e, item, allData) {
+            var ev = e || window.event;
+            var target = ev.target || ev.srcElement;
+            ev.stopPropagation();
+            if ($(target).hasClass('handle')) {
+                return false
+            }
+            if (item.colName === 'INSTANTTIME') {//持续时间
+                return false
+            }
+            if (!item.sortIconFlag) {
+                allData.forEach(function (data, index) {
+                    data.sortIconFlag = false;
+                })
+                item.sortIconFlag = true;
+                $scope.firstSortFlag = true;
+                //降序
+                $scope.params.sortOrder = 'DESC';
+            } else {
+                $scope.firstSortFlag = !$scope.firstSortFlag;
+                $scope.params.sortOrder = $scope.firstSortFlag ? 'DESC' : 'ASC';
+            }
+            $scope.params.sortName = item.colName;
+            $scope.params.search_param = $scope.search_param_in;
+            $scope.params.pageNum = 1; //初始化分页数
+            $scope.currentPage = 1;
+            $scope.titleAndDataLoad($scope.params, false, $scope.sortTitleChageNo);
+        }
+        //字段排序
+        $scope.titleSortFn = function (e, item) {
+            e && e.stopPropagation();
+            if (item.colName === 'INSTANTTIME') {
+                return false
+            }
+            var checkType = e && e.target.dataset.type;
+            $scope.firstSortFlag = checkType === 'ASC'
+
+            $scope.params.search_param = $scope.search_param_in;
+            $scope.params.sortOrder = checkType;
+            $scope.params.sortName = item.colName;
+            $scope.params.pageNum = 1; //初始化分页数
+            $scope.currentPage = 1;
+            $scope.titleAndDataLoad($scope.params, false, $scope.sortTitleChageNo);
+        }
+        $scope.dataLoad = function () {
+            $scope.params.pageNum = 1; //初始化分页数
+            $scope.currentPage = 1;
+            $scope.params.search_param = {};
+            //$scope.params.search_param = {};
+            $scope.titleAndDataLoad($scope.params)
+        }
+        $rootScope.oscreenChange = function () {
+            $scope.titleAndDataLoad($scope.params);
+            if ($scope.allNoAckEvent) {
+                audio.pause();
+                $scope.curPlayLeavel = null;
+                $scope.queryLatest30sLargestLevel();
+            }
+        }
+        //获取工单过程
+        $scope.getOrderProcess = function (item) {
+            item.orderStatus = ''
+            OScreenService.getEventTicketStatus({ serial: item.SERIAL })
+                .success(function (result) {
+                    if (result.success && result.data) {
+                        var obj = JSON.parse(result.data);
+                        item.orderStatus = obj.status;
+                        item.ticketUrl = obj.ticketUrl;
+                    }
+                }).error(function (err) {
+                    console.log(err)
+                });
+        }
+        $scope.goJumpOrder = function (item) {
+            if (item.ticketUrl) {
+                window.open(item.ticketUrl);
+            }
+
+        }
+        //判断是否是url
+        $scope.isURL = function (str_url) {// 验证url
+            if (str_url.substr(0, 5).toLowerCase() === 'http:' || str_url.substr(0, 6).toLowerCase() === 'https:') {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        $scope.setTimer;
+        //告警灯数据 ++ 总数据
+        $scope.titleAndDataLoad = function (params, item, isLamp) {
+            //总数据
+            OScreenService.queryEventPage(params)
+                .success(function (result) {
+                    if (result.success) {
+                        //释放内存
+                        $scope.checkItemVal = null;
+                        $scope.dataii = null;
+                        $scope.checkIds = null;
+                        $scope.dataloadding = null;
+                        $scope.totalPages = null;
+                        $scope.oscreenTotalRows = null;
+                        $scope.dataLength = null;
+
+                        $scope.checkItemVal = {}; //通知获得选中item值
+                        $scope.checkIds = {};
+
+                        //关闭、确认
+                        $scope.dataloadding = false; //数据加载
+                        $scope.dataii = result.data.data;
+                        $scope.dataii.forEach(function (val, index) {
+                            if (val.SOURCEURL && $scope.isURL(val.SOURCEURL)) {
+                                val.urlShow = true;
+
+                            }
+                            val.seleteOsBody = $scope.selectBodySerial === val.SERIAL
+                        });
+
+                        $scope.totalPages = result.data.totalPages;
+                        $scope.oscreenTotalRows = result.data.totalRows;
+                        $scope.dataLength = $scope.dataii.length;
+                        $scope.calcLastTime(); //计算持续时间
+                        $scope.showIsSelectArlm();//刷新前已被选中得告警回显
+                        $scope.clearTimer();//清除定时
+                        $scope.setTimer = $timeout(function () {
+                            $scope.settime();
+                        }, $scope.countdown);
+                    }
+                }).error(function (err) {
+                    console.log(err);
+                    $scope.clearTimer();//清除定时
+                    $scope.setTimer = $timeout(function () {
+                        $scope.settime();
+                    }, $scope.countdown);
+                });
+
+            //告警灯数据
+            if (isLamp) {
+                $timeout(function () {
+                    params.search_param = {};
+                    $scope.totalWarningLights(params, item);
+                }, 10);
+            } else {
+                $scope.totalWarningLights(params, item);
+            }
+
+        }
+        $scope.clearStorage = function (cancelIds) {
+            try {
+                $scope.storageCheckIds = JSON.parse(localStorage.getItem('storageCheckIds'));
+                if (Array.isArray($scope.storageCheckIds) && $scope.storageCheckIds.length > 0) {
+                    $scope.checkIds = $scope.storageCheckIds;
+                    $scope.checkItemVal = $scope.storageCheckItems;
+                    if (Array.isArray(cancelIds) && cancelIds.length) {
+                        cancelIds.forEach(function (item) {
+                            var index = $scope.checkIds.indexOf(item);
+                            if (index >= 0) {
+                                $scope.checkIds.splice(index, 1);
+                            }
+                        })
+                        var storageCheckIdStr = JSON.stringify($scope.checkIds);
+                        localStorage.setItem('storageCheckIds', storageCheckIdStr);
+                    }
+
+                }
+            } catch (e) {
+                console.log(e.message);
+            }
+        }
+        //存储的已经选中的告警显示
+        $scope.showIsSelectArlm = function () {
+            $scope.storageCheckIds = null;
+            $scope.storageCheckItems = null;
+            try {
+                $scope.storageCheckIds = JSON.parse(localStorage.getItem('storageCheckIds'));
+                $scope.storageCheckItems = JSON.parse(localStorage.getItem('storageCheckItems'));
+                if (Array.isArray($scope.storageCheckIds) && $scope.storageCheckIds.length > 0) {
+                    $scope.checkIds = $scope.storageCheckIds;
+                    $scope.checkItemVal = $scope.storageCheckItems;
+                    $scope.dataii.forEach(function (d, index) {
+                        d.check = $scope.checkIds.indexOf(d.SERIAL) >= 0;
+
+                    });
+                }
+            } catch (e) {
+                console.log(e.message);
+            }
+
+
+        }
+        $scope.oscreenPaging = function (data) {
+            //console.log(data)
+            $scope.params.search_param = $scope.search_param_in;
+            $scope.params.pageNum = data.currentPage;
+            $scope.oscreenPageSize = data.pageSize;
+            $scope.params.pageSize = data.pageSize;
+            //总数据
+            OScreenService.queryEventPage($scope.params)
+                .success(function (result) {
+                    $scope.checkItemVal = {}; //获得选中item值
+                    $scope.dataloadding = false; //数据加载
+                    if (result.data) {
+                        $scope.dataii = result.data.data;
+                        $scope.totalPages = result.data.totalPages;
+                        $scope.dataLength = $scope.dataii.length;
+                        $scope.oscreenTotalRows = result.data.totalRows;
+                        $scope.clearLocalStorage()
+                    }
+
+                    $scope.calcLastTime(); //计算持续时间
+                }).error(function (err) {
+                    console.log(err)
+                });
+
+        }
+        /*告警灯总数*/
+        $scope.totalWarningLights = function (params, item) {
+            OScreenService.querySeverityGroup(params)
+                .success(function (result) {
+                    $scope.alarmLamp = null;
+                    $scope.totalWarningLight = null;
+                    $scope.alarmLamp = result.data ? result.data : [];
+                    $scope.totalWarningLight = $scope.alarmLamp.length ? $scope.alarmLamp[0] : '';
+                    $scope.alarmLamp.splice(0, 1);
+                    $scope.alarmLamp.reverse();
+                    if ($scope.severitySelectCodeAry) {
+                        $scope.alarmLamp.forEach(function (data, index) {
+                            if ($scope.severitySelectCodeAry.indexOf(data.severity) >= 0) {
+                                data.alarmLamp = 1;
+                            }
+                        });
+                    }
+                }).error(function (err) {
+                    console.log(err)
+                });
+        }
+        $scope.fnCheck = function (e, item) {
+            e.stopPropagation();
+            var checkType = e.target.dataset.checkType;
+            switch (checkType) {
+                case 'oUnCheck':
+                    $scope.oDataCheck();
+                    break;
+                case 'oCheck':
+                    $scope.oDataUnCheck();
+                    break;
+                case 'check':
+                case 'unCheck':
+                case 'isCheck':
+                    $scope.dataCheck(item);
+                    break;
+            }
+            $scope.fnCheckId();
+            $scope.getCheckItem();
+            $scope.setSelectStorage();
+
+        }
+        $scope.fnCheckId = function () {
+            $scope.checkIds = $scope.dataii.filter(function (member) {
+                return member.check;
+            }).map(function (member) {
+                return member.SERIAL;
+            })
+            return $scope.checkIds;
+
+        }
+        $scope.oDataCheck = function () {
+
+            //Unit.success(L.get('COMMON_ALREADY') + ' ' + $scope.dataii.length + ' ' + L.get('COMMON_CAVEAT'));
+            Unit.success(L.get('EMV_YOU_HAVE_SELECTED_AN_ALARM', { x: $scope.dataii.length }));
+            $scope.dataii.forEach(function (data, index) {
+                data.check = true;
+            })
+        }
+        $scope.oDataUnCheck = function (checkType) {
+            $scope.dataii.forEach(function (data, index) {
+                data.check = false;
+            })
+        }
+        $scope.dataCheck = function (item) {
+            item.check = !item.check
+        }
+        //获得选中item
+        $scope.getCheckItem = function () {
+            $scope.checkItemVal = $scope.dataii.filter(function (data) {
+                return data.check;
+            })
+        }
+        $scope.fnSearch = function (e, item) {
+            e && e.stopPropagation();
+            $scope.params.pageNum = 1;
+            $scope.currentPage = 1;
+            $scope.sortTitleChageNo = false;
+            $scope.params.search_param = $scope.search_param_in;
+            $scope.titleAndDataLoad($scope.params)
+        }
+        //搜索-删除
+        $scope.fnSearchDel = function (e) {
+            e.stopPropagation();
+            var type = e.target.dataset.btnType;
+            $scope.currentLamp = null;
+            angular.forEach($scope.osTitle, function (data) {
+                if (data.colName === type) {
+                    if (type === 'SEVERITY') {
+                        $scope.severitySelectCodeAry = [];
+                        $scope.search_param_in[data.colName] = [];
+                        $scope.severityList.forEach(function (data, index) {
+                            data.selected = false;
+                        })
+                    } else if (type === 'SOURCEID') {
+                        $scope.sorceIdSelectCodeAry = [];
+                        $scope.search_param_in[data.colName] = [];
+                        $scope.sourceNameList.forEach(function (data, index) {
+                            data.selected = false;
+                        })
+                    }
+                    else {
+                        $scope.search_param_in[data.colName] = ''
+                    }
+                    $scope.selectValShow[data.colName] = '';
+                    $scope.params.search_param = $scope.search_param_in;
+                    $scope.params.pageNum = 1; //初始化分页数
+                    $scope.currentPage = 1;
+                    $scope.titleAndDataLoad($scope.params)
+                }
+            })
+        }
+        //计算持续时间
+        $scope.calcLastTime = function () {
+            $scope.dataii.forEach(function (data, index) {
+                var data1 = new Date(data.FIRSTOCCURRENCE);
+                var data2 = new Date();
+                data.lastSec = (data2.getTime() - data1.getTime()) / 1000;
+                data.last = $scope.formatSeconds((data2.getTime() - data1.getTime()) / 1000);
+            })
+        }
+        /*******select框开始*********/
+        //抬头input
+
+        $scope.selectDiagramType = [];
+        $scope.selectedDiagramType = L.get('COMMON_DEFAULT');
+        $scope.selectedTime = L.get('COMMON_ALL');
+        OScreenService.getAllviews({
+            selfDefine: false,
+            isHistory: false
+        })
+            .success(function (result) {
+                result.data.forEach(function (data) {
+                    if ($scope.viewId === data.id) {
+                        $scope.selectedDiagramType = data.name;
+                        $scope.authorityLimit = data.authority;
+                    }
+                })
+            });
+        $scope.selectTimeFl = false;
+        $scope.selectTime = [{
+            timeCn: L.get('COMMON_ALL'),
+            timeNum: 0
+        }, {
+            timeCn: L.get('COMMON_LAST_DAY'),
+            timeNum: 24 * 60 * 60 * 1000
+        }, {
+            timeCn: L.get('EMV_LAST_SEVEN_DAYS'),
+            timeNum: 24 * 60 * 60 * 1000 * 7
+        }, {
+            timeCn: L.get('EMV_LAST_MONTH'),
+            timeNum: 24 * 60 * 60 * 1000 * 30
+        }
+        ];
+        $scope.fnSelectDrop = function (e) {
+            e.stopPropagation();
+            var type = e.target.dataset.value;
+            if (type === 'diagram') {
+                if (!$scope.selectDiagramType.length) {
+                    //获取所有视图
+                    OScreenService.getAllviews({
+                        selfDefine: false,
+                        isHistory: false
+                    })
+                        .success(function (result) {
+                            $scope.selectDiagramType = result.data;
+                        });
+
+
+                    $scope.selectDiagramType = $scope.selectDiagramType.filter(function (data) {
+                        return data.typeCn !== $scope.selectedDiagramType;
+                    })
+                } else {
+                    $scope.selectDiagramType = [];
+                }
+            } else {
+                $scope.selectTimeFl = !$scope.selectTimeFl;
+            }
+
+        }
+
+        $scope.fnSelectIptDiagram = function (e, item) {
+            e.stopPropagation();
+            $scope.viewId = e.target.dataset.viewid;
+            $scope.params.viewId = Number($scope.viewId);
+            $scope.authorityLimit = item.authority;
+            $scope.params.pageNum = 1;
+            $scope.currentPage = 1;
+            $scope.allTableDiffFlag = false;
+            $scope.titleLoad();
+            $scope.allTableColumnDiff();
+
+            $scope.titleAndDataLoad($scope.params)
+            $scope.selectedDiagramType = item.name;
+            $scope.selectDiagramType = [];
+        }
+        $scope.fnSelectIptTime = function (e, time) {
+            e && e.stopPropagation();
+            $scope.selectedTime = time.timeCn;
+            $scope.showTitleDefalt = time.timeCn;
+            $scope.params.startTime = null;
+            $scope.params.endTime = null;
+            $scope.selectTimeFl = false;
+            $scope.selectDefTimeFlag = false;
+            $scope.params.latestTime = time.timeNum;
+            $scope.params.pageNum = 1;
+            $scope.currentPage = 1;
+            $scope.titleAndDataLoad($scope.params);
+            $scope.startD = intStartTime;
+            $scope.endD = intEndTime;
+            $scope.startTimeHour = '00:00:00';
+            $scope.endTimeHour = '00:00:00';
+        }
+
+        //是否通知、是否升级，状态、告警来源
+        $scope.ifnotfyList = [];
+        $scope.alarmticketList = [];
+        $scope.gradeList = [];
+        //$scope.severityList = [];
+        $scope.severityListShow = false;
+        $scope.sourceIdListShow = false;
+        //$scope.sourceNameList = [];
+        $scope.searchMap = {
+            8: 'gradeList',
+            7: 'alarmticketList',
+            3: 'ifnotfyList',
+            4: 'queryDict4',
+            1: 'sourceNameList',
+        }
+        $scope.fnIfnotifyList = function (type, e, status) {
+            //type 8是否升级 3是否通知 4状态 1告警来源 16邮件标记  7是否派单
+            e && e.stopPropagation();
+            //搜索-状态
+            $scope.severityListShow = false;
+            $scope.sourceIdListShow = false;
+            //状态
+            $scope.ifnotfyList = [];
+            //通知
+            $scope.gradeList = [];
+            //升级
+            //$scope.sourceNameList = [];
+            //升级
+            $scope.alarmticketList = [];
+
+            //派单
+            if (!$scope.queryDict4.length) {
+                OScreenService.queryDict({
+                    groupId: type
+                })
+                    .success(function (result) {
+                        $scope[$scope.searchMap[type]] = result.data;
+
+                    }).error(function (err) {
+                        console.error(err);
+                    })
+            } else {
+                $scope.queryDict4 = [];
+            }
+        };
+
+        /*获取等级级别*/
+        OScreenService.severityList({
+            groupId: 4
+        })
+            .success(function (result) {
+                $scope.severityList = result.data ? result.data : [];
+            }).error(function (err) {
+                console.error(err);
+            });
+        //级别
+        $scope.fnSeverityList = function (e) {
+            e && e.stopPropagation();
+            $scope.severityListShow = !$scope.severityListShow;
+            if ($scope.severityListShow) {
+                $scope.severityList.forEach(function (data, index) {
+                    data.selected = false;
+                });
+            }
+            if ($scope.severitySelectCodeAry) {
+                $scope.severityList.forEach(function (data, n) {
+                    data.selected = $scope.severitySelectCodeAry.indexOf(data.severity) >= 0;
+                });
+            }
+        };
+        OScreenService.queryDict({
+            groupId: 1
+        })
+            .success(function (result) {
+                $scope.sourceNameList = result.data;
+            }).error(function (err) {
+                console.error(err);
+            });
+
+        //告警来源
+        $scope.fnSourceIdList = function (e) {
+            e && e.stopPropagation();
+            $scope.sourceIdListShow = !$scope.sourceIdListShow;
+            if ($scope.sourceIdListShow) {
+                $scope.sourceNameList.forEach(function (data, index) {
+                    data.selected = false;
+                });
+            }
+            if ($scope.sorceIdSelectCodeAry) {
+                $scope.sourceNameList.forEach(function (data, n) {
+                    data.selected = $scope.sorceIdSelectCodeAry.indexOf(Number(data.code)) >= 0;
+                });
+            }
+        };
+        $scope.selectValShow = {};
+        //取值
+        $scope.fnGetValue = function (e, item, isLamp) {
+            var type = e.target.dataset.type;
+            switch (type) {
+                case 'queryDict4':
+                    $scope.search_param_in.ACKNOWLEDGED = Number(item.code);
+                    $scope.selectValShow.ACKNOWLEDGED = item.chineseName;
+                    $scope.params.search_param = $scope.search_param_in;
+                    $scope.params.pageNum = 1;
+                    $scope.currentPage = 1;
+                    $scope.sortTitleChageNo = false;
+                    $scope.titleAndDataLoad($scope.params);
+                    $scope.queryDict4 = [];
+                    break;
+                case 'severityList':
+                    e.stopPropagation();
+                    $scope.selectValShow.SEVERITY = '';
+                    $scope.severitySelectCodeAry = [];
+                    item.selected = !item.selected;
+                    $scope.severityList.forEach(function (val, index) {
+                        if (val.selected) {
+                            $scope.severitySelectCodeAry.push(Number(val.severity));
+                        }
+                        if (val.selected) {
+                            $scope.selectValShow.SEVERITY += val.chineseName + ' ';
+                        }
+                    });
+                    $scope.search_param_in.SEVERITY = $scope.severitySelectCodeAry;
+                    $scope.params.search_param = $scope.search_param_in;
+                    $scope.params.pageNum = 1;
+                    $scope.currentPage = 1;
+                    $scope.sortTitleChageNo = false;
+                    $scope.titleAndDataLoad($scope.params, item);
+                    //$scope.severityList = [];
+                    break;
+                case 'ifnotfyList'://是否通知IFNOTIFY
+                    $scope.search_param_in.IFNOTIFY = Number(item.code);
+                    $scope.selectValShow.IFNOTIFY = item.chineseName;
+                    $scope.params.search_param = $scope.search_param_in;
+                    $scope.params.pageNum = 1;
+                    $scope.currentPage = 1;
+                    $scope.sortTitleChageNo = false;
+                    $scope.titleAndDataLoad($scope.params, item);
+                    $scope.ifnotfyList = [];
+                    break;
+                case 'gradeList'://是否升级
+                    $scope.search_param_in.GRADE = Number(item.code);
+                    $scope.selectValShow.GRADE = item.chineseName;
+                    $scope.params.search_param = $scope.search_param_in;
+                    $scope.params.pageNum = 1;
+                    $scope.currentPage = 1;
+                    $scope.sortTitleChageNo = false;
+                    $scope.titleAndDataLoad($scope.params, item);
+                    $scope.gradeList = [];
+                    break;
+                case 'alarmticketList'://是否派单
+                    $scope.search_param_in.ALARMTICKET = Number(item.code);
+                    $scope.selectValShow.ALARMTICKET = item.chineseName ? item.chineseName : L.get('EMV_NO_ORDER');
+                    $scope.params.search_param = $scope.search_param_in;
+                    $scope.params.pageNum = 1;
+                    $scope.currentPage = 1;
+                    $scope.sortTitleChageNo = false;
+                    $scope.titleAndDataLoad($scope.params, item);
+                    $scope.alarmticketList = [];
+                    break;
+                case 'sourceNameList'://告警来源
+                    //console.log(item)
+                    e.stopPropagation();
+                    $scope.selectValShow.SOURCEID = '';
+                    $scope.sorceIdSelectCodeAry = [];
+                    item.selected = !item.selected;
+                    $scope.sourceNameList.forEach(function (val, index) {
+                        if (val.selected) {
+                            $scope.sorceIdSelectCodeAry.push(Number(val.code));
+                            $scope.selectValShow.SOURCEID += val.chineseName + ' ';
+                        }
+                    });
+
+                    $scope.search_param_in.SOURCEID = $scope.sorceIdSelectCodeAry;
+                    $scope.params.search_param = $scope.search_param_in;
+                    $scope.params.pageNum = 1;
+                    $scope.currentPage = 1;
+                    $scope.sortTitleChageNo = false;
+                    $scope.titleAndDataLoad($scope.params, item);
+                    //$scope.sourceNameList = [];
+                    break;
+                case 'alarmLamp':
+                    if ($scope.currentLamp != item.chineseName) {
+                        $scope.selectValShow.SEVERITY = '';
+                        $scope.severitySelectCodeAry = [];
+                        if (item.englishName === 'all') {
+                            $scope.selectValShow.SEVERITY = '';
+                            $scope.severitySelectCodeAry = [];
+                        } else {
+                            $scope.selectValShow.SEVERITY = item.chineseName;
+                            $scope.severitySelectCodeAry.push(Number(item.severity));
+                        }
+                        $scope.search_param_in.SEVERITY = $scope.severitySelectCodeAry;
+                        $scope.params.search_param = $scope.search_param_in;
+                        $scope.params.pageNum = 1;
+                        $scope.currentPage = 1;
+                        $scope.sortTitleChageNo = true;
+                        $scope.titleAndDataLoad($scope.params, item, isLamp);
+                    } else {
+                        $scope.currentLamp = null;
+                        $scope.selectValShow.SEVERITY = '';
+                        $scope.severitySelectCodeAry = [];
+                        $scope.search_param_in.SEVERITY = [];
+                        $scope.params.search_param = $scope.search_param_in;
+                        $scope.params.pageNum = 1;
+                        $scope.currentPage = 1;
+                        $scope.sortTitleChageNo = true;
+                        $scope.titleAndDataLoad($scope.params, isLamp);
+                    }
+                    break;
+            }
+        };
+
+        /*******select框结束*********/
+        $scope.fnConfirm = function (e, type, item, flag) {
+            !flag && e.stopPropagation();
+            if (!$scope.canAckEvent) {
+                e.stopPropagation();
+                Unit.error(L.get('EMV_CONFIRM_FAIL'));
+                return false;
+            }
+            var confirmType = e.target.dataset.confirmType;
+            var btnType = e.target.dataset.btnType;
+            console.log(item)
+            switch (confirmType) {
+                case 'partial':
+                    //已恢复告警可以确认
+                    // if (item.STATUS === 3 || item.status === 3) {
+                    //     Unit.error(L.get('EMV_EVENT_RESTORED_CAN_NOT_CONFIRMED'));
+                    //     return false;
+                    // }
+                    var validateParm = {};
+                    validateParm.type = 1;
+                    validateParm.multi = false;
+                    validateParm.serial = item.SERIAL;
+                    OScreenService.validate(validateParm)
+                        .success(function (result) {
+                            if (result.success) {
+                                if (result.result || result.data.result) {
+                                    //console.log(item)
+                                    if (item.ACKNOWLEDGEDCODE === 1) {
+                                        Unit.error(L.get('EMV_HAS_BEEN_CONFIRMED_CAN_NOT_REPEAT'));
+                                        return false;
+                                    }
+                                    $uibModal.open({
+                                        size: 'defindClose',
+                                        animation: true,
+                                        backdrop: 'static',
+                                        templateUrl: 'app/modal/manageAlert/definedConfirmAlert.html',
+                                        controller: 'ModalDefinedConfirmAlertAlertCtrl',
+                                        resolve: {
+                                            item: function () {
+                                                //是否写入值班日志
+                                                item.isDutyFlag = true;
+                                                return item;
+                                            },
+                                            type: function () {
+                                                return type;
+                                            },
+                                            fn: function () {
+                                                return function () {
+                                                    if ($scope.allNoAckEvent) {
+                                                        audio.pause();
+                                                        $scope.curPlayLeavel = null;
+                                                        $scope.queryLatest30sLargestLevel();
+                                                        $scope.clearStorage([item.SERIAL]);
+
+                                                    }
+                                                };
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    Unit.error(L.get('EMV_CONFIRM_FAIL'));
+                                    return false;
+                                }
+                            }
+                        });
+
+                    break;
+                case 'global':
+                    if (!$scope.checkIds.length) {
+                        Unit.error(L.get('EMV_PLEASE_SELECT_AN_ALARM_EVENT'))
+                        return false;
+                    }
+                    var goConfirmFlag = true;
+                    $scope.dataii.forEach(function (val, index) {
+                        //已恢复告警可以确认
+                        // if ((val.STATUS === 3 || val.status === 3) && val.check) {
+                        //     goConfirmFlag = false;
+                        // }
+                    });
+                    if (!goConfirmFlag) {
+                        Unit.error(L.get('EMV_EVENT_RESTORED_CAN_NOT_CONFIRMED'));
+                        return false;
+                    }
+                    $scope.checkIdsConfirm = $scope.dataii.filter(function (data) {
+                        return data.check === true && data.ACKNOWLEDGEDCODE === 0;
+                    }).map(function (data) {
+                        return data.SERIAL;
+
+                    });
+                    if (!$scope.checkIdsConfirm.length) {
+                        Unit.error(L.get('EMV_HAS_BEEN_CONFIRMED_CAN_NOT_REPEAT'));
+                        return false;
+                    }
+                    var validateParm = {};
+                    validateParm.type = 1;
+                    validateParm.multi = true;
+                    validateParm.serial = $scope.checkIdsConfirm;
+                    OScreenService.validate(validateParm)
+                        .success(function (result) {
+                            if (result.success) {
+                                if (result.result || result.data.result) {
+                                    $scope.checkIdsIndexConfirm = [];
+                                    $scope.dataii.forEach(function (val, index) {
+                                        if (val.check) {
+                                            $scope.checkIdsIndexConfirm.push(index);
+                                        }
+                                    })
+                                    if (!$scope.checkIdsConfirm.length) {
+                                        Unit.error(L.get('EMV_HAS_BEEN_CONFIRMED_CAN_NOT_REPEAT'))
+                                        return false;
+                                    }
+                                    var size
+                                    if ($scope.checkIds.length === 1) {
+                                        $scope.isDutyFlag = true;
+                                        size = 'defindClose';
+                                        $scope.selectDetailWarn = $scope.dataii.filter(function (member) {
+                                            return member.check;
+                                        });
+                                    } else {
+                                        size = 'monitor';
+                                        $scope.isDutyFlag = false;
+                                    }
+                                    $uibModal.open({
+                                        size: size,
+                                        animation: true,
+                                        backdrop: 'static',
+                                        templateUrl: 'app/modal/manageAlert/definedConfirmAlert.html',
+                                        controller: 'ModalDefinedConfirmAlertAlertCtrl',
+                                        resolve: {
+                                            item: function () {
+                                                $scope.confirmGropStr = {};
+                                                $scope.confirmGropStr.SERIAL = $scope.checkIdsConfirm;
+                                                $scope.confirmGropStr.isDutyFlag = $scope.isDutyFlag;
+                                                /*是否写入值班日志*/
+                                                if ($scope.isDutyFlag && $scope.selectDetailWarn.length) {
+                                                    $scope.confirmGropStr.item = $scope.selectDetailWarn[0];
+                                                }
+                                                return $scope.confirmGropStr;
+                                            },
+                                            type: function () {
+                                                return type;
+                                            },
+                                            fn: function () {
+                                                return function () {
+                                                    $scope.checkIds = []; //清空已删除id
+                                                    $.each($scope.dataii, function (index) {
+                                                        var item = this;
+                                                        $.each($scope.checkIdsIndexConfirm, function () {
+                                                            if (index === this) {
+                                                                item.ACKNOWLEDGED = L.get('COMMON_CONFIRMED');
+                                                                item.check = false;
+                                                            }
+                                                        });
+                                                    });
+                                                    $scope.clearStorage($scope.checkIdsConfirm);
+                                                    if ($scope.allNoAckEvent) {
+                                                        audio.pause();
+                                                        $scope.curPlayLeavel = null;
+                                                        $scope.queryLatest30sLargestLevel();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    if (result.data.authNotContainsEventSerials) {
+                                        $scope.dataii = $scope.dataii ? $scope.dataii : [];
+                                        $scope.dataii.forEach(function (val, index) {
+                                            val.noValidate = result.data.authNotContainsEventSerials.indexOf(val.SERIAL) >= 0
+
+                                        });
+                                    }
+
+                                    Unit.error(L.get('EMV_CONFIRM_FAIL'))
+                                    return false;
+                                }
+                            }
+                        });
+                    break;
+            }
+        }
+        //删除
+        $scope.fnClose = function (e, type, item, flag) {
+            !flag && e.stopPropagation();
+            if (!$scope.canCloseEvent) {
+                e.stopPropagation();
+                Unit.error(L.get('EMV_LAST_NO_PERMISSION_EXCEPTION_CLOSE'));
+                return false;
+            }
+            var confirmType = e.target.dataset.confirmType;
+
+            switch (confirmType) {
+                case 'partial':
+                    var validateParm = {};
+                    validateParm.type = 1;
+                    validateParm.multi = false;
+                    validateParm.serial = item.SERIAL;
+                    OScreenService.validate(validateParm)
+                        .success(function (result) {
+                            if (result.success) {
+                                if (result.result || result.data.result) {
+                                    $uibModal.open({
+                                        size: 'defindClose', /*monitor*/
+                                        animation: true,
+                                        backdrop: 'static',
+                                        templateUrl: 'app/modal/manageAlert/definedCloseAlert.html',
+                                        controller: 'ModalDefinedColseAlertCtrl',
+                                        resolve: {
+                                            item: function () {
+                                                item.isDutyFlag = true;
+                                                /*是否写入值班日志*/
+                                                return item;
+                                            },
+                                            type: function () {
+                                                return type;
+                                            },
+                                            fn: function () {
+                                                return function () {
+                                                    $timeout(function () {
+                                                        $scope.titleAndDataLoad($scope.params);
+                                                    }, 200)
+
+                                                    if ($scope.allNoAckEvent) {
+                                                        audio.pause();
+                                                        $scope.curPlayLeavel = null;
+                                                        $scope.queryLatest30sLargestLevel();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+                                } else {
+
+                                    Unit.error(L.get('EMV_LAST_NO_PERMISSION_EXCEPTION_CLOSE'));
+                                    return false;
+                                }
+                            }
+                        });
+
+                    break;
+                case 'global':
+
+                    $scope.checkIdsIndexClose = [];
+                    $scope.dataii.forEach(function (val, index) {
+                        if (val.check) {
+                            $scope.checkIdsIndexClose.push(index);
+                        }
+                    })
+
+                    if (!$scope.checkIds.length) {
+                        Unit.error(L.get('EMV_PLEASE_SELECT_AN_ALARM_EVENT'))
+                        return false;
+                    }
+                    var size
+                    if ($scope.checkIds.length === 1) {
+                        $scope.isDutyFlag = true;
+                        size = 'defindClose';
+                        $scope.selectDetailWarn = $scope.dataii.filter(function (member) {
+                            return member.check;
+                        });
+                    } else {
+                        size = 'monitor';
+                        $scope.isDutyFlag = false;
+                    }
+                    var validateParm = {};
+                    validateParm.type = 1;
+                    validateParm.multi = true;
+                    validateParm.serial = $scope.checkIds;
+                    OScreenService.validate(validateParm)
+                        .success(function (result) {
+                            if (result.success) {
+                                if (result.result || result.data.result) {
+                                    $uibModal.open({
+                                        size: size,
+                                        animation: true,
+                                        backdrop: 'static',
+                                        templateUrl: 'app/modal/manageAlert/definedCloseAlert.html',
+                                        controller: 'ModalDefinedColseAlertCtrl',
+                                        resolve: {
+                                            item: function () {
+                                                $scope.deleteGroupStr = {};
+                                                $scope.deleteGroupStr.SERIAL = $scope.checkIds;
+                                                $scope.deleteGroupStr.isDutyFlag = $scope.isDutyFlag;
+                                                /*是否写入值班日志*/
+                                                if ($scope.isDutyFlag && $scope.selectDetailWarn.length) {
+                                                    $scope.deleteGroupStr.item = $scope.selectDetailWarn[0];
+                                                }
+
+                                                return $scope.deleteGroupStr;
+                                            },
+                                            type: function () {
+                                                return type;
+                                            },
+                                            fn: function () {
+                                                return function () {
+                                                    $scope.checkIds = []; //清空已删除id
+                                                    $scope.clearLocalStorage();
+                                                    $timeout(function () {
+                                                        $scope.titleAndDataLoad($scope.params);
+                                                    }, 200)
+
+                                                    if ($scope.allNoAckEvent) {
+                                                        audio.pause();
+                                                        $scope.curPlayLeavel = null;
+                                                        $scope.queryLatest30sLargestLevel();
+                                                    }
+
+                                                }
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    if (result.data.authNotContainsEventSerials) {
+                                        $scope.dataii = $scope.dataii ? $scope.dataii : [];
+                                        $scope.dataii.forEach(function (val, index) {
+                                            val.noValidate = result.data.authNotContainsEventSerials.indexOf(val.SERIAL) >= 0;
+                                        });
+                                    }
+
+                                    Unit.error(L.get('EMV_LAST_NO_PERMISSION_EXCEPTION_CLOSE'));
+                                    return false;
+                                }
+                            }
+                        });
+
+                    break;
+            }
+        }
+        //电话
+        $scope.toPhone = function (e, item) {
+            //e.stopPropagation();
+            $uibModal.open({
+                size: 'phoneNotice',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/phoneNotice.html',
+                controller: 'phoneNoticeCtrl',
+                resolve: {
+                    item: function () {
+                        return item;
+                    },
+                    mailName: function () {
+                        //return mailName;
+                        return L.get('EMV_ALARM_NOTIFICATION')
+                    },
+                    isOsreen: function () {
+                        return $scope.isOsreen;
+                    }
+                }
+            });
+        }
+        //发送事件通知
+        $scope.sendEventsMail = function (e, mailName, item, flag) {
+            !flag && e.stopPropagation();
+            var confirmType = e.target.dataset.confirmType;
+            //alert(confirmType)
+            switch (confirmType) {
+                case 'partial':
+                    $uibModal.open({
+                        size: 'mail',
+                        animation: true,
+                        backdrop: 'static',
+                        templateUrl: 'app/modal/manageAlert/mail.html',
+                        controller: 'ModalMailCtrl',
+                        resolve: {
+                            item: function () {
+                                return item;
+                            },
+                            mailName: function () {
+                                //return mailName;
+                                return L.get('EMV_ALARM_NOTIFICATION')
+                            },
+                            isOsreen: function () {
+                                return $scope.isOsreen;
+                            },
+                            fn: function () {
+                                return function () {
+                                    $scope.clearStorage([item.SERIAL]);
+                                }
+                            }
+
+                        }
+                    });
+
+                    break;
+                case 'global':
+                    if (!$scope.checkItemVal.length) {
+                        Unit.error(L.get('EMV_PLEASE_SELECT_AN_ALARM_EVENT'))
+                        return false;
+                    }
+                    $uibModal.open({
+                        size: 'mail',
+                        animation: true,
+                        backdrop: 'static',
+                        templateUrl: 'app/modal/manageAlert/mail.html',
+                        controller: 'ModalMailCtrl',
+                        resolve: {
+                            item: function () {
+                                return $scope.checkItemVal;
+                            },
+                            mailName: function () {
+                                //return mailName;
+                                return L.get('EMV_ALARM_NOTIFICATION')
+                            },
+                            isOsreen: function () {
+                                return $scope.isOsreen;
+                            },
+                            fn: function () {
+                                return function () {
+                                    $scope.clearStorage($scope.checkIds);
+                                }
+                            }
+
+                        }
+                    });
+                    break;
+            }
+
+        }
+
+        $scope.getJumpFn = function (item) {
+            var jupmParm = {
+                type: 'relation',
+                ciCodes: []
+            }
+            //console.log(item)
+            if (item) {
+                jupmParm.ciCodes.push(item.CIID);
+            } else {
+                $scope.checkItemVal.forEach(function (val, index) {
+                    if (val.CINAME) {
+                        jupmParm.ciCodes.push(val.CINAME);
+                    }
+                })
+
+            }
+
+            if (!jupmParm.ciCodes.length) {
+                Unit.error(L.get('EMV_CAN_NOT_IMPACT_ANALYSIS'));
+            } else {
+                try {
+                    //var param = encodeURIComponent(JSON.stringify(jupmParm));
+                    console.log(jupmParm);
+                    var code = '0417';
+                    //var url = '/monitor-web/dmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&param=option=' + param;
+                    var url = $state.href('tarsier.monitoring.effectAnalysis', jupmParm)
+                    if (item) {
+                        window.open(url, '_blank');
+                    } else {
+                        if (jupmParm.ciCodes.length === $scope.checkItemVal.length) {
+                            /*直接跳*/
+                            //window.open(url);
+                            window.open(url, '_blank');
+                        }
+                        if (jupmParm.ciCodes.length < $scope.checkItemVal.length) {
+                            var dialog = uDialog.confirm({
+                                title: L.get('COMMON_OK'),
+                                content: L.get('EMV_NOT_ASSOCIATED_CONFIGURATION_CONTINUE'),
+                                confirm: function () {
+                                    //window.open(url);
+                                    window.open(url, '_blank');
+                                }
+                            })
+
+                        }
+                    }
+                } catch (e) {
+                    console.log(e.message);
+                }
+
+            }
+
+        }
+        $scope.appCircleText = L.get('EMV_APPLICATION_RING_DIAGRAM');
+        //是否跳转应用环图
+        $scope.getIsAppCircle = function () {
+            OScreenService.appCircleDiagramParam()
+                .success(function (result) {
+                    if (result.success && result.data == 'circle') {
+                        $scope.appCircleText = L.get('EMV_APPLICATION_RING_DIAGRAM');
+                    } else {
+                        $scope.appCircleText = L.get('COMMON_APPLICATION_PANORAMA');
+                        $scope.appCircleId = result.data;
+                    }
+                }).error(function (err) {
+                    console.log(err)
+                })
+        }
+        $scope.getIsAppCircle();
+        //快速屏蔽
+        $scope.fastShield = function (e, item) {
+            $uibModal.open({
+                size: 'fastShield',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/fastShield.html',
+                controller: 'fastShieldCtrl',
+                resolve: {
+                    item: function () {
+                        return item;
+                    },
+                    isOsreen: function () {
+                        return $scope.isOsreen;
+                    },
+                    closeFn: function () {
+                        return function () {
+                            //$scope.params.pageNum = 1;
+                            //$scope.currentPage = 1;
+                            $scope.titleAndDataLoad($scope.params);
+                        }
+                    }
+
+                }
+            });
+        }
+        //处理记录
+        $scope.goRecord = function (e, item) {
+            $uibModal.open({
+                size: 'goRecord',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/goRecord.html',
+                controller: 'goRecordCtrl',
+                resolve: {
+                    item: function () {
+                        return item;
+                    },
+                    isOsreen: function () {
+                        return 1;
+                    },
+                    fn: function () {
+                        return function () {
+                        }
+                    }
+
+                }
+            });
+        }
+
+        OScreenService.queryDict({
+            groupId: 16
+        })
+            .success(function (result) {
+                $scope.markGroup = result.data || [];
+                $scope.defindMark = $scope.markGroup[$scope.markGroup.length - 1];
+                $scope.markGroup.splice(-1, 1);
+            }).error(function (err) {
+                console.error(err)
+            })
+        //标签
+        $scope.markFlag = function (e, item, type) {
+            e && e.stopPropagation();
+            $scope[type] = true;
+        }
+        $scope.leaveMarkFlag = function (e, item, type) {
+            e && e.stopPropagation();
+            $scope[type] = false;
+        }
+
+        //标签
+        $scope.goToMark = function (e, mark, item) {
+            OScreenService.addTag({
+                serial: item.SERIAL,
+                tagName: mark.chineseName
+            })
+                .success(function (result) {
+                    if (result.success) {
+                        item.TAGNAME = mark.chineseName;
+                        item.TAGCOLOR = mark.englishName;
+                        Unit.success(L.get('EMV_ADD_LABEL_SUCCESSFULLY'))
+                    } else {
+                        Unit.error(L.get('EMV_ADD_LABEL_FAILED'))
+                    }
+                }).error(function (err) {
+                    Unit.error(L.get('EMV_ADD_LABEL_FAILED'))
+                })
+        }
+        //自定义标签
+        $scope.goToDefindMark = function (e, mark, item) {
+            $uibModal.open({
+                size: 'markSign',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/markFlag.html',
+                controller: 'markFlagCtrl',
+                resolve: {
+                    item: function () {
+                        return item;
+                    },
+
+                    fn: function () {
+                        return function () {
+                            item.TAGCOLOR = mark.englishName;
+                        }
+                    }
+                }
+            });
+        }
+        //告警派单
+        $scope.sendOrders = function (e, item) {
+            if (!$scope.canOderFlag) {
+                e.stopPropagation();
+                Unit.error(L.get('EMV_SENDING_TICKET_FAILED_PERMISSIONS'));
+                return false;
+            }
+            $uibModal.open({
+                size: 'sendOrder',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/sendOrder.html',
+                controller: 'sendOrderCtrl',
+                resolve: {
+                    item: function () {
+                        return item;
+                    },
+                    isOsreen: function () {
+                        return $scope.isOsreen;
+                    }
+
+                }
+            });
+        }
+        $scope.fnIsSearch = function () {
+            $scope.isSearch = !$scope.isSearch;
+        }
+        /*时间格式成h m s*/
+        $scope.formatSeconds = function (value) {
+            var theTime = window.parseInt(value); // 秒
+            var theTime1 = 0; // 分
+            var theTime2 = 0; // 小时
+            if (theTime > 60) {
+                theTime1 = window.parseInt(theTime / 60);
+                theTime = window.parseInt(theTime % 60);
+                if (theTime1 > 60) {
+                    theTime2 = window.parseInt(theTime1 / 60);
+                    theTime1 = window.parseInt(theTime1 % 60);
+                }
+            }
+            var result = '' + window.parseInt(theTime) + 's';
+            if (theTime1 > 0) {
+                result = '' + window.parseInt(theTime1) + 'm' + result;
+            }
+            if (theTime2 > 0) {
+                result = '' + window.parseInt(theTime2) + 'h' + result;
+            }
+            return result;
+        }
+        $scope.fnAudio = function () {
+            var audio = angular.element('#audio')[0];
+            $scope.audioPushed = !audio.paused;
+            if (audio.paused) {
+                audio.play()
+            } else {
+                audio.pause();
+                $scope.curPlayLeavel = null;
+            }
+        }
+
+        OScreenService.getMaxExcelRow()
+            .success(function (result) {
+                if (result.success) {
+                    $scope.maxExcelRows = result.data;
+                } else {
+                    Unit.error(L.get('EMV_INTERFACE_CONNECTION_FAILED'));
+                }
+            }).error(function (err) {
+                Unit.error(L.get('EMV_INTERFACE_CONNECTION_FAILED'));
+            })
+        $scope.canDownLoad = true;
+        $scope.fnDownLoad = function () {
+            if ($scope.totalPages === 0 || !$scope.totalPages) {
+                Unit.error(L.get('EMV_NO_DATA_TO_DOWNLOAD'));
+                return false;
+            }
+            $scope.canDownLoad = false;
+            $scope.params.search_param = $scope.search_param_in;
+            $scope.params.totalRows = $scope.oscreenTotalRows;
+            var downloadType;
+            var titleName;
+            if ($scope.oscreenTotalRows <= $scope.maxExcelRows) {
+                downloadType = 'application/vnd.ms-excel';
+                titleName = L.get('COMMON_ALARM_LIST') + '_' + Unit.downLoadTimeFormat() + '.xlsx';
+            } else {
+                downloadType = 'application/octet-stream';
+                titleName = L.get('COMMON_ALARM_LIST') + '_' + Unit.downLoadTimeFormat() + '.zip';
+            }
+
+            OScreenService.export($scope.params)
+                .success(function (result) {
+                    $scope.params.totalRows = null;
+                    var blob = new Blob([result], {
+                        type: downloadType
+                    });
+
+                    var objectUrl = URL.createObjectURL(blob);
+                    var aForExcel = $("<a download=" + titleName + "><span class='forExcel'>下载excel</span></a>").attr("href", objectUrl);
+                    $('body').append(aForExcel);
+                    $('.forExcel').click();
+                    aForExcel.remove();
+                    $scope.canDownLoad = true;
+                }).error(function (err) {
+                    console.log(err);
+                    $scope.canDownLoad = true;
+                })
+        }
+        $scope.stopFn = function (e) {
+            e.stopPropagation();
+        }
+        /*换肤*/
+        $scope.skinModles = [
+            {
+
+                name: L.get('EMV_MIDNIGHT_BLACK'),
+                val: 'oscreenDark',
+                skinFlag: 1
+
+            },
+            {
+                name: L.get('EMV_PEARL_WHITE'),
+                val: 'oscreenWhite',
+                skinFlag: 2
+
+            },
+            {
+                name: L.get('EMV_EYE_PROTECTION_MODE'),
+                val: 'oscreenGreen',
+                skinFlag: 3
+            }
+        ];
+        $scope.skinId = 'oscreenDark';
+        $scope.changeSkin = function (e, status) {
+            e && e.stopPropagation();
+            if (status) {
+                $scope.skinId = status;
+                $scope.skinModleAry = [];
+                $scope.skinModles.forEach(function (data, index) {
+                    if (data.val !== status) {
+                        $scope.skinModleAry.push(data);
+                    } else {
+                        $scope.skinModleFlag = data.skinFlag
+                    }
+                });
+                $scope.changeSkinTipShow = false;
+            } else {
+                $scope.changeSkinTipShow = !$scope.changeSkinTipShow;
+            }
+        }
+        $scope.changeSkin(null, $scope.skinId);
+        $scope.changeSkinTipLeave = function () {
+            $scope.changeSkinTipShow = false;
+        }
+
+        $scope.changeDownShow = false;
+        $scope.changeDown = function () {
+            $scope.changeDownShow = true;
+        }
+        $scope.changeDownLeave = function () {
+            $scope.changeDownShow = false;
+        }
+        $scope.changeVoiceShow = false;
+        $scope.changeVoice = function () {
+            $scope.changeVoiceShow = true;
+        }
+        $scope.changeVoiceLeave = function () {
+            $scope.changeVoiceShow = false;
+        }
+        $scope.canOderFlag = true;
+        $scope.canAckEvent = true;
+        $scope.canCloseEvent = true;
+        $scope.checkEventTicketAuthority = function () {
+            /*判断有没有权限派单、确认、关闭*/
+            OScreenService.checkLoginUserAuthority()
+                .success(function (result) {
+                    if (result.success) {
+                        if (result.data) {
+                            $scope.canOderFlag = result.data.ticket;
+                            $scope.canAckEvent = result.data.ackEvent;
+                            $scope.canCloseEvent = result.data.closeEvent;
+                        }
+                    }
+                }).error(function (err) {
+
+                });
+        }
+        $scope.checkEventTicketAuthority();
+        $scope.rightClickFn = function (ev, item, index) {
+            var e = ev || window.event;
+            var x = e.clientX;
+            var y = e.clientY;
+            var height = $(document.body).height();
+            var width = $(document.body).width();
+            $scope.selectBody(item);
+            $scope.rightClickData = item;
+            $scope.rightClickIndex = index;
+            $('.rightClickBox').css('top', y);
+            $('.rightClickBox').css('left', x);
+            $('.makeFlag').css('left', '155px');
+            $('.makeRule').css('left', '155px');
+            $('.makeRule').css('top', '0');
+            $('.makeFlag').css('top', '0');
+            if (width - x < 155) {
+                $('.rightClickBox').css('left', width - 155);
+                $('.makeFlag').css('left', '-198px');
+                $('.makeRule').css('left', '-147px');
+            }
+            if (height - y < 452) {
+                $('.rightClickBox').css('top', height - 280 - (height - y));
+                $('.makeRule').css('top', '-227px');
+                $('.makeFlag').css('top', '-132px');
+            }
+            $('.rightClickBox').css('display', 'block');
+        }
+
+        $(document).on('click', function (ev) {
+
+            var ev = ev || window.event;
+            var target = ev.target || ev.srcElement;
+            if (!$(target).parents('#oscreenOperation').length && !$(target).hasClass('cloesOsFlag')) {
+                $scope.allTableDiffFlag = false;
+            }
+            if (!$(target).parents('.public-select-time').length && !$(target).hasClass('timeInput')) {
+                $('.select-time').hide();
+            }
+            if (!$(target).parents('.timeBox').length && !$(target).hasClass('timeBoxSelect')) {
+                $scope.selectTimeFl = false;
+                $scope.selectDefTimeFlag = false;
+            }
+            $scope.$emit('newDetailShow', false);
+            $scope.dataii.forEach(function (item1, index) {
+                item1.newDetailShow = false;
+            })
+        });
+        document.onmousedown = function (event) {
+            /*判断是否按这shift键*/
+            if ($(event.target).parents('.os-thead-wrap').length && event.shiftKey == 1) {
+                var selList = [];
+
+                var fileNodes = document.getElementsByTagName('tr');
+
+                for (var i = 0; i < fileNodes.length; i++) {
+
+                    if (fileNodes[i].className.indexOf('os-body') != -1) {
+
+                        fileNodes[i].className = 'os-body';
+
+                        selList.push(fileNodes[i]);
+
+                    }
+
+                }
+
+                var isSelect = true;
+
+                var evt = window.event || arguments[0];
+
+                var startX = (evt.x || evt.clientX);
+
+                var startY = (evt.y || evt.clientY);
+
+                var selDiv = document.createElement('div');
+
+                selDiv.style.cssText = 'position:absolute;width:0px;height:0px;font-size:0px;margin:0px;padding:0px;border:1px dashed #0099FF;background-color:#C3D5ED;z-index:1000;filter:alpha(opacity:60);opacity:0.6;display:none;';
+
+                selDiv.id = 'selectDiv';
+
+                document.body.appendChild(selDiv);
+
+                selDiv.style.left = startX + 'px';
+
+                selDiv.style.top = startY + 'px';
+
+                var _x = null;
+
+                var _y = null;
+
+                //clearEventBubble(evt);
+                document.onmousemove = function () {
+
+                    evt = window.event || arguments[0];
+
+                    if (isSelect) {
+
+                        if (selDiv.style.display == 'none') {
+
+                            selDiv.style.display = '';
+
+                        }
+
+                        _x = (evt.x || evt.clientX);
+
+                        _y = (evt.y || evt.clientY);
+
+                        selDiv.style.left = Math.min(_x, startX) + 'px';
+
+                        selDiv.style.top = Math.min(_y, startY) + 'px';
+
+                        selDiv.style.width = Math.abs(_x - startX) + 'px';
+
+                        selDiv.style.height = Math.abs(_y - startY) + 'px';
+
+                        // ---------------- 关键算法 ---------------------
+                        var winScroll = document.documentElement.scrollTop || document.body.scrollTop;
+                        var _l = selDiv.offsetLeft,
+                            _t = selDiv.offsetTop;
+
+                        var _w = selDiv.offsetWidth,
+                            _h = selDiv.offsetHeight;
+
+                        for (var i = 0; i < selList.length; i++) {
+
+                            var sl = selList[i].offsetWidth + selList[i].offsetLeft;
+                            var st = selList[i].offsetHeight + (selList[i].offsetTop + 60 - $('.oscreen_table_box').scrollTop());
+
+                            if (sl > _l && st > _t && selList[i].offsetLeft < _l + _w && selList[i].offsetTop + 60 - $('.oscreen_table_box').scrollTop() < _t + _h) {
+
+                                if (selList[i].className.indexOf('seled') == -1) {
+
+                                    selList[i].className = selList[i].className + ' seled';
+
+                                }
+
+                            } else {
+
+                                if (selList[i].className.indexOf('seled') != -1) {
+
+                                    selList[i].className = 'os-body';
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    //clearEventBubble(evt);
+
+                }
+
+                document.onmouseup = function () {
+                    isSelect = false;
+
+                    if (selDiv) {
+
+                        document.body.removeChild(selDiv);
+
+                        showSelDiv(selList);
+
+                    }
+
+                    selList = null, _x = null, _y = null, selDiv = null, startX = null, startY = null, evt = null;
+
+                }
+            }
+
+        }
+        function clearEventBubble(evt) {
+
+            if (evt.stopPropagation)
+
+                evt.stopPropagation();
+
+            else
+
+                evt.cancelBubble = true;
+
+            if (evt.preventDefault)
+
+                evt.preventDefault();
+
+            else
+
+                evt.returnValue = false;
+
+        }
+
+        function showSelDiv(arr) {
+
+            var count = 0
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i].className.indexOf('seled') != -1) {
+                    count++;
+                    $scope.dataii.forEach(function (d, index) {
+                        if (d.SERIAL == $(arr[i]).attr('alarmSerial')) {
+                            d.check = true;
+                        }
+                    })
+                }
+
+            }
+
+
+            //Unit.success(L.get('COMMON_ALREADY') + ' ' + count + ' ' + L.get('COMMON_CAVEAT'))
+            Unit.success(L.get('EMV_YOU_HAVE_SELECTED_AN_ALARM', { x: count }));
+            $scope.fnCheckId();
+            $scope.getCheckItem();
+            $scope.setSelectStorage();
+
+
+        }
+
+        /*app*/
+        $scope.showAddApp = function (e) {
+            e && e.stopPropagation();
+            $scope.showAddAppFlag = !$scope.showAddAppFlag;
+        }
+        $scope.appStatus = {};
+        $scope.appMouseOver = function (status) {
+            status.overFlag = true;
+        }
+        $scope.appMouseLeave = function (status) {
+            status.overFlag = false;
+
+        }
+        /*关注*/
+        $scope.startApp = function (e, item) {
+            var confirmType = e.target.dataset.confirmType;
+            if (confirmType === 'delete') {
+                return false;
+            }
+            if ($scope.allStarApp.length >= 3) {
+                Unit.error(L.get('EMV_FOCUS_ON_THREE_APPS'));
+                //Unit.error(L.get('COMMON_FOLLOWING_FAILED'))
+                return false;
+            }
+            OScreenService.appSupermarketStar({ 'id': item.id })
+                .success(function (result) {
+                    if (result.success) {
+                        $scope.loadStartApp();
+                    } else {
+                        Unit.error(L.get('COMMON_FOLLOWING_FAILED'))
+                    }
+                }).error(function (err) {
+
+                });
+        }
+        /*取消关注*/
+        $scope.unStartApp = function (item) {
+            OScreenService.appSupermarketUnStar({ 'id': item.id })
+                .success(function (result) {
+                    if (result.success) {
+                        $scope.loadStartApp();
+                    } else {
+                        Unit.error(L.get('EMV_UNFOLLOW_FAILURE'));
+
+                    }
+                }).error(function (err) {
+
+                });
+        }
+        /*获取所有星标应用*/
+        $scope.loadStartApp = function (item) {
+            OScreenService.appSupermarketGetStarApp()
+                .success(function (result) {
+                    if (result.success) {
+                        if (result.data) {
+                            $scope.allStarApp = result.data
+
+                        }
+                    }
+                }).error(function (err) {
+
+                });
+        }
+        $scope.loadStartApp();
+        //影响
+        $scope.goToEffect = function (e, item) {
+            var confirmType = e.target.dataset.confirmType;
+            //alert(confirmType)
+            switch (confirmType) {
+                case 'partial':
+                    if (!$scope.checkItemVal.length) {
+                        if (item.CINAME) {
+                            $scope.getJumpFn(item);
+                        } else {
+                            Unit.error(L.get('EMV_CAN_NOT_IMPACT_ANALYSIS'));
+                        }
+
+                    } else {
+                        $scope.getJumpFn();
+                    }
+                    break;
+                case 'global':
+                    if (!$scope.checkItemVal.length) {
+                        Unit.error(L.get('EMV_PLEASE_SELECT_AN_ALARM_EVENT'))
+                        return false;
+                    }
+                    $scope.getJumpFn();
+                    break;
+            }
+
+        }
+        //影响范围
+        $scope.openFriendFunR = function (item) {
+            if (typeof (item) == 'object' && Object.keys(item).length > 0) {
+                var sendP = {
+                    ciName: item.CINAME
+                }
+                MonitoringService.influenceAnalyzeParam(sendP).success(function (data) {
+                    if (data.success) {
+                        if (data.data.defId) {
+                            var param = '?ciId=' + item.ciid;
+                            var code = "0309";
+                            var url = '/monitor-web/cmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&freedomUrl=' + param;
+                            window.open(url);
+
+                        } else {
+                            Unit.error(L.get('EMV_NO_ASSOCIATED_EFFECT'));
+                        }
+
+                    } else {
+                        Unit.error(L.get('EMV_NO_ASSOCIATED_CI'));
+
+                    }
+
+                }).error(function () {
+                    console.log('500')
+                });
+
+                return false;
+            } else {
+                Unit.error(L.get('EMV_DATA_HAS_A_PROBLEM'))
+            }
+        }
+
+        $scope.goStarLink = function (e, item) {
+            var confirmType = e.target.dataset.confirmType;
+            var url;
+            var code;
+            var param;
+            e.stopPropagation();
+            if (confirmType === 'delete') {
+                return false;
+            }
+            if (item.id === 1) {//影响分析
+                if (!$scope.checkItemVal.length) {
+                    Unit.error(L.get('EMV_PLEASE_SELECT_AN_ALARM_EVENT'))
+                    return false;
+                }
+                $scope.getJumpFn();
+            } else if (item.id === 2) {//应用墙
+                try {
+                    param = encodeURIComponent(JSON.stringify({ type: 'wall' }))
+                    code = '0417';
+                    url = '/monitor-web/dmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&param=option=' + param;
+                    window.open(url);
+                } catch (e) {
+                    console.log(e.message);
+                }
+
+            } else if (item.id === 3) {//应用环图
+                if ($scope.appCircleText == '应用环图' || $scope.appCircleText == L.get('EMV_APPLICATION_RING_DIAGRAM')) {
+                    try {
+                        param = encodeURIComponent(JSON.stringify({ type: 'circle' }))
+                        code = '0417';
+                        url = '/monitor-web/dmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&param=option=' + param;
+                    } catch (e) {
+                        console.log(e.message);
+                    }
+                } else {
+                    code = '0409';
+                    url = '/monitor-web/dmv/integration/page/jumpout/' + code + '?freedomUrl=/' + $scope.appCircleId + '&token=' + $cookies.get('token');
+
+                }
+                window.open(url);
+            } else if (item.id === 4) {
+                url = $state.href('tarsier.monitoring.monitorDuty', {}, { reload: true });
+                window.open(url, '_blank')
+            } else {
+                window.open(item.url);
+            }
+        }
+        /*获取应用列表*/
+        $scope.loadAppList = function () {
+            OScreenService.appSuperMarketQueryAll()
+                .success(function (result) {
+                    if (result.success) {
+                        if (result.data) {
+                            $scope.appListAry = result.data;
+                        }
+                    }
+                }).error(function (err) {
+
+                });
+        }
+        /*删除应用*/
+        $scope.deleteApp = function (item) {
+            OScreenService.appSuperMarketRemoveById({ 'id': item.id })
+                .success(function (result) {
+                    if (result.success) {
+                        $scope.loadAppList();
+                        $scope.loadStartApp();
+                        Unit.success(L.get('COMMON_SUCCESSFULLY_DELETED'));
+                    } else {
+                        Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+                    }
+                }).error(function (err) {
+                    Unit.error(L.get('EMV_INTERFACE_REQUEST_FAILED'));
+                });
+        }
+        $scope.loadAppList();
+        /*应用商店添加应用*/
+        $scope.addAppStore = function () {
+            $uibModal.open({
+                size: 'addApp',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/addApps.html',
+                controller: 'addAppsCtrol',
+                resolve: {
+                    fn: function () {
+                        return function () {
+                            $scope.loadAppList();
+                        };
+                    },
+
+
+                }
+            });
+        }
+        //创建规则
+        $scope.ruleTypes = [
+            {
+                name: L.get('EMV_RICH'),
+                //name: '丰富',
+                ruleType: 12
+            },
+            {
+                name: L.get('EMV_STANDARDIZATION'),
+                //name: '标准化',
+                ruleType: 1
+            },
+            {
+                name: L.get('EMV_RECLASSIFICATION'),
+                //name: '重定级',
+                ruleType: 14
+            },
+            {
+                name: L.get('COMMON_FILTER'),
+                //name: '过滤',
+                ruleType: 2
+            },
+            {
+                name: L.get('EMV_COMPRESSION'),
+                //name: '压缩',
+                ruleType: 3
+            },
+            {
+                name: L.get('EMV_NOTIFICATION'),
+                //name: '通知',
+                ruleType: 6
+            },
+            {
+                name: L.get('EMV_UPGRADE'),
+                //name: '升级',
+                ruleType: 4
+            },
+            {
+                name: L.get('EMV_CLEAN_UP'),
+                //name: '清理',
+                ruleType: 5
+            },
+            {
+                name: L.get('COMMON_WORK_ORDER'),
+                //name: '工单',
+                ruleType: 7
+            },
+        ];
+        $scope.goMarkRule = function (e, rule, rightClickData) {
+            $uibModal.open({
+                size: 'oSreenCreatRule',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/oSreenCreatRule.html',
+                controller: 'osreenCreatRuleCtrl',
+                resolve: {
+                    rule: function () {
+                        return rule;
+                    },
+                    item: function () {
+                        return rightClickData;
+                    }
+
+                }
+            });
+        }
+
+    }]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('monitor.current'));

@@ -1,0 +1,74 @@
+(function(graph, self) {
+
+    'use strict';
+
+    graph.app.factory('oScreenConst', [function() {
+        var o = {};
+        o.getOScreenListTitle = function(){
+            var _o = [
+                {name:'STATUS',colTitle:'STATUS'},
+                {name:'SEVERITY',colTitle:'SEVERITY'},
+                {name:'IDENTIFIER',colTitle:'IDENTIFIER'},
+                {name:'SERIAL',colTitle:'SERIAL'},
+                {name:'SUMMARY',colTitle:'SUMMARY'},
+                {name:'SOURCEID',colTitle:'SOURCEID'},
+                {name:'FIRSTOCCURRENCE',colTitle:'FIRSTOCCURRENCE'},
+                {name:'LASTOCCURRENCE',colTitle:'LASTOCCURRENCE'}
+            ];
+            return _o;
+        }
+        o.getOScreenList = function(){
+            var _o = [
+                {
+                    IFNOTIFY:'已通知',
+                    SEVERITY:'重要',
+                    IDENTIFIER:'IDENTIFIER',
+                    SERIAL:'SERIAL',
+                    SUMMARY:'SUMMARY',
+                    SOURCEID:'SOURCEID',
+                    FIRSTOCCURRENCE:'2017/01/02 11:30:20',
+                    LASTOCCURRENCE:'2017/01/02 13:30:50',
+                },{
+                    IFNOTIFY:'已通知',
+                    SEVERITY:'警告',
+                    IDENTIFIER:'IDENTIFIER',
+                    SERIAL:'SERIAL',
+                    SUMMARY:'SUMMARY',
+                    SOURCEID:'SOURCEID',
+                    FIRSTOCCURRENCE:'2017/01/02 12:30:20',
+                    LASTOCCURRENCE:'2017/01/02 19:35:20',
+                },{
+                    IFNOTIFY:'已通知',
+                    SEVERITY:'清除',
+                    IDENTIFIER:'可莱丝发；风口浪尖反倒是啦；解放路；大家疯狂的解放路口；安静发；按时交付； 积分；按时间副书记达力芬空间登录',
+                    SERIAL:'SERIAL',
+                    SUMMARY:'SUMMARY',
+                    SOURCEID:'SOURCEID',
+                    FIRSTOCCURRENCE:'2017/01/02 13:30:20',
+                    LASTOCCURRENCE:'2017/01/02 13:50:20',
+                },{
+                    IFNOTIFY:'未通知',
+                    SEVERITY:'未定级',
+                    IDENTIFIER:'IDENTIFIER',
+                    SERIAL:'SERIAL',
+                    SUMMARY:'SUMMARY',
+                    SOURCEID:'SOURCEID',
+                    FIRSTOCCURRENCE:'2017/01/02 14:10:20',
+                    LASTOCCURRENCE:'2017/01/02 15:30:20',
+                },{
+                    IFNOTIFY:'未通知',
+                    SEVERITY:'次要',
+                    IDENTIFIER:'IDENTIFIER',
+                    SERIAL:'SERIAL',
+                    SUMMARY:'SUMMARY',
+                    SOURCEID:'SOURCEID',
+                    FIRSTOCCURRENCE:'2017/01/02 15:30:20',
+                    LASTOCCURRENCE:'2017/01/02 17:39:20',
+                }
+            ];
+            return _o;
+        }
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('monitor.current'));

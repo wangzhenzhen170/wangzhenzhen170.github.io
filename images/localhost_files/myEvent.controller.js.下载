@@ -1,0 +1,76 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalMyEventCtrl', ['$scope', '$uibModalInstance', 'CiMonitorService', 'serial', function($scope, $uibModalInstance, CiMonitorService, serial){
+
+		$scope.$modal = $uibModalInstance;
+
+		$scope.showBaseEvent = function() {
+			CiMonitorService.getEvent(serial).success(function(result) {
+				$scope.baseEvent = result.data;
+			});
+		};
+
+		$scope.showConfig = function() {
+			CiMonitorService.getEventConfig({'serial':serial}).success(function(result) {
+				$scope.eventConfig = result.data;
+			});
+		};
+
+		$scope.showPerf = function() {
+			CiMonitorService.getPerf({'serial': serial}).success(function (result) {
+				$scope.perfTitles = result.col;
+				var dataObj = result.data.data;
+				var dataArr = [];
+				if (dataObj === undefined) {
+					return;
+				}
+				$.each(dataObj, function () {
+					dataArr.push({
+						label: this.label.split(' ')[1],
+						y: parseFloat(this.value)
+					});
+				});
+				dataArr.reverse();
+				var chart = new CanvasJS.Chart($('.myevent-perf-chart')[0], {
+					zoomEnabled: true,
+					animationEnabled: true,
+					data: [
+						{
+							type: 'line',
+							dataPoints: dataArr
+						}
+					],
+					height: 320
+				});
+				chart.render();
+			});
+		};
+
+		$scope.showOperation = function() {
+			CiMonitorService.getOperation({'serial':serial}).success(function(result) {
+				$scope.operation = result.data;
+			});
+		};
+
+		$scope.showDuplicateEvent = function() {
+			CiMonitorService.getDuplicateEvent({'serial':serial}).success(function(result) {
+				var data = result.data;
+				$scope.titles = data.title;
+				$scope.duplicateEvents = [];
+				for (var i in data.data) {
+					var row = [];
+					var ev = data.data[i];
+					for (var j in $scope.titles) {
+						row.push(ev[$scope.titles[j]]);
+					}
+					$scope.duplicateEvents.push(row);
+				}
+			});
+		};
+	}]);
+
+
+})(nameSpace.reg('graph'));

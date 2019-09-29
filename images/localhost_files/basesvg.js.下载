@@ -1,0 +1,538 @@
+(function() {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('_emxBaseSvg', ['_emxBaseEffect', 'emxEffectObject', function(_emxBaseEffect, emxEffectObject) {
+
+
+        emxEffectObject.svgFilters || (emxEffectObject.svgFilters = {});
+
+        var svgFILTERS = emxEffectObject.svgFilters;
+        /**
+         * 基于SVG标签创建效果
+         * 生成效果时动态生成相应的svg标签内容，并将其放入cell对应的node内
+         * 通过改变svg标签的属性改变其状态，展现需要的效果
+         */
+
+
+
+        /**
+         * @class BaseSvgEffect
+         *  基于svg效果的基础类
+         *  提供动态生成svg标签等基本功能
+         */
+        return _emxBaseEffect.extend({
+            IDPRE: 'celleffect_',
+
+
+            /**
+             * 初始化
+             * @param {mxGraph} mxg - mxGraph实例
+             */
+            init: function(mxg) {
+                /**
+                 * 保留对mxGraph的引用
+                 */
+                this.mxg = mxg;
+
+                /**
+                 * 保存生成的cell的特效内容
+                 * {cell.id: SVGElement}
+                 */
+                this.cellEffects = {};
+
+                /**
+                 * 用于保存cell特效的参数
+                 */
+                this.cellParams = {};
+
+                /**
+                 * 保存生成的滤镜
+                 */
+                this.filters = {};
+
+                // 注册事件
+                //                this._regEventListener();
+            },
+
+            /**
+             * 注册一些事件监听，以便当视图发生变化时效果内容可同步更新
+             */
+            _regEventListener: function() {
+                if (this._have_reg_listener) return;
+
+                var that = this;
+                var ontransform = function() {
+                        that.onTransform && that.onTransform();
+                    }
+                    // 拖动画布移动时
+                this.mxg.view.addListener(mxEvent.TRANSLATE, ontransform);
+                // 缩放时
+                this.mxg.view.addListener(mxEvent.SCALE, ontransform);
+                this.mxg.view.addListener(mxEvent.SCALE_AND_TRANSLATE, ontransform);
+
+                // model 的 change事件
+                this.mxg.getModel().addListener(mxEvent.CHANGE, function(sender, evt) {
+                    var changes = evt.getProperty('edit').changes;
+                    that.onChange && that.onChange(changes);
+                });
+
+                this._have_reg_listener = true;
+            },
+
+            /**
+             * 当视图有变化时调用的方法
+             */
+            onChange: function(changes) {
+                this.syncAllEffect()
+            },
+
+            /**
+             * 当移动或缩放视图时调用的方法
+             */
+            onTransform: function() {
+                this.syncAllEffect();
+            },
+
+            /**
+             * 执行动画时每帧调用的方法
+             */
+            update: function() {
+
+            },
+
+            /**
+             * 执行动画，调用update方法
+             */
+            _doAnimate: function(t) {
+                var that = this;
+                this._animate_lasttime_ = this._animate_lasttime_ ? this._animate_lasttime_ : t;
+                this.update(t, this._animate_lasttime_);
+                this._animate_lasttime_ = t;
+                if (this._runAnimate_) {
+                    this._animateId_ = window.requestAnimationFrame(function(t) {
+                        that._doAnimate(t);
+                    });
+                }
+            },
+
+            /**
+             * 开始执行动画效果
+             * @param {Number} duration - 动画循环周期
+             */
+            runAnimate: function(duration) {
+                // 先停止正在执行的动画
+                this.stopAnimate();
+                this._animate_duration_ = duration || 500;
+                this._runAnimate_ = true;
+                var that = this;
+                this._animateId_ = window.requestAnimationFrame(function(t) {
+                    that._doAnimate(t);
+                });
+            },
+
+            /**
+             * 停止动画效果
+             */
+            stopAnimate: function() {
+                this._runAnimate_ = false;
+                this._animate_lasttime_ = null;
+                this._animateId_ && window.cancelAnimationFrame(this._animateId_);
+            },
+
+            /**
+             * 对Cell生成相应效果
+             * 子类应该实现该方法的内容
+             * @param {mxCell|Array<mxCell>} cell - 需要展示效果的mxCell实例，子类实现的方法需要保证这个是第一个参数
+             */
+            createEffect: function(cell) {
+                cell = cell instanceof Array ? cell : [cell];
+                var args = Array.prototype.slice.call(arguments),
+                    c;
+                for (var i in cell) {
+                    c = this.getCell(cell[i]);
+                    if (!c || !c.id) continue;
+
+                    args[0] = c;
+                    this.createOneEffect.apply(this, args);
+                }
+            },
+
+            /**
+             * 针对一个cell创建效果
+             * 子类直接实现该方法
+             */
+            createOneEffect: function(cell) {
+                this.pushToCell(cell);
+            },
+
+            /**
+             * 同步改变效果
+             * 当前cell状态改变时（缩放，位移等)，对应更新其效果内容
+             */
+            syncEffect: function(cell) {
+                this.syncOpacity(cell);
+            },
+
+            /**
+             * 同步元素的透明度到效果元素上
+             * @param {mxCell} cell - mxCell实例或ID
+             */
+            syncOpacity: function(cell) {
+                var state = this.getCellState(cell);
+                if (state && state.style) {
+                    // mxGraph用0到100表示不透明度
+                    var opacity = state.style.opacity == void 0 ? 1 : state.style.opacity / 100;
+                    var node = this.getEffectNode(cell);
+                    if (node) {
+                        this.attr(node, 'opacity', opacity);
+                    }
+                }
+            },
+
+            syncAllEffect: function() {
+                var efs = this.cellEffects;
+                for (var i in efs) {
+                    this.syncEffect(i);
+                }
+            },
+
+            /**
+             * 生成svg标签
+             * @param {String} name - 标签名，path, g, rect 等
+             * @return {Node} - 返回创建的节点对象
+             */
+            createSvg: function(name, attrs, text) {
+                var node = document.createElementNS(mxConstants.NS_SVG, name);
+                attrs && this.attr(node, attrs);
+                text && (node.textContent = text);
+
+                return node;
+            },
+
+            getCell: function(cell) {
+                return typeof cell === "string" ? this.mxg.getModel().cells[cell] : cell;
+            },
+
+            /**
+             * 获取cell的State
+             * @param {mxCell|String} cell - mxCell 实例 或 cell实例ID
+             * @return {mxCellState} - 返回cell的state或null
+             */
+            getCellState: function(cell) {
+                cell = this.getCell(cell);
+                return cell ? this.mxg.getView().getState(cell) : null;
+            },
+
+            /**
+             * 获取cell对应的图中的svg节点，通常是一个g元素
+             * @param {mxCell|String} cell
+             *
+             * @return {SVGElementNode}
+             */
+            getCellNode: function(cell) {
+                var state = this.getCellState(cell);
+
+                return state && state.shape ? state.shape.node : null;
+            },
+
+            /**
+             * 把svg元素放置到Cell形状的后面
+             * @param {SVGElement} svgEl - svg元素
+             * @param {mxCell|String} cell - mxCell实例或cell的ID
+             * @param {Boolean} cloneGeo - 是否使用cell的geoo数据
+             *
+             * @return {SVGElement} 返回传入的svg元素
+             */
+            toCellBack: function(svgEl, cell, cloneGeo) {
+                var state = this.getCellState(cell)
+                if (state) {
+                    cloneGeo && this.attr(svgEl, this.getCellGeo(cell));
+                    var node = state.shape.node;
+                    node.insertBefore(svgEl, node.firstChild);
+                }
+
+                return svgEl;
+            },
+
+            /**
+             * 把svg元素放置到cell形状的前面，即遮挡cell
+             * @param {SVGElement} svgEl - svg元素
+             * @param {mxCell|String} cell - mxCell的实例或cell的ID
+             * @param {Boolean} cloneGeo - 是否使用cell的geoo数据
+             *
+             * @return {SVGElement} 返回传入的svg元素
+             */
+            toCellFront: function(svgEl, cell, cloneGeo) {
+                var state = this.getCellState(cell);
+                if (state) {
+                    cloneGeo && this.attr(svgEl, this.getCellGeo(cell));
+                    state.shape.node.appendChild(svgEl);
+                }
+
+                return svgEl;
+            },
+
+            /**
+             * 获取cell真实的边框
+             * 经过计算mxGraphView缩放与位移后得到cell的位置与宽高
+             * @param {mxCell|String} cell - mxCell实例或cell的ID
+             */
+            getCellGeo: function(cell) {
+                cell = this.getCell(cell);
+                var mxv = this.mxg.getView(),
+                    geo = cell.getGeometry(),
+                    root = this.mxg.getDefaultParent(),
+                    bound = {
+                        x: (geo.x + mxv.translate.x) * mxv.scale,
+                        y: (geo.y + mxv.translate.y) * mxv.scale,
+                        width: geo.width * mxv.scale,
+                        height: geo.height * mxv.scale
+                    };
+
+                var p = cell.parent;
+                while (p && p != root) {
+                    geo = p.getGeometry();
+                    bound.x += geo.x * mxv.scale;
+                    bound.y += geo.y * mxv.scale;
+
+                    p = p.parent;
+                }
+                return bound;
+            },
+
+            /**
+             * 设置或获取svg元素的属性
+             * @param {SVGElement} svgEl
+             * @param {String|Object} key - 属性名，或包含属性与值的键值对儿，如 {x: 100, y: 100}
+             * @param {Number|String} value - 属性值，当key为键值对儿时忽略该参数，否则当没有value则返回元素该属性当前的值
+             *
+             * @return {SVGElement|String} 设置属性值时返回SVG元素自身，否则返回对应属性值
+             */
+            attr: function(svgEl, key, value) {
+                if (typeof key === 'string' && value == null) return svgEl.getAttribute(key);
+                else if (typeof key === 'string') {
+                    svgEl.setAttribute(key, value);
+                } else if (typeof key === 'object') {
+                    for (var i in key) {
+                        svgEl.setAttribute(i, key[i])
+                    }
+                }
+
+                return svgEl;
+            },
+
+            /**
+             * 获取svg的defs节点，如果不存在则为svg创建一个
+             */
+            getDefs: function() {
+                var svgEl = this.mxg.view.getCanvas().parentNode;
+                var nodes = svgEl.childNodes;
+                for (var i in nodes) {
+                    if (nodes[i].nodeName === 'defs') return nodes[i];
+                }
+
+                // 不存在，创建一个defs
+                var defs = this.createSvg('defs');
+                svgEl.insertBefore(defs, svgEl.firstChild);
+
+                return defs;
+            },
+
+            /**
+             * 创建高斯模糊
+             * 生成的滤镜的id为: celleffect_blur_gauss_*
+             * id中的*为创建时传入的模糊程度数字
+             * @param {Number} dev - 模糊程度，默认为4。模糊程度超过7之后对于矩形等几何图形的效果可能不是非常好
+             *
+             * @return {String} 返回滤镜ID
+             */
+            _defGaussianBlur: function(dev) {
+                dev = +dev || 4;
+                var FLs = svgFILTERS;
+                var fid = this.IDPRE + 'blur_gauss_' + dev;
+                if (FLs[fid]) return fid;
+
+                // 把id保存到全局
+                FLs[fid] = fid;
+
+                var blur = document.getElementById(fid);
+                if (!blur) {
+                    var defs = this.getDefs();
+                    blur = this.createSvg('filter', {
+                        id: fid,
+                        filterUnits: "userSpaceOnUse"
+                    });
+                    blur.appendChild(this.createSvg('feGaussianBlur', {
+                        stdDeviation: dev
+                    }));
+                    defs.appendChild(blur);
+                }
+
+                return fid;
+            },
+
+            /**
+             * 创建线性渐变
+             * @param {String} id - 为该渐变的id属性值
+             * @param {Array<Array>} stops - [[offset, color, opacity], ...]
+             * @param {Boolean|Array<String>=false} vertical
+             *    - 是否垂直，默认为否即水平
+             *    - 可传入一个数组自定义渐变方向[x1, y1, x2, y2]
+             */
+            _defLinearGradient: function(id, stops, vertical) {
+                var fid = this.IDPRE + 'vlineargradient_' + id;
+                var FLs = svgFILTERS;
+                if (FLs[fid]) return fid;
+
+                // 把id保存到全局
+                FLs[fid] = fid;
+                var gradient = document.getElementById(fid);
+                if (!gradient) {
+                    var defs = this.getDefs(),
+                        direction;
+
+                    if (vertical instanceof Array) {
+                        direction = {
+                            x1: vertical[0],
+                            y1: vertical[1],
+                            x2: vertical[2],
+                            y2: vertical[3]
+                        }
+                    } else {
+                        vertical = !!vertical;
+                        direction = {
+                            x1: '0%',
+                            y1: '0%',
+                            x2: vertical ? '0%' : '100%',
+                            y2: vertical ? '100%' : '0%'
+                        }
+                    }
+
+                    gradient = this.createSvg('linearGradient', {
+                        id: fid
+                    });
+                    this.attr(gradient, direction);
+                    for (var i in stops) {
+                        gradient.appendChild(this.createSvg('stop', {
+                            offset: stops[i][0],
+                            'stop-color': stops[i][1],
+                            'stop-opacity': stops[i][2] || 1
+                        }));
+
+                    }
+                    defs.appendChild(gradient);
+                }
+
+                return fid;
+            },
+
+
+            /**
+             *   设置图片颜色
+             * @param id
+             * @param values
+             * @private
+             */
+            _setImageColor: function(id, values){
+                var fid = this.IDPRE + 'imageColor_' + id;
+                var FLs = svgFILTERS;
+                if (FLs[fid]) return fid;
+                FLs[fid] = fid;
+                var feColorMatrix = document.getElementById(fid);
+
+                if (!feColorMatrix) {
+                    var defs = this.getDefs();
+
+                    feColorMatrix = this.createSvg('filter', {
+                        id: fid,
+                        filterUnits: "userSpaceOnUse"
+                    });
+
+                    feColorMatrix.appendChild(this.createSvg('feColorMatrix', {
+                        in:'SourceGraphic',
+                        type: 'matrix',
+                        values: values
+                    }));
+                    defs.appendChild(feColorMatrix);
+                }
+
+                return fid;
+            },
+
+            /**
+             * @param {mxCell|String} cell - 需要清除特效的cell, 如果为空则清空所有cell的特效
+             */
+            clear: function(cell) {
+                if (cell == null) {
+                    var efs = this.cellEffects;
+                    for (var i in efs) {
+                        //                efs[i].remove();
+                        efs[i].parentNode && efs[i].parentNode.removeChild(efs[i]);
+                        this.delFromCell(i)
+                        delete efs[i];
+                    }
+
+                    this.cellEffects = {};
+                } else {
+                    cell = this.getCell(cell);
+                    var svgel = this.cellEffects[cell.id];
+                    //            svgel && svgel.remove();
+                    svgel && svgel.parentNode && svgel.parentNode.removeChild(svgel);
+                    this.delFromCell(cell);
+                    delete this.cellEffects[cell.id];
+                }
+            },
+
+            /**
+             * 获取Cell的特效的node
+             * @param {mxCell} cell
+             */
+            getEffectNode: function(cell) {
+                cell = this.getCell(cell);
+                return cell ? this.cellEffects[cell.id] : null;
+            },
+
+            hide: function(cell) {
+                var node = this.getEffectNode(cell);
+                if (node) {
+                    this.attr(node, 'visibility', 'hidden');
+                }
+            },
+
+            show: function(cell) {
+                var node = this.getEffectNode(cell);
+                if (node) {
+                    this.attr(node, 'visibility', 'visible');
+                }
+            },
+
+            getViewScale: function() {
+                return this.mxg.view.scale;
+            },
+
+            // 使cell可以访问到特效对象
+            pushToCell: function(cell) {
+                var cell = this.getCell(cell);
+
+                cell.uEffects || (cell.uEffects = []);
+                if (cell.uEffects.indexOf(this) < 0) {
+                    cell.uEffects.push(this);
+                }
+            },
+
+            // 取消cell对特效对象的访问
+            delFromCell: function(cell) {
+                var cell = this.getCell(cell);
+
+                if (!cell.uEffects) return;
+
+                var i = cell.uEffects.indexOf(this);
+                if (i >= 0) {
+                    cell.uEffects.splice(i, 1);
+                }
+            }
+        });
+
+
+    }]);
+})();

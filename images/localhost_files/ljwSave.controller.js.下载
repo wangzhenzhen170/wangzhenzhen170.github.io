@@ -1,0 +1,331 @@
+window.callback = function() {
+    console.log(34);
+};
+
+((function() {
+    'use strict';
+
+    var controller = function($scope, $uibModalInstance, editor, GraphViewtree, ViewService, Unit, UserInfo, $state, DiagramDiagramService, params, DiagramGroupService, configOptions) {
+        $scope.params = params || {};
+        $scope.position = {};
+
+        var userInfo = UserInfo.get();
+
+        $scope.view = {
+            name: editor.state.view ? editor.state.view.name : '视图1',
+            description: editor.state.view ? editor.state.view.description : '',
+            categoryId: editor.state.view ? editor.state.view.categoryId : '',
+            pos: ''
+        };
+
+        $scope.isFromSaver = !!(editor.state.view && editor.state.view.id);
+
+        $scope.isShowLoading = false;
+        $scope.title = graph.translate('SAVE_VIEW');
+        $scope.$modal = $uibModalInstance;
+
+        $scope.cancel = function() {
+            $uibModalInstance.close();
+        };
+
+        $scope.getSelectTreeInfoById = function(id) {
+            var i, len = $scope.treeListToArr.length,
+                res;
+            for (i = 0; i < len; i++) {
+                if ($scope.treeListToArr[i].id === id) {
+                    res = $scope.treeListToArr[i];
+                    break;
+                }
+            }
+
+            return res;
+        };
+
+        $scope.initData = function() {
+            $scope.view.name = editor.state.view.diagram.name + '-副本';
+            $scope.view.dese = editor.state.view.diagram.diagramDesc;
+
+            if (angular.isArray(editor.state.view.tags)) {
+                $scope.tags = [];
+                angular.forEach(editor.state.view.tags, function(item) {
+                    item.text = item.tagName;
+                    $scope.tags.push(item);
+                });
+            }
+        };
+
+        $scope.initMine = function() {
+            $scope.position.categoryNode = $scope.getSelectTreeInfoById(editor.state.view.diagram.dirId) || null;
+        };
+
+        $scope.initTeam = function() {
+
+        };
+
+        $scope.ok = function(isSaveAs) {
+            // console.log(editor.action.getCisId());
+            // console.log(editor.action.getTagsId());
+
+            var diagramEles = [];
+
+            angular.forEach(editor.action.getCisIdByCiId(), function(id) {
+                diagramEles.push({
+                    eleType: 1,
+                    eleId: id
+                });
+            });
+
+            angular.forEach(editor.action.getTagsId(), function(id) {
+
+                diagramEles.push({
+                    eleType: 2,
+                    eleId: id
+                });
+            });
+
+            var data = {
+                svg: mxUtils.getXml(editor.graph.getSvg()),
+                xml: editor.action.getXml(),
+                diagram: {
+                    dirId: $scope.position.categoryNode && $scope.position.categoryNode.id !== undefined ? $scope.position.categoryNode.id : 0,
+                    isOpen: 0,
+                    diagramDesc: $scope.view.dese || '',
+                    name: $scope.view.name || '',
+                    status: 1,
+                    diagramType: 1
+                },
+                diagramEles: diagramEles,
+                tags: [],
+                // ci3dPoint: editor.graph.getJson()
+            };
+
+            try {
+                data.ci3dPoint = JSON.stringify(editor.graph.getJson());
+            }finally {
+
+            }
+
+            if (editor.graph.background) {
+                data.diagram.diagramBgCss = editor.graph.background;
+            }
+            if (editor.graph.backgroundImage) {
+                data.diagram.diagramBgImg = editor.graph.backgroundImage.src;
+            }
+            if (angular.isArray($scope.tags)) {
+                angular.forEach($scope.tags, function(item) {
+                    data.tags.push({
+                        tagName: item.text
+                    });
+                });
+            }
+
+            if ($scope.params.type === 'team') {
+                if (!$scope.params.id) {
+                    if ($scope.position.teamSelectId) {
+                        data.createGroupId = $scope.position.teamSelectId;
+                    } else if ($scope.params.teamid) {
+                        data.createGroupId = $scope.params.teamid;
+                    }
+                }
+            }
+
+            if ($scope.params.id && !configOptions.as) {
+                data.diagram.id = $scope.params.id;
+            }
+
+            if (!data.diagram.name) {
+                return;
+            }
+
+            DiagramDiagramService.saveOrUpdateDiagram(data).success(function(res) {
+
+                if (!res.success) {
+                    Unit.error(res.message);
+                    return;
+                }
+                Unit.success('保存成功 !');
+                $scope.cancel();
+                // $scope.gotoEdit();
+                // window.opener.location.reload();
+                if (angular.isFunction(configOptions.clearCanvasFun)) {
+                    configOptions.clearCanvasFun();
+                } else {
+                    $scope.gotoEdit(res.data);
+                }
+
+                if (window.opener) {
+                    // window.opener.location.reload();
+                    // window.opener.focus();
+                    // window.opener.alert('');
+                    window.opener.focus();
+                    // window.close();
+                    if (typeof window.opener.callback === 'function') {
+                        window.opener.callback({
+                            newName: data.diagram.name,
+                            newDirId: data.diagram.dirId,
+                            diagramId: res.data
+                        });
+                    }
+                }
+            }).error(function() {
+                Unit.success('保存失败 !');
+            });
+            // if(asSave.as && $scope.params.id){
+            //    DiagramDiagramService.copyDiagramById({
+            //        newName: data.diagram.name,
+            //        newDirId: data.diagram.dirId,
+            //        diagramId: $scope.params.id
+            // 	}).success(function(res){
+            //        $scope.cancel();
+            //        $scope.gotoEdit($scope.params.id);
+            //    });
+            // }else {
+            //    DiagramDiagramService.saveOrUpdateDiagram(data).success(function(res){
+            //        $scope.cancel();
+            //        // $scope.gotoEdit();
+            //        // window.opener.location.reload();
+            //        $scope.gotoEdit(res.data);
+            //        if(window.opener){
+            //            // window.opener.location.reload();
+            //            // window.opener.focus();
+            //            // window.opener.alert('');
+            //            window.opener.focus();
+            //            // window.close();
+            //            if(typeof window.opener.callback === 'function'){
+            //                window.opener.callback({
+            //                    newName: data.diagram.name,
+            //                    newDirId: data.diagram.dirId,
+            //                    diagramId: res.data
+            // 				});
+            // 			}
+            //        }
+            //    });
+            // }
+        };
+
+        if ($scope.params.type === 'mine') {
+            DiagramDiagramService.queryDiagramDirTree({}).success(function(res) {
+
+                $scope.dataForTheTree = res.data;
+                if (!angular.isArray($scope.dataForTheTree)) {
+                    $scope.dataForTheTree = [];
+                }
+
+                $scope.dataForTheTree.unshift({
+                    dirName: "我的",
+                    id: 0,
+                    label: "我的",
+                    parentId: 0,
+                    iconHidden: true,
+                    _iconStyle_: {
+                        'background': 'none'
+                    }
+                });
+
+                $scope.position.categoryNode = $scope.dataForTheTree[0];
+                $scope.treeListToArr = [];
+
+                if (angular.isArray($scope.dataForTheTree)) {
+                    $scope.addTreeList($scope.dataForTheTree);
+                }
+
+                if (configOptions.as && $scope.params.id) {
+                    $scope.initData();
+                    // $scope.initMine();
+                }
+            });
+        } else if ($scope.params.type === 'team') {
+            DiagramGroupService.queryGroupList().success(function(result) {
+                $scope.dataForTheGroupList = result.data;
+                if (configOptions.as && $scope.params.id) {
+                    $scope.initData();
+                    $scope.initTeam();
+                }
+            });
+        }
+
+        $scope.gotoEdit = function(id) {
+            $state.go('canvas.edit.id', { id: id, type: $scope.params.type, teamid: $scope.params.teamid }, { reload: true, inherit: false });
+        };
+
+        $scope.addTreeList = function(arr) {
+            (function(list) {
+                angular.forEach(list, function(item) {
+                    if (item.children && item.children.length) {
+                        $scope.addTreeList(item.children);
+                        // delete $scope.treeListToArr[$scope.treeListToArr.length - 1].children;
+                    }
+
+                    $scope.treeListToArr.push(item);
+                });
+            })(arr);
+        };
+
+        $scope.selectTeam = function(item) {
+            $scope.isShowPath();
+            angular.forEach($scope.dataForTheGroupList, function(i) {
+                i.__active = false;
+            });
+
+            item.__active = true;
+            $scope.position.teamSelectName = item.groupName;
+            $scope.position.teamSelectId = item.id;
+        };
+
+        $scope.treeOptions = {
+            nodeChildren: "children",
+            dirSelectable: true,
+            templateUrl: 'canvas-tree-template.html',
+            // templateUrl: 'canvas-tree-template.html',
+            // injectClasses: {
+            // 	ul: "a1",
+            // 	li: "a2",
+            // 	liSelected: "a7",
+            // 	iExpanded: "a3",
+            // 	iCollapsed: "a4",
+            // 	iLeaf: "a5",
+            // 	label: "a6",
+            // 	labelSelected: "a8"
+            // }
+        };
+
+        $scope.selectPath = function(node) {
+            $scope.categoryName = node.label;
+        };
+
+        $scope.isShowPath = function() {
+            $scope.savePathShow = !$scope.savePathShow;
+        };
+
+        $scope.selectCategory = function(node) {
+            $scope.isShowPath();
+        };
+
+        $scope.hasClass = function(dom, list) {
+            var i, res;
+            for (i = 0; i < list.length; i++) {
+                if ($(dom).hasClass(list[i])) {
+                    res = true;
+                    break;
+                }
+            }
+
+            return res;
+        };
+
+        $scope.cancelTree = function(e) {
+            if (!$scope.hasClass(e.target, ['view-save-select-path', 'tree-label', 'tree-branch-head', 'tree-leaf-head', 'select-path-team', 'tree-show-title'])) {
+                if ($scope.savePathShow) {
+                    $scope.isShowPath();
+                }
+            }
+        };
+
+        $scope.a = function() {
+            console.log(324);
+        }
+    };
+
+    graph.app.controller('LjwModalViewSaveCtrl', ['$scope', '$uibModalInstance', 'editor', 'GraphViewtree', 'ViewService', 'Unit', 'UserInfo', '$state', 'DiagramDiagramService', 'params', 'DiagramGroupService', 'configOptions', controller]);
+
+})(nameSpace.reg('graph')));

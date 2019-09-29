@@ -1,0 +1,102 @@
+
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('eventAnalysisCtrl', ['$scope', '$cookies', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $cookies, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        var param;
+        var code = '0417';
+        $scope.myURL;
+        $scope.show = true;
+        $scope.leftCircle = true;
+        $scope.getCurUrl = function () {
+            try {
+                param = encodeURIComponent(JSON.stringify({ type: 'unitFrame', ciCodes: $scope.ciApplications, name: L.get('EMV_HOMOLOGY_ANALYSIS_DIAGRAM'), highlightCi: 1 }));
+                $scope.myURL = '/monitor-web/dmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&param=option=' + param;
+            } catch (e) {
+                console.log(e.message);
+            }
+        };
+        $scope.getCurUrl();
+        $scope.queryCiApplication = function () {
+            MonitoringService.queryCiApplication({ notNullColumn: 'ciapplication' }).success(function (result) {
+                if (result.success) {
+                    $scope.allApps = [];
+                    if (result !== null && typeof (result) === 'object' && Array.isArray(result.data) && result.data.length) {
+                        result.data.forEach(function (val) {
+                            var obj = {
+                                name: val
+                            };
+                            $scope.allApps.push(obj);
+                        });
+                    }
+                } else {
+                    Unit.error(L.get('EMV_FAILED_TO_GET_APPLICATION_LIST'));
+                }
+
+
+            }).error(function () {
+                Unit.error(L.get('EMV_FAILED_TO_GET_APPLICATION_LIST'));
+            });
+        };
+        $scope.queryCiApplication();
+
+        $scope.allAppFlag = false;
+        $scope.ciApplications = [];
+        $scope.ciApplicationIds = [];
+        $scope.isSelectAllApp = function () {
+            $scope.allAppFlag = !$scope.allAppFlag;
+            $scope.allApps.forEach(function (val) {
+                val.select = $scope.allAppFlag;
+                if ($scope.allAppFlag) {
+                    $scope.ciApplications.push(val.name);
+                } else {
+                    $scope.ciApplications = [];
+                }
+            });
+            $scope.getAppId();
+        };
+        $scope.toggleSelectApp = function (event, item) {
+            var e = event || window.event;
+            e.stopPropagation();
+            var index = $scope.ciApplications.indexOf(item.name);
+            if (index > -1) {
+                $scope.ciApplications.splice(index, 1);
+                $scope.ciApplicationIds.splice(index, 1);
+            } else {
+                $scope.ciApplications.push(item.name);
+            }
+            $scope.getAppId();
+            $scope.allAppFlag = $scope.ciApplications.length === $scope.allApps.length;
+            item.select = !item.select;
+
+        };
+        $scope.getAppId = function () {
+            MonitoringService.getCiCodeValuesByAttrList($scope.ciApplications).success(function (result) {
+                if (result.success) {
+                    $scope.ciApplicationIds = result.data;
+                    $scope.changeParms();
+                }
+
+            }).error(function () {
+            });
+        };
+        $scope.changeParms = function () {
+            var sendParm = JSON.stringify({ type: 'unitFrame', ciCodes: $scope.ciApplicationIds, name: L.get('EMV_HOMOLOGY_ANALYSIS_DIAGRAM'), highlightCi: 1 });
+            var iframeEl = document.getElementById('iframe1');
+            iframeEl.contentWindow.postMessage({ unitFrame: 1, params: sendParm }, '*');
+        };
+        $scope.changFn = function () {
+            var iframeE = document.getElementById('iframe1');
+            $scope.leftCircle = !$scope.leftCircle;
+            $scope.lightFlag = $scope.leftCircle ? 1 : 0;
+            iframeE.contentWindow.postMessage({ type: 'highlightPath', highlightPath: $scope.lightFlag }, '*');
+        };
+        $scope.isShowRight = function () {
+            $scope.show = !$scope.show;
+        };
+    }]);
+
+
+
+})(nameSpace.reg('graph'));

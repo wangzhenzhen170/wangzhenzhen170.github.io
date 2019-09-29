@@ -1,0 +1,14 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.directive('ngFocusMe', function() {
+		return function(scope, element) {
+			if(element.is(':visible')){
+				element.focus();
+			}
+		};
+	});
+
+})(nameSpace.reg('graph'));

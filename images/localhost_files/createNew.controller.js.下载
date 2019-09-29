@@ -1,0 +1,32 @@
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, editor,$state){
+
+		$scope.$modal = $uibModalInstance;
+
+		$scope.cancel = function(){
+			$uibModalInstance.close();
+			editor.graph.model.clear();
+			editor.action.syncGrid();
+
+			editor.graph.zoomActual();
+			editor.state.empty();
+			$state.go('canvas.edit', {type: $state.params.type, teamid: $state.params.teamid});
+		};
+
+		$scope.ok = function(){
+			$uibModalInstance.close();
+			editor.action.save();
+		};
+
+	};
+
+	graph.app.controller('ModalViewCreateNewCtrl', ['$scope', '$uibModalInstance', 'editor', '$state', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

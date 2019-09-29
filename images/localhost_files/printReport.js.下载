@@ -1,0 +1,338 @@
+(function (graph) {
+
+	'use strict';
+
+	graph.app.controller('printReportCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', '$compile', '$interval', 'Dialog', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams, $compile, $interval, Dialog) {
+        $scope.inspectionPerson = '';
+        $scope.printTextShowFlag = true;
+        
+        $scope.reportContentShowFlag = false;
+		$scope.reports = [];
+		$scope.ondutyDuration = $state.params.onDutyDuration;
+
+        $scope.report = {};
+		$scope.reportId = $state.params.reportId;
+		$scope.roomName = '';
+		$scope.roomCodes = [];
+		$scope.roomNames = [];
+		$scope.activeEvents = [];
+		$scope.closedEvents = [];
+		$scope.concerns = [];
+		$scope.otherConcerns = [];
+		$scope.concernsToday = [];
+		$scope.otherConcernsToday = [];
+		$scope.rooms = [];
+		$scope.concernTime = '';
+		$scope.concernTimeInputFlag = false;
+		$scope.concernTime = '';
+		$scope.concernDescInputFlag = false;
+		$scope.concernDesc = '';
+		$scope.checkRsFlag = false;
+		$scope.concernUploadFile = '';
+		$scope.showOtherEventsFlag = false;
+		$scope.otherActiveEvents = [];
+		$scope.otherClosedEvents = [];
+
+		//查询房间名称
+		$scope.getRoomNames = function () {
+			MonitoringService.queryRoomNames().success(function (result) {
+				if (result.data) {
+					$scope.roomNames = result.data;
+					//遍历次数
+					$scope.partSizeArr = new Array($scope.roomNames.length);
+					$scope.newReportConcerns = new Array($scope.roomNames.length);
+					$scope.newReportActiveEvents = new Array($scope.roomNames.length);
+					$scope.newReportActiveEvents = new Array($scope.roomNames.length);
+					$scope.concerns = new Array($scope.roomNames.length);
+					$scope.roomCodes = new Array($scope.roomNames.length);
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+
+
+		$scope.changeDeleteFlag = function () {
+			$scope.deleteFlag = true;
+		};
+
+		$scope.cancelDelete = function () {
+			$scope.deleteFlag = false;
+		};
+
+		//告警查询
+		$scope.queryEvents = function () {
+			MonitoringService.queryInspEvents({ serials: $scope.report.eventSerial }).success(function (result) {
+				// console.log($scope.report.eventSerial)
+				if (result.success) {
+					if (result.data) {
+						var events = result.data;
+						// console.log(events);
+						//var roomCodes = $scope.roomCodes.split('、');
+						var roomCodes = new Array($scope.roomCodes.length);
+						//console.log(roomCodes);
+						var notOtherFlag = false;
+						var acevents = [];
+						var acoevents = [];
+						for (var k = 0; k < events.length; k++) {
+							if ('roomid' in events[k]) {
+								for (var i = 0; i < $scope.roomCodes.length; i++) {
+									roomCodes[i] = $scope.roomCodes[i].split('、');
+									for (var j = 0; j < roomCodes[i].length; j++) {
+										if (events[k].roomid === roomCodes[i][j]) {
+											notOtherFlag = true;
+											acevents[i].push(events[k]);
+										}
+									}
+								}
+							}
+							if (!notOtherFlag) {
+								acoevents.push(events[k]);
+							}
+						}
+						$scope.activeEvents = acevents;
+						$scope.otherActiveEvents = acoevents;
+						$scope.changeOtherEventsFlag();
+
+					}
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+			MonitoringService.queryInspEvents({ serials: $scope.report.eventClosedSerial }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						var events = result.data;
+						// console.log(events);
+						//var roomCodes = $scope.roomCodes.split('、');
+						var roomCodes = new Array($scope.roomCodes.length);
+						// console.log(roomCodes);
+						var notOtherFlag = false;
+						var clevents = [];
+						var cloevents = [];
+						for (var k = 0; k < events.length; k++) {
+							if ('roomid' in events[k]) {
+								for (var i = 0; i < $scope.roomCodes.length; i++) {
+									roomCodes[i] = $scope.roomCodes[i].split('、');
+									for (var j = 0; j < roomCodes[i].length; j++) {
+										if (events[k].roomid === roomCodes[i][j]) {
+											notOtherFlag = true;
+											clevents[i].push(events[k]);
+										}
+									}
+								}
+							}
+							if (!notOtherFlag) {
+								// console.log(events.length)
+								cloevents.push(events[k]);
+							}
+						}
+						$scope.closedEvents = clevents;
+						$scope.otherClosedEvents = cloevents;
+						$scope.changeOtherEventsFlag();
+					}
+
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+
+		//根据报表时间查询关注事项
+		$scope.queryConcerns = function () {
+			MonitoringService.queryConcernsByReportTime({ reportId: $scope.report.id }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						var res = result.data;
+						for (var i = 0; i < res.length; i++) {
+							if (res[i].concernsTime) {
+								var cTime = res[i].concernsTime.toString();
+								// var concernsTime = cTime.substring(0, 4) + '/' + cTime.substring(4, 6) + '/' + cTime.substring(6, 8) + ' ' + cTime.substring(8, 10) + ':' + cTime.substring(10, 12);
+								var concernsTime = cTime.substring(4, 6) + '/' + cTime.substring(6, 8) + ' ' + cTime.substring(8, 10) + ':' + cTime.substring(10, 12);
+								res[i].concernsTime = concernsTime;
+							}
+						}
+						var notOtherFlag = false;
+						var roomCodes = new Array($scope.roomCodes.length);
+						var concernsArr = new Array($scope.roomCodes.length);
+						var otherConcernsArr = [];
+						for (var k = 0; k < res.length; k++) {
+							if ('roomCode' in res[k]) {
+								for (i = 0; i < $scope.roomCodes.length; i++) {
+									roomCodes[i] = $scope.roomCodes[i].split('、');
+									for (var j = 0; j < roomCodes[i].length; j++) {
+										if (res[k].roomCode === roomCodes[i][j]) {
+											notOtherFlag = true;
+											concernsArr[i].push(res[k]);
+										}
+									}
+								}
+							}
+							if (!notOtherFlag) {
+								otherConcernsArr.push(res[k]);
+							}
+						}
+
+						$scope.concerns = concernsArr;
+						$scope.otherConcerns = otherConcernsArr;
+					}
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+
+	
+
+		$scope.getRoomSources = function () {
+			MonitoringService.queryRooms().success(function (res) {
+				$scope.allRoomSourcesList = res.data;
+				$scope.allRoomSourcesList['其他'] = ['其他'];
+				$scope.allRoomSources = {}
+				Object.keys(res.data).forEach(function (i) {
+					$scope.allRoomSources[i] = '';
+					res.data[i].forEach(function (d, index) {
+						if (index === res.data[i].length - 1) {
+							$scope.allRoomSources[i] += d;
+						} else {
+							$scope.allRoomSources[i] = $scope.allRoomSources[i] + d + ',';
+						}
+
+					});
+				});
+				// console.log($scope.allRoomSourcesList);
+				// console.log($scope.allRoomSources)
+
+
+			}).error(function (error) {
+				console.log(error);
+			});
+		}
+		$scope.getRoomSources();
+		$scope.showReportContent = function () {
+            //点击报告
+            MonitoringService.queryInspReportById({ reportId: $scope.reportId }).success(function (res) {
+                // console.log(res);
+                $scope.handlingData(res);
+
+
+            }).error(function (error) {
+                console.log(error);
+            });
+        };
+        $scope.showReportContent();
+
+		$scope.handlingData = function (res, rooms) {
+			$scope.reportTitle = res.data.inspectionReportInfo.reportTitle;
+			$scope.inspectionPerson = res.data.inspectionReportInfo.inspectionPerson;
+			$scope.reportType = res.data.inspectionReportInfo.reportType;
+			$scope.allRoomData = [];
+			if (res.success) {
+				var allRoom = rooms || res.data.inspectionReportInfo.roomCode.split(',') || [];
+				allRoom.push('其他');
+				// console.log(allRoom);
+				var resData = res.data;
+				$scope.activeEventAry = [];
+				$scope.closedEventAry = [];
+				if (rooms) {
+					Object.keys(resData).forEach(function (i) {
+						if (i === 'activeEvents') {
+							Object.keys(resData[i]).forEach(function (d) {
+								resData[i][d].forEach(function (value) {
+									$scope.activeEventAry.push(value.serial);
+								});
+
+							});
+						}
+						if (i === 'closedEvents') {
+							Object.keys(resData[i]).forEach(function (d) {
+								resData[i][d].forEach(function (value) {
+									$scope.closedEventAry.push(value.serial);
+								});
+							});
+                        }
+					});
+					$scope.activeEventStr = $scope.activeEventAry.join(',');
+					$scope.closedEventStr = $scope.closedEventAry.join(',');
+				}
+
+				allRoom.forEach(function (room) {
+					var obj = {};
+
+					Object.keys(resData).forEach(function (i) {
+
+						room === '其他' && (obj.inspectionReportInfo = { roomCode: '其他' })
+						room !== '其他' && (obj.inspectionReportInfo = resData[i]);
+						if (i === 'concerns' || i === 'newConcerns') {
+							resData[i][room].forEach(function (r) {
+								// r.concernsTime = r.concernsTime.toString().substring(0, 4) + '/' + r.concernsTime.toString().substring(4, 6) + '/' + r.concernsTime.toString().substring(6, 8)
+								r.concernsTime = r = r.concernsTime.toString().substring(4, 6) + '/' + r.concernsTime.toString().substring(6, 8) + ' ' + r.concernsTime.toString().substring(8, 10) + ':' + r.concernsTime.toString().substring(10, 12);
+							});
+						}
+						i !== 'inspectionReportInfo' && (obj[i] = resData[i][room]);
+
+						//rooms && (obj.inspectionReportInfo = { roomCode: room })
+						obj.inspectionReportInfo = { roomCode: room }
+
+					});
+					$scope.allRoomData.push(obj);
+
+				});
+
+
+			}
+			console.log($scope.allRoomData)
+
+		}
+
+	
+		//根据房间名称查询房间
+		$scope.queryRoomsByName = function () {
+			// console.log($scope.report.roomCode);
+			var roomNames = $scope.report.roomCode.split(',');
+			var size = roomNames.length;
+			for (var i = 0; i < size; i++) {
+				MonitoringService.queryRoomsByName({ roomName: roomNames[i] }).success(function (result) {
+					if (result.success) {
+						$scope.roomCodes[i] = result.data.join('、');
+						$scope.rooms[i] = result.data;
+						$scope.roomNames[i] = result.data;
+						// var n = $scope.roomDefault.length;
+						// for( var i = 0; i<n; i++) {
+						// 	$scope.roomSel.push(result.data[0]);
+						// }
+						if ($scope.report.id === undefined) {
+							$scope.queryNewReportEvents();
+							$scope.queryOtherEvents();
+							$scope.queryNewReportConcerns();
+							$scope.queryConcernsToday();
+							$timeout(function () {
+								$scope.changeOtherEventsFlag();
+							}, 500);
+						}
+					}
+				}).error(function (error) {
+					console.log(error);
+				});
+			}
+		};
+
+		$scope.printData = function () {
+			// $scope.printTextShowFlag = false;		
+			var headstr = "<html><head><title></title></head><body>";
+			var footstr = "</body>";
+			var newstr = document.all.item('printData').innerHTML;
+			var oldstr = document.body.innerHTML;
+			document.body.innerHTML = headstr+newstr+footstr;
+			window.print(); 
+			document.body.innerHTML = oldstr;
+			//重新绑定事件	
+			document.getElementById('printClick').onclick = function () {
+				$scope.printData();
+			};
+		};
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

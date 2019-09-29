@@ -1,0 +1,98 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxContainerControl', ['_emxBaseControl',
+                                        'emxUtils',
+                                        function (uBaseControl, eu) {
+
+
+
+
+        /****************************************************************/
+
+        /**
+         * 容器展开合并的控制
+         */
+        function uContainerControl(mxg) {
+            uBaseControl.call(this, mxg);
+
+            this.bindEvent();
+        }
+
+        mxUtils.extend(uContainerControl, uBaseControl);
+
+        /**
+         * 绑定事件
+         */
+        uContainerControl.prototype.bindEvent = function () {
+            var mxg = this.mxg,
+                that = this;
+
+            mxg.addListener(mxEvent.CLICK, function (sender, evt) {
+                that.onClick(sender, evt);
+            });
+        };
+
+        /**
+         * 绘制控制点
+         */
+        uContainerControl.prototype.paint = function (state, canvas, x, y, w, h) {
+            // to-do 以后优化
+            var mxg = state.view.graph,
+                model = mxg.model,
+                iw, ih, ix, iy,
+                img, conState;
+
+            if (model.isCollapsed(state.cell)) {
+
+                img = eu.getIconUrl('collapsed.png');
+                conState = 'collapsed';
+
+            } else {
+
+                img = eu.getIconUrl('expanded.png');
+                conState = 'expanded';
+
+            }
+            canvas.save();
+            //To-Do 应该有一个getControlBounds方法
+            iw = ih = 18;
+            ix = x + w - iw - 5;
+            iy = y + 5;
+
+            canvas.setFillColor(state.style.uContainerControlBgColor || '#4551CD');
+            canvas.setStrokeWidth(0);
+            canvas.ellipse(ix, iy, iw, ih);
+            canvas.fill();
+
+            canvas.image(ix, iy, iw, ih, img);
+            canvas.root.lastChild.setAttribute('class', 'ucontrol-container pointer ' + conState);
+
+            canvas.restore();
+        }
+
+        uContainerControl.prototype.onClick = function (sender, evt) {
+            var cell = evt.getProperty('cell'),
+                event = evt.getProperty('event'),
+                mxg = this.mxg,
+                target;
+
+            if (cell) {
+                // 如果当前为指标模式，则根据点击的内容做相应的操作
+                target = event.target;
+                if ($(target).is('[class*=ucontrol-container]')) {
+                    // 如果点的是元素图标则变回图标模式
+                    if (mxg.isEnabled()) {
+                        var d = !mxg.isCellCollapsed(cell);
+                        mxg.foldCells(d, !1, [cell]);
+                    }
+                }
+            }
+        };
+
+//        // 清空mx自身的容器控制
+//        mxCellRenderer.prototype.createControl = function () {};
+
+        return uContainerControl;
+    }]);
+})();

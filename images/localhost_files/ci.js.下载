@@ -1,0 +1,88 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph) {
+
+    'use strict';
+
+    graph.app.service('DiagramCIService', ['$http', 'Unit', '$q', function($http, Unit, $q) {
+        var o = {};
+
+        o.queryPageByIndex = function(params) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ci/queryPageByIndex'), params, {
+                timeout: deferred.promise
+            });
+
+            $promise.cancel = function() {
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        o.queryList = function(data) {
+            return $http.post(Unit.diagramApi('/ci/queryList'), data);
+        };
+
+        o.queryListByTags = function(params) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ci/queryListByTags'), params, {
+                timeout: deferred.promise
+            });
+
+            $promise.cancel = function() {
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        o.queryPageByTags = function(params) {
+            return $http.post(Unit.diagramApi('/ci/queryPageByTags'), params);
+        };
+
+        o.queryCiGroupCountByTagIds = function(params) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ci/queryCiGroupCountByTagIds'), params, {
+                timeout: deferred.promise
+            });
+
+            $promise.cancel = function() {
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        o.queryById = function(params) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ci/queryById'), params, {
+                timeout: deferred.promise
+            });
+
+            $promise.cancel = function() {
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        o.saveOrUpdate = function(params) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ci/saveOrUpdate'), params, {
+                timeout: deferred.promise
+            });
+
+            $promise.cancel = function() {
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

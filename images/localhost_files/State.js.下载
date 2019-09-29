@@ -1,0 +1,26 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('GraphState', function(){
+
+		return function(){
+
+			this.setView = function(view){
+				this.view = view;
+			};
+
+			this.empty = function(){
+				this.view = null;
+			};
+
+			this.isShowGrid = true;
+			this.isAssistLine = true;
+			this.isAutoLayout = true;
+			this.isAutoLine = true;
+
+		};
+	});
+
+})(nameSpace.reg('graph'));

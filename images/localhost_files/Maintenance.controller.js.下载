@@ -1,0 +1,765 @@
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('MaintenanceCtrl', ['$scope', '$state', '$timeout', '$interval', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, $interval, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        $scope.stateParamsObj = {};
+        $scope.stateParamsObj = $stateParams;
+        $scope.typeName = L.get('EMV_MAINTENANCE_PERIOD_RULE_SETTING');
+        $scope.page = 1;
+        $scope.ruleType = 0;
+        //按周选择
+        $scope.weekArray = [{ dispaly: L.get('COMMON_SUNDAY'), value: 1 }, { dispaly: L.get('COMMON_MONDAY'), value: 2 }, { dispaly:  L.get('COMMON_TUESDAY'), value: 3 }, { dispaly: L.get('COMMON_WEDNESDAY'), value: 4 }, { dispaly: L.get('COMMON_THURSDAY'), value: 5 }, { dispaly: L.get('COMMON_FRIDAY'), value: 6 }, { dispaly: L.get('COMMON_SATURDAY'), value: 7 }, { value: 8 }, { value: 9 }, { value: 10 }, { value: 11 }, { value: 12 }, { value: 13 }, { value: 14 }, { value: 15 }, { value: 16 }, { value: 17 }, { value: 18 }, { value: 19 }, { value: 20 }, { value: 21 }, { value: 22 }, { value: 23 }, { value: 24 }, { value: 25 }, { value: 26 }, { value: 27 }, { value: 28 }, { value: 29 }, { value: 30 }, { value: 31 }];
+        $scope.weekArraydisplay = [{ dispaly: L.get('COMMON_SUNDAY'), value: 1 }, { dispaly: L.get('COMMON_MONDAY'), value: 2 }, { dispaly:  L.get('COMMON_TUESDAY'), value: 3 }, { dispaly: L.get('COMMON_WEDNESDAY'), value: 4 }, { dispaly: L.get('COMMON_THURSDAY'), value: 5 }, { dispaly: L.get('COMMON_FRIDAY'), value: 6 }, { dispaly:  L.get('COMMON_SATURDAY'), value: 7 }]
+        //按天选择
+        $scope.daysArray = [{ value: 1 }, { value: 2 }, { value: 3 }, { value: 4 }, { value: 5 }, { value: 6 }, { value: 7 }, { value: 8 }, { value: 9 }, { value: 10 }, { value: 11 }, { value: 12 }, { value: 13 }, { value: 14 }, { value: 15 }, { value: 16 }, { value: 17 }, { value: 18 }, { value: 19 }, { value: 20 }, { value: 21 }, { value: 22 }, { value: 23 }, { value: 24 }, { value: 25 }, { value: 26 }, { value: 27 }, { value: 28 }, { value: 29 }, { value: 30 }, { value: 31 }];
+        $scope.daysCheckArray = [];
+        $scope.checkNoFun = function () {
+            //$scope.daysCheckArray=[];
+            for (var i = 0; i < $scope.daysArray.length; i++) {
+                $scope.daysArray[i].checked = false;
+            }
+            for (var i = 0; i < $scope.weekArraydisplay.length; i++) {
+                $scope.weekArraydisplay[i].checked = false;
+            }
+			/*for(var i=0;i<$scope.monthArray.length;i++){
+				$scope.monthArray[i].checked=false;
+			}*/
+        };
+        //日期格式改变
+        $scope.dateformat = function (number) {
+            //debugger;
+            var string = '';
+            //number=parseInt(number)
+            if (number == '' || number == undefined) {
+                if (number == 0) {
+                    string = '00';
+                } else {
+                    string = '';
+                }
+
+            } else {
+                number = parseInt(number)
+
+                if (number < 10) {
+                    string = '0' + number;
+                } else {
+
+                    string = number.toString();
+                }
+            }
+
+
+
+
+            return string
+        };
+        $scope.crossday = 0;
+        //跨天按钮
+        $scope.crossDayFun = function () {
+            if ($scope.crossday == 1) {
+                $scope.crossday = 0;
+            } else {
+                $scope.crossday = 1;
+            }
+            $scope.ckeckLoopTime()
+        }
+        $scope.removeCheck = function () {
+            $('.select').removeClass('border-red').addClass('border-gray');
+        }
+        $scope.days = [];
+
+        //校验循环时间大小
+        $scope.ckeckLoopTime = function () {
+            if ($scope.checkBoxcheck != 0 && $scope.checkBoxcheck != 1 && $scope.days.length == 0) {
+                $('.select').removeClass('border-gray').addClass('border-red');
+                $scope.objs.startTimeHH = '';
+                $scope.objs.startTimeMM = '';
+                $scope.objs.endTimeHH = '';
+                $scope.objs.endTimeMM = '';
+                Unit.error(L.get('COMMON_PLEASE_SELECT_A_CYCLE_DATE'));
+                return false;
+            }
+            $scope.ckeckLoopTimeFlag = false;
+            $scope.LoopTimeStart = parseInt($scope.dateformat($scope.objs.startTimeHH).toString() + $scope.dateformat($scope.objs.startTimeMM).toString());
+            $scope.LoopTimeEnd = parseInt($scope.dateformat($scope.objs.endTimeHH).toString() + $scope.dateformat($scope.objs.endTimeMM).toString());
+            if ($scope.objs.startTimeHH && $scope.objs.startTimeMM && $scope.objs.endTimeHH && $scope.objs.endTimeMM) {
+                if ($scope.crossday == 0 && ($scope.LoopTimeStart > $scope.LoopTimeEnd)) {
+                    Unit.error(L.get('COMMON_NON_CROSS_DAY_START_CANNOT_MORE_THAN_END'))
+                    $scope.ckeckLoopTimeFlag = true;
+                    return false;
+                }
+                if ($scope.crossday == 1 && ($scope.LoopTimeStart < $scope.LoopTimeEnd)) {
+                  Unit.error(L.get('COMMON_START_CANNOT_LESS_THAN_END'))
+                    $scope.ckeckLoopTimeFlag = true;
+                    return false;
+
+                }
+            }
+
+
+
+
+        }
+        //获取开始时间字符串
+        $scope.onTimeSet1 = function (newDate) {
+            $scope.dateString = newDate;
+            var date = new Date($scope.dateString.substr(0, 4), parseInt($scope.dateString.substr(5, 2)) - 1, $scope.dateString.substr(8, 2), parseInt($scope.dateString.substr(11, 2)), parseInt($scope.dateString.substr(14, 2)));
+            $scope.dateStartCom = newDate.substr(0, 4).toString() + newDate.substr(5, 2).toString() + newDate.substr(8, 2).toString() + newDate.substr(11, 2).toString() + newDate.substr(14, 2).toString() + newDate.substr(17, 2).toString() + newDate.substr(20, 2).toString()
+
+            $scope.startTime = date.getTime();
+            if ($scope.dateStartCom > $scope.dateEndCom) {
+                Unit.error(L.get('EMV_START_TIME_CANNOT_BE_GREATER_THAN_END_TIME'))
+            }
+
+        }
+        //获取结束时间字符串
+        $scope.onTimeSet2 = function (newDate) {
+            $scope.dateString1 = newDate;
+            var date = new Date($scope.dateString1.substr(0, 4), parseInt($scope.dateString1.substr(5, 2)) - 1, $scope.dateString1.substr(8, 2), parseInt($scope.dateString1.substr(11, 2)), parseInt($scope.dateString1.substr(14, 2)));
+            $scope.dateEndCom = newDate.substr(0, 4).toString() + newDate.substr(5, 2).toString() + newDate.substr(8, 2).toString() + newDate.substr(11, 2).toString() + newDate.substr(14, 2).toString() + newDate.substr(17, 2).toString() + newDate.substr(20, 2).toString()
+            $scope.endTime = date.getTime();
+
+            if ($scope.dateStartCom > $scope.dateEndCom) {
+                Unit.error(L.get('EMV_START_TIME_CANNOT_BE_GREATER_THAN_END_TIME'))
+            }
+
+        }
+        //获取选中的日期
+        $scope.getDaysFun = function (arr) {
+            $scope.days = [];
+            $.each(arr, function (index, item) {
+                if (item.checked == true) {
+                    $scope.days.push(item.value)
+                }
+
+            })
+
+        }
+        //获取日期数组
+        $scope.getDayFun = function () {
+            $scope.daysTitleString = [];
+            $scope.weekTitleString = [];
+            $scope.days = [];
+            $.each($scope.weekArraydisplay, function (index, item) {
+                if (item.checked == true) {
+                    $scope.weekTitleString.push(item.display);
+                    $scope.days.push(item.value);
+                }
+            })
+            $.each($scope.daysArray, function (index, item) {
+                if (item.checked == true) {
+                    $scope.daysTitleString.push(item.value + L.get('EMV_DAY_OF_MONTH'));
+                    $scope.days.push(item.value);
+                }
+            })
+            $scope.daysTitleString = $scope.daysTitleString.join(',');
+            $scope.weekTitleString = $scope.weekTitleString.join(',');
+
+        }
+
+
+        $scope.checkBoxcheck = 0;
+        //checkbox独选事件
+        $scope.checkBoxFun = function (val) {
+
+            $scope.days = [];
+            $scope.checkNoFun();
+            //$('.cirtime').val('');
+            $scope.objs.startTimeHH = '';
+            $scope.objs.startTimeMM = '';
+            $scope.objs.endTimeHH = '';
+            $scope.objs.endTimeMM = '';
+            $timeout(function () {
+                $scope.lineLong();
+            }, 2)
+            if (val == 0) {
+                $scope.isLoop = 0;
+                $scope.loopType = '';
+            } else {
+                $scope.isLoop = 1;
+                $scope.loopType = val;
+            }
+
+            $scope.checkBoxcheck = val;
+
+
+        }
+        //页面滚动条回到初始位置
+        $scope.topFun = function () {
+            $('.content').animate({
+                scrollTop: 0
+            }, 300);
+        }
+
+        $scope.ruleDetailFlag = true;
+        $scope.compressRuleArray = [];
+        $scope.compressRuleAll = false;
+        $scope.rulEndsArry = [];
+        $scope.showAndContent = false;
+        $scope.isLoading = false;
+        $scope.objs = {};
+        $scope.overUpdateword = [];
+
+        //搜索查询
+        $scope.searchList = function () {
+            $scope.compressRuleAll = [];
+            $scope.compressRuleArray = [];
+            $scope.page = 1;
+            $scope.loadingData(14, 1, $scope.searchName);
+
+        }
+        //设置左侧顺序线的长度
+        $scope.lineLong = function () {
+
+            $timeout(function () {
+                var height = angular.element('.content-following1').height();
+                angular.element('.step-line1').height(height);
+                var height2 = angular.element('.content-following2').height();
+                angular.element('.step-line2').height(height2);
+            }, 4);
+
+
+
+        };
+        //删除维护期
+        $scope.removeMaintenanceFun = function () {
+            var dlg = uDialog.confirm({
+                title: L.get('COMMON_CONFIRM'),
+                content: L.get('COMMON_PLEASE_CONFIRM_WHETHER_TO_DELETE'),
+                size: 'mine',
+                confirm: function (ret) {
+                    if (ret.ok) {
+                        MonitoringService.deleteMaPeriod([
+                            $scope.ruleId
+                        ]).success(function (result) {
+                            Unit.success(L.get('COMMON_SUCCESSFULLY_DELETED'));
+                            $scope.cancelFun();
+                            $scope.compressRuleAll = [];
+                            $scope.compressRuleArray = [];
+                            $scope.page = 1;
+                            $scope.loadingData(14, 1);
+
+                        }).error(function () {
+                          Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+                        });
+                    }
+                }
+            });
+
+        }
+
+        //弹出添加页面
+        $scope.ruleDetailFun = function (ruleDetail) {
+            if ($scope.timer) {
+                $interval.cancel($scope.timer);
+            };
+            $scope.crossday = 0;
+            $scope.rules = [];
+            $scope.topFun();
+            $scope.checkTrueInputFun();
+            $scope.checkTrueFun();
+            $scope.checkNoFun();
+            $scope.daysCheckArray = [];
+            $scope.days = [];
+
+
+            //$scope.ciList=[];
+            $scope.$broadcast('CiPageListArray', []);
+            $scope.$broadcast('searchCI', '');
+            if (ruleDetail) {
+                $.each($scope.compressRuleArray, function (index, item) {
+                    if (item.bg) {
+                        item.bg = false;
+
+                    }
+                })
+                ruleDetail.bg = true;
+                $scope.removeButton = true;
+                $scope.ruleId = ruleDetail.id;
+                MonitoringService.getMaPeriodById({
+                    'id': ruleDetail.id
+                }).success(function (result) {
+
+                    //console.log(result);
+                    if (result) {
+                        $scope.result = result.data;
+                        $scope.periodType = $scope.result.periodType;
+                        $scope.objs.newRuleFatherName = ruleDetail.name;
+                        $scope.dateString = $scope.result.startTime;
+                        $scope.dateString1 = $scope.result.endTime;
+                        $scope.dateStartCom = parseInt($scope.result.startTime.substr(0, 4).toString() + $scope.result.startTime.substr(5, 2).toString() + $scope.result.startTime.substr(8, 2).toString() + $scope.result.startTime.substr(11, 2).toString() + $scope.result.startTime.substr(14, 2).toString() + $scope.result.startTime.substr(17, 2).toString())
+                        $scope.dateEndCom = parseInt($scope.result.endTime.substr(0, 4).toString() + $scope.result.endTime.substr(5, 2).toString() + $scope.result.endTime.substr(8, 2).toString() + $scope.result.endTime.substr(11, 2).toString() + $scope.result.endTime.substr(14, 2).toString() + $scope.result.endTime.substr(17, 2).toString())
+                        $scope.startTime = $scope.result.timeframe.startTime;
+                        $scope.endTime = $scope.result.timeframe.endTime;
+                        $scope.checkBoxcheck = $scope.result.timeframe.loopType;
+                        $scope.days = $scope.result.timeframe.days;
+                        $scope.ciList = $scope.result.ciList;
+                        //console.log($scope.ciList)
+                        $scope.ciCodes = $scope.result.ciCodes;
+                        $scope.crossday = $scope.result.timeframe.isCross;
+                        $scope.objs.ruleDetail = $scope.result.description;
+
+                        $.each($scope.daysArray, function (index, item) {
+                            $.each($scope.days, function (index1, item1) {
+                                if (item.value == item1) {
+                                    item.checked = true;
+                                }
+                            })
+                        })
+                        $.each($scope.weekArraydisplay, function (index, item) {
+                            $.each($scope.days, function (index1, item1) {
+                                if (item.value == item1) {
+                                    item.checked = true;
+                                }
+                            })
+                        })
+
+                        $scope.substrstartLocation = $scope.result.timeframe.startLoopTime.indexOf(':')
+                        $scope.substrendLocation = $scope.result.timeframe.endLoopTime.indexOf(':')
+                        if ($scope.result.timeframe.startLoopTime.indexOf(':') == 0) {
+                            $scope.objs.startTimeHH = '';
+                            $scope.objs.startTimeMM = '';
+                        } else {
+                            $scope.objs.startTimeHH = $scope.result.timeframe.startLoopTime.substr(0, 2);
+                            $scope.objs.startTimeMM = $scope.result.timeframe.startLoopTime.substr(3, 2);
+                        }
+                        if ($scope.result.timeframe.endLoopTime.indexOf(':') == 0) {
+                            $scope.objs.endTimeHH = '';
+                            $scope.objs.endTimeMM = '';
+                        } else {
+                            $scope.objs.endTimeHH = $scope.result.timeframe.endLoopTime.substr(0, 2);
+                            $scope.objs.endTimeMM = $scope.result.timeframe.endLoopTime.substr(3, 2);
+                        }
+
+                        if ($scope.result.selectorList) {
+                            $.each($scope.result.selectorList, function () {
+                                $scope.rules.push(this.selectors)
+                            });
+                            $scope.$broadcast('rules', $scope.rules);
+                        }
+                        $scope.getDayFun();
+
+                    }
+
+                    $timeout(function () {
+                        $scope.lineLong();
+                        $scope.$broadcast('rules', $scope.rules);
+                        $scope.$broadcast('periodType', $scope.periodType);
+                        $scope.$broadcast('ciCodes', $scope.ciCodes);
+                        $scope.$broadcast('ciList', $scope.ciList);
+                    }, 10);
+                });
+
+            } else {
+                $timeout(function () {
+                    $('#newNameInput').focus();
+                }, 2)
+                $.each($scope.compressRuleArray, function (index, item) {
+                    if (item.bg) {
+                        item.bg = false;
+
+                    }
+                })
+                $scope.ciList = [];
+                $scope.ciCodes = [];
+                var newDate = new Date();
+                var month = newDate.getMonth() + 1;
+                var date = $scope.dateformat(newDate.getDate())
+                var getHours = $scope.dateformat(newDate.getHours())
+                var getMinutes = $scope.dateformat(newDate.getMinutes())
+                var getSeconds = $scope.dateformat(newDate.getSeconds())
+                $scope.periodType = 0;
+                if (month < 10) {
+                    month = '0' + month;
+                }
+                var dateString = newDate.getFullYear() + '-' + month + '-' + date + ' ' + getHours + ':' + getMinutes + ':' + getSeconds;
+                var startTime = newDate.getTime();
+                $scope.removeButton = false;
+                $scope.rules = [
+                    [
+                        {
+                            property: 'CINAME',
+                            operator: '==',
+                            value: '*',
+                            propertyDesc: L.get('EMV_EVENT_OBJECT'),
+                            operatorDesc: L.get('EMV_EQUAL'),
+                        }
+                    ]
+
+                ];
+                $scope.objs.newRuleFatherName = '';
+                $scope.ruleId = '';
+                $scope.objs.ruleDetail = '';
+                $scope.dateString = dateString;
+                $scope.dateString1 = dateString;
+
+                $scope.startTime = startTime;
+                $scope.endTime = startTime;
+                $scope.dateStartCom = parseInt(dateString.substr(0, 4).toString() + dateString.substr(5, 2).toString() + dateString.substr(8, 2).toString() + dateString.substr(11, 2).toString() + dateString.substr(14, 2).toString() + dateString.substr(17, 2).toString())
+                $scope.dateEndCom = $scope.dateStartCom;
+
+                $scope.checkBoxcheck = 0;
+                $scope.objs.startTimeHH = '';
+                $scope.objs.startTimeMM = '';
+                $scope.objs.endTimeHH = '';
+                $scope.objs.endTimeMM = '';
+                $scope.copyValueFun($scope.rules);
+                $timeout(function () {
+                    $scope.lineLong();
+                    $scope.$broadcast('rules', $scope.rules);
+                    $scope.$broadcast('periodType', $scope.periodType);
+                    $scope.$broadcast('ciCodes', $scope.ciCodes);
+                    $scope.$broadcast('ciList', $scope.ciList);
+                }, 4)
+
+            }
+            $scope.ruleDetailFlag = false;
+
+
+        }
+
+
+
+        //新增弹框
+        $scope.addRuleFun = function () {
+            $scope.ruleDetailFun('');
+
+
+        }
+        //查询规则列表数据
+        $scope.loadingData = function (pageSize, page, name, id) {
+            MonitoringService.queryMaPeriod({
+                pageSize: pageSize,
+                pageNum: page,
+                name: name,
+                id: id
+
+            }).success(function (result) {
+                $scope.compressRuleAll = result;
+                $scope.compressRuleArray = $scope.compressRuleArray.concat(result.data.data);
+                $.each($scope.compressRuleArray, function (index, item) {
+                    if (item.id == $scope.id) {
+                        item.bg = true;
+
+                    }
+                })
+            }).error(function () {
+
+            });
+        };
+        //激活反激活事件
+        $scope.activeRuleFun = function (ruleDetail) {
+            MonitoringService.stopMaPeriod({
+                'id': [ruleDetail.id],
+            }).success(function (result) {
+
+                $scope.loadingIMG = false;
+            }).error(function () {
+
+            });
+        }
+        $scope.page = 1;
+        $scope.loadingData(14, 1);
+        $scope.searchListObjFun = function () {
+            $scope.loadingData(14, 1, $scope.stateParamsObj.ruleName, $scope.stateParamsObj.ruleID);
+            var ruleDetail = {};
+            ruleDetail.id = $scope.stateParamsObj.ruleID;
+            $scope.ruleDetailFun(ruleDetail)
+        }
+        //离开页面时清除定时器
+        $scope.$on('$destroy', function () {
+            if ($scope.timer) {
+                $interval.cancel($scope.timer);
+            }
+        });
+        $scope.timer = $interval(function () {
+            $scope.compressRuleAll = [];
+            $scope.compressRuleArray = [];
+            $scope.page = 1;
+            $scope.loadingData(14, 1);
+
+        }, 30000);
+        //分页刷新数据
+        $scope.load = function () {
+            angular.element('.result-list').scroll(function () {
+                var scrollTop = document.getElementById('result-list').scrollTop;
+                var scrollHeight = document.getElementById('result-list').scrollHeight;
+                var offsetHeight = document.getElementById('result-list').offsetHeight;
+                $scope.loadingIMG = false;
+                if (scrollTop > 1000) {
+                    $scope.topImg = true;
+                } else {
+                    $scope.topImg = false;
+                }
+                if (scrollHeight - (offsetHeight + scrollTop) <= 0 && ($scope.compressRuleAll.data.totalRows > $scope.compressRuleArray.length)) {
+                    //$scope.page=2
+
+                    $scope.page++;
+                    if ($scope.page > 1) {
+                        $scope.loadingIMG = true;
+                    }
+
+                    $scope.loadingData(14, $scope.page);
+					/*$scope.timer = $interval(function() {
+						$scope.compressRuleArray=[];
+						$scope.loadingData(14,1);
+						$scope.page=1;
+					}, 3000);*/
+                }
+            });
+
+        }
+
+
+
+        //规则描述框内容返显
+        $scope.copyValueFun = function (rules) {
+            // if($scope.objs.ruleDetail!=''){
+            // 	return
+            // }
+            $scope.andObj = L.get('EMV_FILER_EVENT_RANGE')+':';
+            for (var i = 0; i < rules.length; i++) {
+                for (var j = 0; j < rules[i].length; j++) {
+                    //console.log($scope.rules[i][j].value)
+                    if (j == rules[i].length - 1) {
+                        $scope.andObj += rules[i][j].propertyDesc + rules[i][j].operatorDesc + rules[i][j].value;
+                    } else {
+                        $scope.andObj += rules[i][j].propertyDesc + rules[i][j].operatorDesc + rules[i][j].value + ' ' + L.get('COMMON_AND') + ' ';
+                    }
+
+                }
+                if (i < rules.length - 1) {
+                    $scope.andObj += ' ' + L.get('COMMON_OR') + ' ';
+                }
+
+            }
+            $scope.objs.ruleDetail = $scope.andObj;
+        }
+
+        //设置边框颜色为正常
+        $scope.checkTrueFun = function () {
+            for (var i = 0; i < angular.element('.select-choice').length; i++) {
+                $($('.select-choice')[i]).css('border-color', '#e4e4e4');
+            }
+
+        }
+        $scope.checkTrueInputFun = function () {
+            $('.new-name').css('border-color', '#e4e4e4');
+        }
+
+        $scope.bornewNameFun = function () {
+            $('.new-name').css('border-color', '#ddd');
+        }
+        $scope.$on('ciCodes', function (event, data) {
+            $scope.ciCodes = data;
+            //	console.log(data)
+        })
+        $scope.$on('periodType', function (event, data) {
+            $scope.periodType = data;
+        })
+        //保存
+        $scope.saveFun = function () {
+
+            if ($scope.checkBoxcheck == 3) {
+                $scope.getDaysFun($scope.daysArray)
+            } else if ($scope.checkBoxcheck == 2) {
+                $scope.getDaysFun($scope.weekArraydisplay)
+            }
+
+            if ($scope.dateStartCom > $scope.dateEndCom) {
+                Unit.error(L.get('EMV_START_TIME_CANNOT_BE_GREATER_THAN_END_TIME'))
+                return false;
+            }
+
+            if ($scope.checkBoxcheck != 0 && $scope.checkBoxcheck != 1 && $scope.days.length == 0) {
+              Unit.error(L.get('EMV_LOOP_DATE_CANNOT_BE_EMPTY'))
+                return false;
+            }
+            if ($scope.checkBoxcheck != 0 && ($scope.objs.startTimeHH == '' || $scope.objs.startTimeMM == '' || $scope.objs.endTimeHH == '' || $scope.objs.endTimeMM == '')) {
+              Unit.error(L.get('COMMON_LOOP_TIME_CANNOT_BE_EMPTY'))  
+                return false;
+            }
+
+            if ($scope.ckeckLoopTime() == false) {
+                return false;
+            }
+            if ($scope.objs.newRuleFatherName == '') {
+              Unit.error(L.get('COMMON_RULE_NAME_CANNOT_BE_EMPTY'))
+                return false;
+            }
+            if ($scope.ruleId) {
+                MonitoringService.checkMaPeriodName({
+                    'name': $scope.objs.newRuleFatherName,
+                    'id': $scope.ruleId
+                }).success(function (result) {
+                    if (result.success == true) {
+                        $scope.saveLastFun();
+                    } else {
+                      Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+                    }
+                })
+            } else {
+                MonitoringService.checkMaPeriodName({
+                    'name': $scope.objs.newRuleFatherName,
+                }).success(function (result) {
+                    if (result.success == true) {
+                        $scope.saveLastFun();
+                    } else {
+                      Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+                    }
+                })
+            }
+
+
+
+
+        }
+        //调保存接口
+        $scope.saveLastFun = function () {
+            var selectorList = [];
+            $.each($scope.rules, function () {
+                var json = {};
+                json.selectors = this;
+                selectorList.push(json);
+            });
+            var checkStingLong = JSON.stringify(selectorList);
+            if (checkStingLong.length > 4096) {
+              Unit.error(L.get('EMV_FILTER_CONDITION_CHARACTER_LENGTH_CANNOT_EXCEED')+'4000')
+              return false;
+          }
+          if ($scope.objs.ruleDetail.length > 512) {
+            Unit.error(L.get('EMV_DESCRIPTION_CHARACTER_LENGTH_CANNOT_EXCEED')+'500')
+              return false;
+          }
+            MonitoringService.saveMaPeriod({
+                'id': $scope.ruleId,
+                'name': $scope.objs.newRuleFatherName,
+                'description': $scope.objs.ruleDetail,
+                'selectorList': selectorList,
+                'periodType': $scope.periodType,
+                'ciCodes': $scope.ciCodes,
+                'timeframe': {
+                    'loopType': $scope.checkBoxcheck,
+                    'startTime': $scope.startTime,
+                    'endTime': $scope.endTime,
+                    'isCross': $scope.crossday,
+                    'startLoopTime': $scope.dateformat($scope.objs.startTimeHH) + ':' + $scope.dateformat($scope.objs.startTimeMM),
+                    'endLoopTime': $scope.dateformat($scope.objs.endTimeHH) + ':' + $scope.dateformat($scope.objs.endTimeMM),
+                    'days': $scope.days
+
+                }
+            }).success(function (result) {
+                Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'));
+                $scope.compressRuleAll = [];
+                $scope.compressRuleArray = [];
+                $scope.page = 1;
+                $scope.loadingData(14, 1);
+                $scope.id = result.data.id;
+				/*$scope.timer = $interval(function() {
+					$scope.compressRuleArray=[];
+					$scope.loadingData(14,1)
+				}, 30000);*/
+            }).error(function () {
+              Unit.error(L.get('COMMON_SAVE_FAILED'));
+                $scope.id = result.data;
+            });
+            $scope.ruleDetailFlag = true;
+        }
+
+        //取消按钮
+        $scope.cancelFun = function () {
+            $scope.ruleDetailFlag = true;
+            $scope.timer = $interval(function () {
+                $scope.compressRuleAll = [];
+                $scope.compressRuleArray = [];
+                $scope.page = 1;
+                $scope.loadingData(14, 1);
+
+            }, 30000);
+        }
+
+
+        // 自定义下拉框
+        $('.environment-edit-wrap').on('click', '.select-wrap', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu').stop().slideToggle(150);
+
+        });
+        $('.environment-edit-wrap').on('click', '.select-wrap1', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu1').stop().slideToggle(150);
+
+        });
+        $('.environment-edit-wrap').on('click', '.drop-menu li', function () {
+            var ele = $(this).parent().siblings('.select-choice');
+            ele.html($(this).html());
+        });
+        $(document).on('click', function () {
+            // $('.select-wrap').removeClass('active');
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+            $('.select-wrap1').find('.drop-menu1').stop().slideUp(150);
+            $scope.objs.daysListFlag = false;
+            $scope.objs.weekListFlag = false;
+            $scope.$broadcast('importFlag', false);
+            if (!$scope.$$phase) {
+                $scope.$apply();
+            }
+        });
+        $scope.$on('rules', function (event, data) {
+            $scope.rules = data;//接受值
+            //$scope.copyValueFun();
+        });
+        $scope.$on('ruleDetail', function (event, data) {
+            $scope.objs.ruleDetail = data;//接受值
+        });
+        // 拖拽缩放功能
+        var parentW;
+        $timeout(function () {
+            parentW = $('.preview-wrapper').width() / 0.4;
+        }, 1);
+
+        $('.drag-scale').bind('mousedown', function (e) {
+            var dragW = $('.drag-scale').width() + 2;
+            var leftW = $('.preview-wrapper').width();
+            var disX = e.pageX;
+
+            $(document).bind('mousemove', function (e) {
+                var _disX = e.pageX;
+                var _leftW = leftW + (_disX - disX);
+                var marginLeft = leftW + (_disX - disX) + dragW;
+
+                if (_leftW < 400) {
+                    _leftW = 400;
+                    marginLeft = 400 + dragW;
+                }
+
+                if (_leftW > (parentW - 500 - dragW)) {
+                    _leftW = parentW - 500 - dragW;
+                    marginLeft = _leftW + dragW;
+                }
+
+                $('.preview-wrapper').width(_leftW);
+                $('.environment-edit-wrap').css('margin-left', marginLeft);
+            });
+
+            $(document).bind('mouseup', function () {
+                $(document).unbind('mousemove');
+                $(document).unbind('mouseup');
+            });
+
+            return false;
+        });
+
+    }]);
+	/*
+	 * 高亮搜索关键词
+	 * @param: 文本内容
+	 * @param： 搜索关键词
+	 * html标签中使用指令 ng-bind-html
+	 */
+
+
+})(nameSpace.reg('graph'));

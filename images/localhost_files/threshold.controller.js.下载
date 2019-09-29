@@ -1,0 +1,665 @@
+(function(graph, self){
+
+	'use strict';
+
+	graph.app.controller('ModalThresholdCtrl', ['$rootScope', '$scope', '$state', '$uibModalInstance', '$filter', 'ViewService', 'view', 'NgTableParams',
+		'CiMonitorService', 'Unit', 'UserInfo', 'editor', 'CiService', 'openWhich', function($rootScope, $scope, $state, $uibModalInstance, $filter, ViewService, view, NgTableParams,
+														CiMonitorService, Unit, UserInfo, editor, CiService, openWhich){
+
+		$scope.$modal = $uibModalInstance;
+		$scope.obj = {
+			ciFilter: '',
+			eventFilter: '',
+			perfFilter: '',
+			thresholdFilter:'',
+			titleInfo: {}
+		};
+		$scope.isLoadingPerformance = true;
+		$scope.isLoadingEvent = true;
+		$scope.isLoadingChar = true;
+		$scope.isLoadingThreshold = true;
+		$scope.isLoadingCi = true;
+		$scope.isSavePermission = true;
+		$scope.isSaving = false; // 默认没有点击阈值设置的保存按钮
+
+		var userInfo = UserInfo.get();
+
+		if(userInfo){
+			$scope.userInfo = userInfo;
+		}
+
+		$scope.$on(Event.USERINFO_UPDATE, function(e, data){
+			$scope.userInfo = data;
+		});
+
+		$scope.isThresholdRefresh = false;
+		// 阈值相关
+		$scope.getThreshold = function() {
+
+			if (!$scope.hasEditorPermission) {
+				$scope.hasEditorPermission = !!(view.author.id === userInfo.id || view.isSubscription || !view.open);
+			}
+
+			if ($scope.tableParams === undefined) {
+				$scope.tableParams = new NgTableParams({
+					page: 1,
+					count: 10
+				}, {
+					total: 0,
+					counts: [],
+					getData: function (params) {
+						if ($scope.isThresholdRefresh) {
+							params.page(1);
+						}
+						$scope.isThresholdRefresh = false;
+						return ViewService.getThreshold(view.id, {
+							page: params.page(),
+							pageSize: params.count(),
+							like: !$scope.obj.thresholdFilter ? '' : $scope.obj.thresholdFilter
+						}).then(function (result) {
+							var ret = angular.copy(result.data.data.datas);
+							$scope.responseData = result.data.data.datas;
+							$scope.opData = ret;
+							if (!ret) {
+								ret = [];
+							}
+							for (var p = 0; p < ret.length; p++) {
+								var item = ret[p];
+
+								if (typeof item.threshold === 'string') {
+									item.threshold = JSON.parse(item.threshold);
+								}
+
+								var origin = item.threshold[0].threshold;
+								var arr = [{severity: '5'}, {severity: '4'}, {severity: '3'}, {severity: '2'}, {severity: '1'}];
+
+								var i;
+								var j;
+
+								for (i = 0; i < arr.length; i++) {
+									for (j = 0; j < origin.length; j++) {
+										if (origin[j].severity === arr[i].severity) {
+											arr[i].lowLimit = origin[j].lowLimit;
+											arr[i].highLimit = origin[j].highLimit;
+										}
+									}
+								}
+
+								item.threshold[0].threshold = arr;
+							}
+							$scope.isLoadingThreshold = false;
+							params.total(result.data.data.count);
+							var list = params.sorting() ? $filter('orderBy')($scope.opData, params.orderBy()) : $scope.opData;
+							if ($('.thresholdTable')[0]) {
+								$('.thresholdTable')[0].scrollTop = 0;
+							}
+							return list;
+						});
+					}
+				});
+			} else {
+				$scope.tableParams.reload();
+			}
+		};
+
+		// 验证阈值
+		$scope.simulate = function(item) {
+			for (var inputKey = 1; inputKey <= 10; inputKey ++) {
+				if (item['input' + inputKey] === 'red') {
+					Unit.error(graph.translate('THRESHOLD_VALUE_INVALID'));
+					return false;
+				}
+			}
+			item._expand = false;
+			item.severityArr = {'hint': 0, 'warning': 0, 'minor': 0, 'major': 0, 'severity': 0};
+			var params = {};
+			params.ciHex = item.ciHex;
+			params.kpiHex = item.kpiHex;
+			params.lastTime = item.lastTime;
+			params.startTime = null;
+			params.endTime = null;
+			params.threshold = item.threshold[0].threshold;
+			CiMonitorService.getthresholdline(params).success(function(data) {
+				var Y = [];
+				angular.forEach(data.data.y,function(data){
+					data.class = data.cls;
+					Y.push(data);
+				});
+
+				$scope.severityColor = data.data.severity;
+
+				var objs = {
+					bindto: '#threshold-simulate-char_' + item.id,
+					data: {
+						x: 'dataTime',
+						columns: [
+						],
+						type: 'spline',
+						empty: {
+							label: {
+								text: graph.translate('NO_RESULT')
+							}
+						}
+					},
+					axis: {
+						x: {
+							show: true,
+							type: 'category',
+
+							tick: {
+								fit: false,
+								outer: true,
+								culling: {
+									max: 4
+								},
+								rotate: 80,
+								multiline: false
+							}
+						},
+						y: {
+							show: true,
+							inner: false
+						}
+					},
+					regions: Y
+				};
+
+				var dataTime = ['dataTime'];
+				$.each(data.data.x, function(){
+					var _this = this;
+					dataTime.push(_this.substr(5, 11));
+				});
+				objs.data.columns.push(data.data.data);
+				objs.data.columns.push(dataTime);
+
+				for (var index1 in data.data.data) {
+					if (index1 === 0) {
+						continue;
+					}
+					var val = data.data.data[index1];
+					item.severityArr.severity += (val >= parseInt(params.threshold[0].lowLimit) && val < parseInt(params.threshold[0].highLimit)) ? 1 : 0;
+					item.severityArr.major += (val >= parseInt(params.threshold[1].lowLimit) && val < parseInt(params.threshold[1].highLimit)) ? 1 : 0;
+					item.severityArr.minor += (val >= parseInt(params.threshold[2].lowLimit) && val < parseInt(params.threshold[2].highLimit)) ? 1 : 0;
+					item.severityArr.warning += (val >= parseInt(params.threshold[3].lowLimit) && val < parseInt(params.threshold[3].highLimit)) ? 1 : 0;
+					item.severityArr.hint += (val >= parseInt(params.threshold[4].lowLimit) && val < parseInt(params.threshold[4].highLimit)) ? 1 : 0;
+				}
+
+				c3.generate(objs);
+			});
+		};
+
+		// 订阅视图
+		$scope.subscription = function() {
+			ViewService.subscription(view.id).success(function() {
+				view.isSubscription = true;
+				view.subscripers.push(userInfo.loginName);
+				$rootScope.$broadcast(Event.VIEW_SUBSCRIPTION_BEFORE, Unit.eventData(view));
+				$scope.hasEditorPermission = true;
+			});
+		};
+
+		var isEqual = function(obj1, obj2) {
+			if ((obj1.ciCategoryName !== obj2.ciCategoryName ||
+				obj1.ciName !== obj2.ciName ||
+				obj1.id !== obj2.id ||
+				obj1.ifEnable !== obj2.ifEnable ||
+				obj1.ifNotify !== obj2.ifNotify ||
+				obj1.kpiCategoryName !== obj2.kpiCategoryName ||
+				obj1.kpiName !== obj2.kpiName ||
+				obj1.kpiId !== obj2.kpiId ||
+				obj1.ifEnable === null || obj1.ifEnable === '' ||
+				obj1.ifNotify === null || obj1.ifNotify === ''||
+				obj1.threshold[0].threshold.length === 0)) {
+				return false;
+			}
+			for (var i = 0; i < obj1.threshold[0].threshold.length; i++) {
+				var obj1Thres = obj1.threshold[0].threshold[i];
+				var obj2Thres = obj2.threshold[0].threshold[i];
+				if (obj1Thres) {
+					if (!obj2Thres) {
+						return false;
+					} else if (obj1Thres.highLimit !== obj2Thres.highLimit ||
+						obj1Thres.lowLimit !== obj2Thres.lowLimit ||
+						obj1Thres.severity !== obj2Thres.severity) {
+						return false;
+					}
+				}
+			}
+			return true;
+		};
+
+		$scope.saveThreshold = function() {
+			if ($scope.isSaving === true) {
+				return false;
+			}
+			$scope.isSaving = true;
+			var sendData = [];
+			for (var i = 0; i < $scope.opData.length; i++) {
+				var originObj = $scope.responseData[i];
+				var item =  $scope.opData[i];
+				var sendObj = {};
+				sendObj.ciId = item.ciId;
+				sendObj.ifEnable = item.ifEnable;
+				sendObj.id = item.id;
+				sendObj.kpiId = item.kpiId;
+				sendObj.ifNotify = item.ifNotify;
+				sendObj.viewAuthor = item.viewAuthor;
+				sendObj.subscriber = $scope.userInfo.loginName;
+				sendObj.threshold = angular.copy(item.threshold);
+				sendObj.viewId = item.viewId;
+
+				var origin = sendObj.threshold[0].threshold;
+				var arr = [];
+				var j;
+				for (j = 0; j < origin.length; j++) {
+					if (origin[j].lowLimit || origin[j].highLimit) {
+						arr.push(origin[j]);
+					}
+				}
+				sendObj.threshold[0].threshold = arr;
+				if (!isEqual(originObj,item)) {
+					sendData.push(sendObj);
+				}
+			}
+			ViewService.saveThreshold(view.id, {data: sendData}).success(function(){
+				$scope.isSaving = false;
+				$scope.getThreshold();
+			});
+		};
+
+		$scope.filterCiInfo = function(item) {
+			if (!$scope.obj.ciFilter) {
+				return item;
+			}
+			if ($scope.obj.titleInfo) {
+				for (var key in $scope.obj.titleInfo) {
+					if (item[key].toLowerCase().indexOf($scope.obj.ciFilter.toLowerCase()) >= 0) {
+						return item;
+					}
+				}
+				return false;
+			}
+		};
+
+		// 监控相关
+		$scope.isRefresh = false;
+		$scope.hasMonitorChar = true;
+		$scope.showMonitor = function() {
+			var now = new Date();
+			$scope.nowTime = now.getHours() + graph.translate('HOUR') + now.getMinutes() + graph.translate('MINUTE') + now.getSeconds() + graph.translate('SECOND');
+			if ($scope.tableParams1 === undefined) {
+				$scope.tableParams1 = new NgTableParams({
+					page: 1,
+					count: 10
+				}, {
+					total: 0,
+					counts: [],
+					getData: function(params) {
+						if ($scope.isRefresh) {
+							params.page(1);
+						}
+						$scope.isRefresh = false;
+						return ViewService.getViewMonitor(view.id, {page: params.page(), pageSize: params.count(), like: !$scope.obj.perfFilter ? '':$scope.obj.perfFilter}).then(function(result) {
+							$scope.isLoadingPerformance = false;
+							params.total(result.data.data.count);
+							return params.sorting() ? $filter('orderBy')(result.data.data.datas, params.orderBy()) : result.data.data.datas;
+						}, function() {
+							$scope.isLoadingPerformance = false;
+						});
+					}
+				});
+			} else {
+				$scope.tableParams1.reload();
+			}
+		};
+
+		$scope.refreshMonitor = function() {
+			var params = $scope.tableParams1;
+			$scope.isRefresh = true;
+			var now = new Date();
+			$scope.nowTime = now.getHours() + graph.translate('HOUR') + now.getMinutes() + graph.translate('MINUTE') + now.getSeconds() + graph.translate('SECOND');
+			ViewService.getViewMonitor(view.id, {page: params.page(), pageSize: params.count(), like: !$scope.obj.perfFilter ? '':$scope.obj.perfFilter}).success(function(result) {
+				params.total(result.data.count);
+				params.data = params.sorting() ? $filter('orderBy')(result.data.datas, params.orderBy()) : result.data.datas;
+				params.reload();
+			});
+		};
+
+		$scope.showHistoryPerformance = function(item, $event) {
+			item._expand = !item._expand;
+			if (item._expand) {
+				CiMonitorService.getPerformanceChart({kpi: item.kpiId, ci: item.ciId, kpiInstance: item.instance}).success(function(result) {
+					var data = result.datas.values;
+					var dataArr = JSON.parse(data);
+					var charArr = [];
+					if (dataArr instanceof Array) {
+						if (dataArr.length === 0) {
+							$scope.hasMonitorChar = false;
+						} else {
+							var eachFn = function(objs, values) {
+								$.each(objs, function() {
+									values.push({
+										x: new Date(Unit.datetimeToUnix(this.label) * 1000),
+										y: parseFloat(this.value)
+									});
+								});
+							};
+							for (var i = 0; i < dataArr.length; i++) {
+								var charObj = { showInLegend: true, type: 'line' };
+								var dataObj = dataArr[i];
+								var values = [];
+								eachFn(dataObj.value, values);
+								values.reverse();
+								charObj.name = dataObj.inst;
+								charObj.dataPoints = values;
+								charArr.push(charObj);
+							}
+							var chart = new CanvasJS.Chart($($event.currentTarget.parentNode.parentNode).next('tr').find('.threshold-monitor-char')[0], {
+								title:{
+									text:  result.datas.title + ' - ' +  result.datas.subTitle
+								},
+								zoomEnabled: true,
+								animationEnabled: true,
+								axisY: {
+									//interval: 100 //TODO 曲线间隔设置需要知道数值的范围（minimum maximum）
+								},
+								data: charArr
+							});
+							chart.render();
+						}
+					}
+					$scope.isLoadingChar = false;
+				}).error(function() {
+					$scope.isLoadingChar = false;
+				});
+			}
+		};
+
+		// 事件相关
+		$scope.toDateString = function(datetime) {
+			if (datetime === 0) {
+				return '-';
+			}
+			return Unit.unixToDatetime(datetime);
+		};
+
+		$scope.isRefreshEvent = false;
+		$scope.showEvent = function() {
+			if ($scope.tableParams2 === undefined) {
+				$scope.tableParams2 = new NgTableParams({
+					page: 1,
+					count: 10
+				}, {
+					total: 0,
+					counts: [],
+					getData: function(params) {
+						if ($scope.isRefreshEvent) {
+							params.page(1);
+						}
+						$scope.isRefreshEvent = false;
+						return ViewService.getViewEventByCiKpi(view.id, {page: params.page(), pageSize: params.count(), like: !$scope.obj.eventFilter?'':$scope.obj.eventFilter}).then(function(result) {
+							params.total(result.data.data.count);
+							$scope.isLoadingEvent = false;
+							return params.sorting() ? $filter('orderBy')(result.data.data.datas, params.orderBy()) : result.data.data.datas;
+						});
+					}
+				});
+			} else {
+				$scope.tableParams2.reload();
+			}
+		};
+
+		//$scope.getViewEventByCiKpi = function(item) {
+		//	$('.getMoreEventBtn').each(function() {
+		//		$(this).css('display','block');
+		//	});
+		//	item._expand = !item._expand;
+		//	$scope.currentEventCiId = item.ciId;
+		//	$scope.curretnEventKpiHex = item.kpiHex;
+		//	$scope.currPage = 1;
+		//	$scope.pageSize = 10;
+		//	if (item._expand) {
+		//		var now = new Date();
+		//		$scope.startTime = parseInt((now.getTime() - 3600000 * 24) / 1000);
+		//		//$scope.startTime = 0; //TODO del
+		//		$scope.endTime = parseInt(now.getTime() / 1000);
+		//		ViewService.getViewEventByCiKpi(view.id, {page: $scope.currPage, pageSize: $scope.pageSize, ciId: $scope.currentEventCiId, kpiHex:$scope.curretnEventKpiHex, startTime: $scope.startTime, endTime: $scope.endTime}).success(function(result) {
+		//			$scope.total = result.data.count;
+		//			item.eventCis = result.data.datas;
+		//			item.total = result.data.count;
+		//		});
+		//	}
+		//};
+        //
+		//$scope.getMoreEvent = function(item, $event) {
+		//	$scope.currPage = $scope.currPage + 1;
+		//	ViewService.getViewEventByCiKpi(view.id, {page: $scope.currPage, pageSize: $scope.pageSize, ciId: $scope.currentEventCiId, kpiHex:$scope.curretnEventKpiHex, startTime: $scope.startTime, endTime: $scope.endTime}).success(function(result) {
+		//		item.eventCis = item.eventCis.concat(result.data.datas);
+		//	});
+		//	if (($scope.total < $scope.currPage * $scope.pageSize) && ($scope.currPage - 1) * $scope.pageSize < $scope.total) {
+		//		$($event.currentTarget).css('display', 'none');
+		//	}
+		//};
+
+		// CI信息
+		$scope.getCiInfo = function() {
+			var ciids = editor.action.getCisId();
+			CiService.ids(ciids).success(function(result) {
+				$scope.isLoadingCi = false;
+				var data = {};
+				for (var key in result.data) {
+					var ci = result.data[key];
+					// ciInfo.push(result.data[ci]);
+					if (!data[ci.categoryName]) {
+						data[ci.categoryName] = {
+							headers: [],
+							rows: []
+						};
+						$.each(ci.data, function (key) {
+							data[ci.categoryName].headers.push(key);
+						});
+					}
+
+					data[ci.categoryName].rows.push(ci.data);
+				}
+				$scope.ciCates = data;
+			}).error(function() {
+				$scope.isLoadingCi = false;
+			});
+		};
+
+		$scope.selectedLastTime = function(item) {
+			$('.simulateBtn_' + item.id).removeAttr('disabled');
+		};
+
+		// 启动加载选择
+		$scope.isMonitor = false;
+		$scope.isEvent = false;
+		$scope.isThreshold = false;
+		$scope.isCi = false;
+		switch(openWhich) {
+			case 'monitor':
+				//$scope.showMonitor();
+				$scope.isMonitor = true;
+				break;
+			case 'event':
+				$scope.showEvent();
+				$scope.isEvent = true;
+				break;
+			case 'threshold':
+				$scope.getThreshold();
+				$scope.isThreshold = true;
+				break;
+			case 'ci':
+				$scope.getCiInfo();
+				$scope.isCi = true;
+				break;
+			default:
+				$scope.showMonitor();
+				break;
+		}
+
+		$scope.$on(Event.VIEW_SUBSCRIPTION_BEFORE, function(){
+			self.editor.action.subscription();
+		});
+
+		// 使下一个input获取焦点
+		$scope.nextInput = function(e) {
+			$(e.currentTarget).siblings().focus();
+		};
+
+		/**
+		 * 不同级别阈值范围验证
+		 * @param item
+		 * @returns {boolean}
+		 */
+		$scope.checkRange = function(item, checkNext) {
+			var threshold = item.threshold[0];
+
+			// 验证同级别输入框是否有一个为空
+			for (var i = 0; i <= 4; i++) {
+				if (!threshold.threshold[i].lowLimit && threshold.threshold[i].highLimit) {
+					var key1 = 'input' + ((5 - i) * 2 - 1);
+					item[key1] = 'red';
+					Unit.error('阈值没有指定最小值');
+					return false;
+				}
+				if (threshold.threshold[i].lowLimit && !threshold.threshold[i].highLimit && !checkNext) {
+					var key2 = 'input' + (5 - i) * 2;
+					item[key2] = 'red';
+					Unit.error('阈值没有指定最大值');
+					return false;
+				}
+			}
+
+
+			// 验证同级别输入框最小值是否大于最大值
+
+			if (parseInt(threshold.threshold[4].lowLimit) > parseInt(threshold.threshold[4].highLimit)) {
+				Unit.error('提示阈值最小值大于最高值');
+				item.input1 = 'red';
+				item.input2 = 'red';
+				return false;
+			}
+			item.input1 = 'gray';
+			item.input2 = 'gray';
+			if (parseInt(threshold.threshold[3].lowLimit) > parseInt(threshold.threshold[3].highLimit)) {
+				Unit.error('警告阈值最小值大于最高值');
+				item.input3 = 'red';
+				item.input4 = 'red';
+				return false;
+			}
+			item.input3 = 'gray';
+			item.input4 = 'gray';
+			if (parseInt(threshold.threshold[2].lowLimit) > parseInt(threshold.threshold[2].highLimit)) {
+				Unit.error('次要阈值最小值大于最高值');
+				item.input5 = 'red';
+				item.input6 = 'red';
+				return false;
+			}
+			item.input5 = 'gray';
+			item.input6 = 'gray';
+			if (parseInt(threshold.threshold[1].lowLimit) > parseInt(threshold.threshold[1].highLimit)) {
+				Unit.error('主要阈值最小值大于最高值');
+				item.input7 = 'red';
+				item.input8 = 'red';
+				return false;
+			}
+			item.input7 = 'gray';
+			item.input8 = 'gray';
+			if (parseInt(threshold.threshold[0].lowLimit) > parseInt(threshold.threshold[0].highLimit)) {
+				Unit.error('严重阈值最小值大于最高值');
+				item.input9 = 'red';
+				item.input10 = 'red';
+				return false;
+			}
+			item.input9 = 'gray';
+			item.input10 = 'gray';
+
+
+			// 验证级别是否范围重叠
+
+			if (parseInt(threshold.threshold[4].highLimit) > parseInt(threshold.threshold[3].lowLimit)) {
+				Unit.error('提示阈值范围不能大于警告阈值范围');
+				item.input2 = 'red';
+				item.input3 = 'red';
+				return false;
+			}
+			item.input2 = 'gray';
+			item.input3 = 'gray';
+
+			if (parseInt(threshold.threshold[3].highLimit) > parseInt(threshold.threshold[2].lowLimit)) {
+				Unit.error('警告阈值范围不能大于次要阈值范围');
+				item.input4 = 'red';
+				item.input5 = 'red';
+				return false;
+			}
+			item.input4 = 'gray';
+			if (parseInt(threshold.threshold[4].highLimit) > parseInt(threshold.threshold[2].lowLimit)) {
+				Unit.error('提示阈值范围不能大于次要阈值范围');
+				item.input2 = 'red';
+				item.input5 = 'red';
+				return false;
+			}
+			item.input2 = 'gray';
+			item.input5 = 'gray';
+
+			if (parseInt(threshold.threshold[2].highLimit) > parseInt(threshold.threshold[1].lowLimit)) {
+				Unit.error('次要阈值范围不能大于主要阈值范围');
+				item.input6 = 'red';
+				item.input7 = 'red';
+				return false;
+			}
+			item.input6 = 'gray';
+			if (parseInt(threshold.threshold[3].highLimit) > parseInt(threshold.threshold[1].lowLimit)) {
+				Unit.error('警告阈值范围不能大于主要阈值范围');
+				item.input4 = 'red';
+				item.input7 = 'red';
+				return false;
+			}
+			item.input6 = 'gray';
+			if (parseInt(threshold.threshold[4].highLimit) > parseInt(threshold.threshold[1].lowLimit)) {
+				Unit.error('提示阈值范围不能大于主要阈值范围');
+				item.input2 = 'red';
+				item.input7 = 'red';
+				return false;
+			}
+			item.input2 = 'gray';
+			item.input7 = 'gray';
+
+			if (parseInt(threshold.threshold[1].highLimit) > parseInt(threshold.threshold[0].lowLimit)) {
+				Unit.error('主要阈值范围不能大于严重阈值范围');
+				item.input8 = 'red';
+				item.input9 = 'red';
+				return false;
+			}
+			item.input8 = 'gray';
+			item.input9 = 'gray';
+			if (parseInt(threshold.threshold[2].highLimit) > parseInt(threshold.threshold[0].lowLimit)) {
+				Unit.error('次要阈值范围不能大于严重阈值范围');
+				item.input6 = 'red';
+				item.input9 = 'red';
+				return false;
+			}
+			item.input6 = 'gray';
+			if (parseInt(threshold.threshold[3].highLimit) > parseInt(threshold.threshold[0].lowLimit)) {
+				Unit.error('警告阈值范围不能大于严重阈值范围');
+				item.input4 = 'red';
+				item.input9 = 'red';
+				return false;
+			}
+			item.input4 = 'gray';
+			if (parseInt(threshold.threshold[4].highLimit) > parseInt(threshold.threshold[0].lowLimit)) {
+				Unit.error('提示阈值范围不能大于严重阈值范围');
+				item.input2 = 'red';
+				item.input9 = 'red';
+				return false;
+			}
+			item.input2 = 'gray';
+			item.input9 = 'gray';
+		};
+
+	}]);
+
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

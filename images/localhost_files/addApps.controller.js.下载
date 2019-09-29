@@ -1,0 +1,61 @@
+(function (graph) {
+
+	'use strict';
+	graph.app.controller('addAppsCtrol', ['$uibModal', '$scope', '$uibModalInstance', 'MonitoringService', 'Unit', 'fn', function ($uibModal, $scope, $uibModalInstance, MonitoringService, Unit, fn) {
+		$scope.imgPath = 'assets/images/tarsier/oscreen/';
+		$scope.addIconImg = $scope.imgPath + 'addAppIcon9.png';
+		$scope.addIconFlag = false;
+		$scope.addParms = {};
+		$scope.addParms.imgName = 'addAppIcon9'
+		$scope.showAppIcon = function (e) {
+			e.stopPropagation();
+			$scope.addIconFlag = !$scope.addIconFlag;
+		};
+		$scope.addAppIcom = function (img) {
+			$scope.addIconFlag = false;
+			$scope.addIconImg = $scope.imgPath + img + ".png";
+			$scope.addParms.imgName = img;
+		}
+		$scope.cancleFn = function () {
+			$scope.addIconFlag = false;
+		}
+		$scope.linkVal = function () {
+			$scope.addParms.url = 'http://'
+		}
+		$scope.ok = function () {
+			if (!$scope.addParms.imgName) {
+				Unit.error(L.get('EMV_SELECT_APP_ICON'));
+				return false;
+			}
+			if (!$scope.addParms.name) {
+				Unit.error(L.get('EMV_INPUT_APP_NAME'));
+				return false;
+			}
+			if (!$scope.addParms.url||$scope.addParms.url==='http://') {
+				Unit.error(L.get('EMV_INPUT_APP_LINK'));
+				return false;
+			}
+			if ($scope.addParms.url.substr(0, 5).toLowerCase() == "http:" || $scope.addParms.url.substr(0, 6).toLowerCase() == "https:") {
+				MonitoringService.appSuperMarketAdd($scope.addParms)
+					.success(function (data) {
+						if (data.data) {
+							fn();
+							$uibModalInstance.close({ok: false});
+						} else {
+
+						}
+
+					}).error(function (err) {
+						console.log(err)
+					})
+			} else {
+				Unit.error(L.get('EMV_INPUT_APP_LINK_FORMAT_WRANING'));
+			}
+
+		};
+		// 取消按钮
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+	}])
+})(nameSpace.reg('graph'));

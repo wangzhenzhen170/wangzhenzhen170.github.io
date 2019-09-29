@@ -1,0 +1,28 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('CiRelationService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+
+		o.get = function(params){
+			return $http.post(Unit.api('/cirel/query'), params);
+		};
+
+		//o.upload = function(file){
+		//	return Upload.upload({
+		//		url: url('/viewicon/save'),
+		//		file: file
+		//	});
+		//};
+
+		o.getCategory = function(){
+			return $http.get(Unit.api('/relcate'));
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

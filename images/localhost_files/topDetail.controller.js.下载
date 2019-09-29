@@ -1,0 +1,44 @@
+(function(graph){
+
+	'use strict';
+	graph.app.controller('topDetailCtrl', ['$uibModal','$scope', '$uibModalInstance','name', 'MonitoringService','Unit','topDetailParms',function($uibModal,$scope, $uibModalInstance,name,MonitoringService,Unit,topDetailParms) {
+		//$scope.pageSizeOption=[24,48,64];
+		$scope.pageSize=16;
+		$scope.currentPage=1;
+		$scope.css=true;
+		//console.log(topDetailParms)
+		$scope.paging = function (data) {
+			$scope.pageSize=data.pageSize;
+			$scope.currentPage=data.currentPage;
+			//alert($scope.currentPage)
+			$scope.loadData();
+
+		}
+        $scope.showName=name==='事件'||$scope.showName==='告警'?name:name+' ';
+
+		$scope.loadData=function(){
+			topDetailParms.pageNum=$scope.currentPage;
+			topDetailParms.pageSize=$scope.pageSize;
+			MonitoringService.queryEventPage(topDetailParms).success(function(data) {
+				if (data.success) {
+					$scope.totalRows=data.data.totalRows;
+					$scope.compressDetailArry=data.data.data;
+					//console.log($scope.compressDetailArry)
+					$.each($scope.compressDetailArry,function(index,item){
+						item.background={border:'solid 1px '+item.COLOR, background: item.COLOR }
+
+					})
+				} else {
+
+				}
+			});
+		}
+		$scope.loadData();
+
+
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+
+	}])
+})(nameSpace.reg('graph'));

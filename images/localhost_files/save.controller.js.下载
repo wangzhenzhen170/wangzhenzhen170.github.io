@@ -1,0 +1,155 @@
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, editor, GraphViewtree, ViewService, Unit, UserInfo, $state){
+
+		var userInfo = UserInfo.get();
+
+		$scope.view = {
+			name: editor.state.view ? editor.state.view.name : '',
+			description: editor.state.view ? editor.state.view.description : '',
+			categoryId: editor.state.view ? editor.state.view.categoryId : '',
+			pos: ''
+		};
+
+		$scope.isFromSaver = !!(editor.state.view && editor.state.view.id);
+
+		$scope.isShowLoading = false;
+		$scope.title = graph.translate('SAVE_VIEW');
+		$scope.$modal = $uibModalInstance;
+
+		$scope.cancel = function(){
+			$uibModalInstance.close();
+		};
+
+		$scope.ok = function(isSaveAs){
+			if($scope.view.categoryId && $scope.view.name){
+
+				$scope.isShowLoading = true;
+
+				var data = {
+					categoryId: $scope.view.categoryId,
+					name: $scope.view.name,
+					description: $scope.view.description,
+					cis: editor.action.getCisId(),
+					viewIds: editor.action.relationViewList(),
+					points: JSON.stringify(editor.graph.getJson()),
+					svg: mxUtils.getXml(editor.graph.getSvg()),
+					xml: editor.action.getXml()
+				};
+
+				if((editor.state.view && editor.state.view.id) && !isSaveAs) {
+
+					data.id = editor.state.view.id;
+
+					ViewService.update(data)
+						.success(function(result){
+							Unit.success(graph.translate(result.message));
+							editor.state.setView(result.data);
+							$scope.isShowLoading = false;
+							$uibModalInstance.close();
+						})
+						.error(function(){
+							$scope.isShowLoading = false;
+						});
+				}else{
+					if(editor.state.view && $scope.view.name === editor.state.view.name){
+						data.name = '[' + graph.translate('COPY') + ']' + data.name;
+					}
+
+					ViewService.create(data)
+						.success(function(result){
+							Unit.success(graph.translate(result.message));
+							editor.state.setView(result.data);
+							$scope.isShowLoading = false;
+							$uibModalInstance.close();
+							$state.go('home.edit.id', {id: result.data.id});
+							$scope.$state.get('home.edit.id').data.title = result.data.name;
+						})
+						.error(function(){
+							$scope.isShowLoading = false;
+						});
+				}
+
+
+			}else{
+				Unit.alert(graph.translate('ERROR_MISSING_VIEW_NAMES_OR_VIEW_LOCATION'));
+			}
+
+		};
+
+		$scope.pos = function(node){
+
+			var list = [];
+
+			$.each(node.path, function(){
+				list.unshift(this.name);
+			});
+
+			if($scope.viewtreeParams.isPublic()){
+				list.unshift(graph.translate('RELEASE'));
+			}else{
+				list.unshift(graph.translate('OWN'));
+			}
+
+			$scope.view.pos = list.join(' -> ');
+			$scope._refresh();
+		};
+
+		$scope.viewtreeParams = new GraphViewtree({
+			hideView: true,
+			maxHeight: 300,
+			dir: (editor.state.view && editor.state.view.open) ? 'public' : null,
+			allowEdit: true,
+
+			allowShowPubview: userInfo ? userInfo.isManager : false,
+			onload: function(scope, isOpen){
+
+				if(editor.state.view && editor.state.view.open === isOpen){
+					$scope.pos(editor.state.view);
+
+					if(editor.state.view.path){
+						$.each(editor.state.view.path, function(){
+							var item = this;
+
+							var node = scope.getNodeById(item.id);
+							if(node){
+								scope.expandedNodes.push(node);
+								$scope.view.categoryId = item.id;
+
+								if(editor.state.view.path[editor.state.view.path.length - 1] === item){
+									scope.selected = node;
+								}
+							}
+						});
+					}
+				}else{
+					$scope.view.pos = '';
+					$scope.view.categoryId = null;
+				}
+
+				$scope._refresh();
+			},
+			selectNode: function(node, isSelected){
+				if(isSelected){
+					$scope.view.categoryId = node.id;
+					$scope.pos(node);
+				}else{
+					$scope.view.categoryId = null;
+					$scope.view.pos = '';
+				}
+
+				$scope._refresh();
+			}
+		});
+
+	};
+
+	graph.app.controller('ModalViewSaveCtrl', ['$scope', '$uibModalInstance', 'editor', 'GraphViewtree', 'ViewService', 'Unit', 'UserInfo', '$state', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

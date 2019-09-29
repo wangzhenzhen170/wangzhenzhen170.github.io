@@ -1,0 +1,43 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('DiagramImageService', ['$http', 'Unit','Upload', '$q', function($http, Unit,  Upload, $q){
+        var o = {};
+
+        o.queryImagePage = function(params) {
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/image/queryImagePage'), params, {timeout: deferred.promise});
+
+            $promise.cancel = function(){
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        o.addImage = function(files){
+            var fromData = new FormData();
+            angular.forEach(files, function (value) {
+                fromData.append('files', value);
+            });
+
+            return $http.post(Unit.diagramApi('/image/addImage'), fromData, {
+                headers: {
+                    'Content-Type': undefined
+                }
+            });
+        };
+
+        o.removeImageById=function (id) {
+			return $http.post(Unit.diagramApi('/image/removeImageById'),id);
+		};
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

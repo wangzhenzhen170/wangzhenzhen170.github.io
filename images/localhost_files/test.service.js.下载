@@ -1,0 +1,19 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('TestService', ['$http', 'Unit', function($http, Unit){
+        var o = {};
+
+		o.taskLog = function(params) {
+			return $http.post(Unit.api('/log/query'), params);
+		};
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,740 @@
+/* global toastr */
+/* global bootbox */
+/* global mxMorphing */
+/* global mxEvent */
+/* global mxUtils */
+
+
+(function (graph) {
+
+
+
+    'use strict';
+
+    graph.diagramApi = function (url) {
+        if (angular.isString(url)) {
+            if (url.indexOf('../') === 0) {
+                url = url.substr(3);
+            }
+
+            if (url.indexOf('/') === 0) {
+                url = url.substr(1);
+            }
+
+            return '/diagram-web/' + url;
+        }
+        return url;
+    };
+    graph.app.factory('Unit', ['$window', '$interval', 'Const', function ($window, $interval, Const) {
+
+        var self = {};
+
+        self.options = {};
+
+        self.options.toastr = {
+            closeButton: true,
+            progressBar: false,
+            preventDuplicates: true,
+            timeOut: 1500
+        };
+
+        self.api = function (url) {
+            if (angular.isString(url)) {
+                if (url.indexOf('../') === 0) {
+                    url = url.substr(3);
+                }
+
+                if (url.indexOf('/') === 0) {
+                    url = url.substr(1);
+                }
+
+                return '/mmdb-api/rest/' + url;
+            }
+            return url;
+        };
+
+        self.diagramApi = function (url) {
+            return graph.diagramApi(url);
+        };
+
+        self.vmdbApi = function (url) {
+            if (angular.isString(url)) {
+                if (url.indexOf('../') === 0) {
+                    url = url.substr(3);
+                }
+
+                if (url.indexOf('/') === 0) {
+                    url = url.substr(1);
+                }
+
+                return '/vmdb-web-api/' + url;
+            }
+            return url;
+        };
+
+        self.sceneApi = function (url) {
+            if (angular.isString(url)) {
+                if (url.indexOf('../') === 0) {
+                    url = url.substr(3);
+                }
+
+                if (url.indexOf('/') === 0) {
+                    url = url.substr(1);
+                }
+
+                return '/monitor-web/' + url;
+            }
+            return url;
+        };
+
+        self.monitorApi = function (url) {
+            if (angular.isString(url)) {
+                if (url.indexOf('../') === 0) {
+                    url = url.substr(3);
+                }
+
+                if (url.indexOf('/') === 0) {
+                    url = url.substr(1);
+                }
+
+                return '/monitor-web/' + url;
+            }
+            return url;
+        };
+        self.downLoadTimeFormat = function () {
+            var Data = new Date();
+
+            var Y = Data.getFullYear();
+            var M = Data.getMonth() + 1 > 9 ? Data.getMonth() + 1 + '' : '0' + (Data.getMonth() + 1);// 月份
+            var D = Data.getDate() > 9 ? Data.getDate() + '' : '0' + Data.getDate(); // 日
+            var H = Data.getHours() > 9 ? Data.getHours() + '' : '0' + Data.getHours(); // 小时
+            var m = Data.getMinutes() > 9 ? Data.getMinutes() + '' : '0' + Data.getMinutes(); // 分
+            var S = Data.getSeconds() > 9 ? Data.getSeconds() + '' : '0' + Data.getSeconds();// 秒
+
+
+            var nowTime = Y + M + D + H + m + S;
+            return nowTime;
+        }
+
+        self.static = function (url) {
+            if (angular.isString(url)) {
+                if (url.indexOf('../') === 0) {
+                    url = url.substr(3);
+                }
+
+                if (url.indexOf('/') === 0) {
+                    url = url.substr(1);
+                }
+
+                return '/mmdb-api/' + url;
+            }
+            return url;
+        };
+
+        self.success = function (message) {
+            //toastr.success(message, null, self.options.toastr);
+            window.snackbar.success(message);
+        };
+
+        self.getUrlParam = function (name) {
+            var search = window.location.hash;
+            if (search.indexOf('%') > -1) {
+                search = decodeURIComponent(search);
+            }
+            var reg = new RegExp("(^|&?)" + name + "=([^&]*)(&|$)"); //构造一个含有目标参数的正则表达式对象
+            var r = search.substr(1).match(reg); //匹配目标参数
+            if (r != null) return unescape(r[2]); return null;
+        };
+
+
+        self.error = function (message) {
+            //toastr.error(message, null, self.options.toastr);
+            window.snackbar.error(message);
+        };
+
+        self.warning = function (message) {
+            //toastr.warning(message, null, self.options.toastr);
+            window.snackbar.warn(message);
+        };
+
+        self.basename = function (path) {
+            if (angular.isString(path)) {
+                var arr = path.split('/');
+                return arr.pop();
+            }
+            return path;
+        };
+
+        self.formatCategoryData = function (data) {
+            if (angular.isArray(data)) {
+                if (data.icon) {
+                    angular.forEach(data, function (_this) {
+                        _this.icon = self.static(_this.icon);
+                    });
+                    return data;
+                }
+
+            }
+            return data;
+        };
+
+        self.getStyleForAttr = function (cell, key) {
+            var arr = '', ret = '';
+
+            if (cell.style && cell.style !== '') {
+                arr = cell.style.split(';');
+                $.each(arr, function () {
+                    if (this.indexOf(key) >= 0) {
+                        ret = this.split('=')[1];
+                        return false;
+                    }
+                });
+            } else {
+                ret = '';
+            }
+            return ret;
+        };
+
+        self.isCiCellByDataId = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            if (cell.value !== null && typeof (cell.value) === 'object') {
+                var id = cell.value.getAttribute('data-id');
+                return typeof id === 'string' && id.indexOf(Const.CI_PREFIX) === 0;
+            }
+            return false;
+        };
+
+        self.isTagsCellByDataId = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            if (cell.value !== null && typeof (cell.value) === 'object') {
+                var id = cell.value.getAttribute('data-id');
+                return typeof id === 'string' && id.indexOf(Const.TAGS_PREFIX) === 0;
+            }
+            return false;
+        };
+
+        self.isRelationCellByDataId = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            if (cell.value !== null && typeof (cell.value) === 'object') {
+                var id = cell.value.getAttribute('data-id');
+                return typeof id === 'string' && id.indexOf(Const.RELATION_PREFIX) === 0;
+            }
+            return false;
+        };
+
+        self.isCiInByDataId = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            if (cell.value !== null && typeof (cell.value) === 'object') {
+                var id = cell.value.getAttribute('data-id');
+                return typeof id === 'string' && id.indexOf(Const.IN_PREFIX) === 0;
+            }
+            return false;
+        };
+
+        self.getCiDataIdByCell = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            if (cell.value !== null && typeof (cell.value) === 'object') {
+                var id = cell.value.getAttribute('data-id');
+                return id.split('_').pop();
+            }
+            return false;
+        };
+
+        self.getTagsDataIdByCell = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            if (cell.value !== null && typeof (cell.value) === 'object') {
+                var id = cell.value.getAttribute('data-id');
+                return id.split('_').pop();
+            }
+            return false;
+        };
+
+        self.getRelationDataIdByCell = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            if (cell.value !== null && typeof (cell.value) === 'object') {
+                var id = cell.value.getAttribute('data-id');
+                return id.split('_').pop();
+            }
+            return false;
+        };
+
+        self.isCiCell = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            return typeof cell === 'object' && typeof cell.id === 'string' && cell.id.indexOf(Const.CI_PREFIX) === 0;
+        };
+
+        self.isTagsCell = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            return typeof cell === 'object' && typeof cell.id === 'string' && cell.id.indexOf(Const.TAGS_PREFIX) === 0;
+        };
+
+        self.isRelationCell = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            return typeof cell === 'object' && typeof cell.id === 'string' && cell.id.indexOf(Const.RELATION_PREFIX) === 0;
+        };
+
+        self.isCiIn = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            return cell.id.indexOf(Const.IN_PREFIX) >= 0;
+        };
+
+        self.getCiIdByCell = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            return self.isCiCell(cell) ? cell.id.split('_').pop() : null;
+        };
+
+        self.getTagsIdByCell = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            return self.isTagsCell(cell) ? cell.id.split('_').pop() : null;
+        };
+
+        self.getRelationIdByCell = function (cell) {
+            if (!cell) {
+                return null;
+            }
+            return self.isRelationCell(cell) ? cell.id.split('_').pop() : null;
+        };
+
+        self.alert = function (msg) {
+            bootbox.alert(String(msg));
+        };
+
+        self.confirm = function (msg, fn, error) {
+            bootbox.confirm(String(msg), function (result) {
+                if (result) {
+                    fn();
+                } else {
+                    if (angular.isFunction(error)) {
+                        error();
+                    }
+                }
+            });
+        };
+
+        self.prompt = function (msg, fn, defaultValue) {
+            bootbox.prompt({
+                title: String(msg),
+                value: String(defaultValue),
+                callback: function (result) {
+                    fn(result);
+                }
+            });
+        };
+
+        // 时间戳（秒）转为时间字符串
+        self.unixToDatetime = function (unix) {
+            var now = new Date(unix);
+
+            return [
+                [
+                    now.getFullYear(),
+                    (now.getMonth() + 1) < 10 ? '0' + (now.getMonth() + 1) : now.getMonth() + 1,
+                    now.getDate() < 10 ? '0' + now.getDate() : now.getDate()
+                ].join('-'),
+                [
+                    now.getHours() < 10 ? '0' + now.getHours() : now.getHours(),
+                    now.getMinutes() < 10 ? '0' + now.getMinutes() : now.getMinutes(),
+                    now.getSeconds() < 10 ? '0' + now.getSeconds() : now.getSeconds()
+                ].join(':')
+            ].join(' ');
+        };
+
+        // 时间转为时间字符串
+        self.unixToDatetimeByTime = function (unix) {
+            if (angular.isNumber(unix)) {
+                var now = unix.toString();
+                return [
+                    [
+                        now.slice(0, 4),
+                        now.slice(4, 6),
+                        now.slice(6, 8)
+                    ].join('-'),
+                    [
+                        now.slice(8, 10),
+                        now.slice(10, 12),
+                        now.slice(12, 14)
+                    ].join(':')
+                ].join(' ');
+            } else {
+                return unix
+            }
+
+        };
+
+        // 时间字符串转为时间戳（秒）
+        self.datetimeToUnix = function (datetime) {
+            var tmpDatetime = datetime.replace(/:/g, '-');
+            tmpDatetime = tmpDatetime.replace(/ /g, '-');
+            var arr = tmpDatetime.split('-');
+            var now = new Date(Date.UTC(arr[0], arr[1] - 1, arr[2], arr[3] - 8, arr[4], arr[5]));
+            return parseInt(now.getTime() / 1000);
+        };
+        /*数组去重*/
+        self.unique = function (ary) {
+            if (Array.isArray(ary) && ary.length > 1) {
+                ary.sort(); //先排序
+                var res = [ary[0]];
+                for (var i = 1; i < ary.length; i++) {
+                    if (ary[i] !== res[res.length - 1]) {
+                        res.push(ary[i]);
+                    }
+                }
+                return res;
+            } else {
+                return ary
+            }
+        }
+        self.eventData = function (obj) {
+
+            // ci cell
+            if (self.isCiCell(obj.cell)) {
+                obj.cell.ciId = self.getCiIdByCell(obj.cell);
+            }
+
+            return obj;
+        };
+
+        self.loadingbar = (function () {
+            var $loadingbar = $('.loadingbar-process');
+            var percent = -10;
+            var timmer1;
+            var timmer2;
+            var timmer3;
+            var intervalTime = 1;
+            return {
+                show: function () {
+                    $interval.cancel(timmer1);
+                    $interval.cancel(timmer2);
+                    $interval.cancel(timmer3);
+                    if ($loadingbar.width() !== 0) {
+                        percent = ($loadingbar.width() / $('.loadingbar').width()) * 1000;
+                    } else {
+                        percent = -10;
+                    }
+                    $($loadingbar).stop();
+                    $($loadingbar).fadeIn('slow');
+                    timmer1 = $interval(function () {
+                        if (percent < 100) {
+                            percent += 20;
+                        } else if (percent <= 900) {
+                            percent += (Math.ceil(Math.random() * 40 / 5));
+                        } if (percent >= 900) {
+                            $interval.cancel(timmer1);
+                        }
+                        $loadingbar.css('width', 0.1 * percent + '%');
+                    }, intervalTime);
+                },
+                hide: function () {
+                    $interval.cancel(timmer1);
+                    $interval.cancel(timmer2);
+                    $interval.cancel(timmer3);
+                    var initPercent = percent;
+                    $($loadingbar).stop();
+                    $loadingbar.css('opacity', 1);
+                    timmer2 = $interval(function () {
+                        if (percent > 1000) {
+                            $loadingbar.css('width', '100%');
+                            $interval.cancel(timmer2);
+                            $($loadingbar).fadeOut('slow', function () {
+                                $loadingbar.css('width', 0).css('opacity', 1);
+                            });
+                        } else {
+                            $loadingbar.css('width', 0.1 * percent + '%');
+                        }
+                        if (initPercent < 100) {
+                            percent += 20;
+                        } else if (initPercent < 500) {
+                            percent += 10;
+                        } else if (initPercent < 800) {
+                            percent += 6;
+                        } else {
+                            percent += 4;
+                        }
+                    }, intervalTime);
+                },
+                rollback: function () {
+                    $interval.cancel(timmer1);
+                    $interval.cancel(timmer2);
+                    $interval.cancel(timmer3);
+                    percent = ($loadingbar.width() / $('.loadingbar').width()) * 1000;
+                    timmer3 = $interval(function () {
+                        percent -= 10;
+                        $loadingbar.css('width', 0.1 * percent + '%');
+                        if (percent <= 0) {
+                            $interval.cancel(timmer3);
+                            $($loadingbar).fadeOut('slow', function () {
+                                $loadingbar.css('width', 0).css('opacity', 1);
+                            });
+                        }
+                    }, intervalTime);
+                },
+                error: function () {
+                    this.rollback();
+                    $($loadingbar).fadeOut();
+                }
+            };
+        })();
+
+
+        self.getLevelColor = function (n) {
+            var ret;
+
+            switch (n) {
+                case 5:
+                    ret = { bg: '#97382E', fc: '#FFFFFF' };
+                    break;
+
+                case 4:
+                    ret = { bg: '#FFC100', fc: '#FFFFFF' };
+                    break;
+
+                case 3:
+                    ret = { bg: '#FF8201', fc: '#000000' };
+                    break;
+
+                case 2:
+                    ret = { bg: '#A06A23', fc: '#FFFFFF' };
+                    break;
+
+                default:
+                    ret = { bg: '#4B8D10', fc: '#FFFFFF' };
+                    break;
+            }
+
+            return ret;
+        };
+
+        self.download = function (filename) {
+            var link;
+            link = document.createElement('a');
+            link.download = filename;
+            link.target = '_blank';
+            link.href = self.api('/download/') + filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        self.layout = function (graph, layout, animate, parent) {
+            var cells;
+
+            // cells = graph.getChildVertices();
+
+            // 在容器里面布局
+            // if(!parent){
+            //    parent = graph.getDefaultParent();
+            // }
+            parent = graph.getDefaultParent();
+
+            cells = graph.getChildVertices(parent);
+            // cells = graph.getSelectionCells();
+            graph.getModel().beginUpdate();
+            try {
+                layout.execute(parent, cells);
+            } catch (e) {
+                throw e;
+            } finally {
+                // Animates the changes in the graph model except
+                // for Camino, where animation is too slow
+                if (animate && navigator.userAgent.indexOf('Camino') < 0) {
+                    // New API for animating graph layout results asynchronously
+                    var morph = new mxMorphing(graph);
+                    morph.addListener(mxEvent.DONE, mxUtils.bind(this, function () {
+                        graph.getModel().endUpdate();
+                    }));
+
+                    morph.startAnimation();
+                } else {
+                    graph.getModel().endUpdate();
+                }
+            }
+        };
+
+        self.handleGraphJson = function () {
+
+        };
+
+        self.converObject = function (fromObj, toObj) {
+            $(fromObj, function (key) {
+                toObj[key] = fromObj[key];
+            });
+        };
+
+        self.getRandomString = function (length) {
+            var i;
+            var text = [];
+            var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+            length = Number(length) ? Number(length) : 10;
+
+            for (i = 0; i < length; i++) {
+                text.push(possible.charAt(Math.floor(Math.random() * possible.length)));
+            }
+
+            return text.join('');
+        };
+
+        self.getMonitorVertexHtml = function (data) {
+
+            data.name = data.name ? data.name : '';
+            data.kpiUnusual = data.kpiUnusual ? data.kpiUnusual : 0;
+            data.kpiCount = data.kpiCount ? data.kpiCount : 0;
+            data.monitorEvent = data.monitorEvent ? data.monitorEvent : 0;
+            data.eventTicket = data.eventTicket ? data.eventTicket : 0;
+            data.changeTicket = data.changeTicket ? data.changeTicket : 0;
+
+            var html = '';
+            html += '<div class="cell_box" id="' + data.id + '">';
+            html += '<div data-toggle="tooltip" title="' + data.name + '" class="cell_box_header">' + data.name + '</div>';
+
+            html += '<div class="cell_box_body">';
+            html += '<span class="cell_box_body_monitor_number">' + data.kpiUnusual + '</span>/' + data.kpiCount;
+            html += '</div>';
+
+            html += '<div class="cell_box_foot">';
+            html += '<div title="监控事件" class="cell_box_sq cell_box_sq1">' + data.monitorEvent + '</div>';
+            html += '<div title="事件工单" class="cell_box_sq cell_box_sq2">' + data.eventTicket + '</div>';
+            html += '<div title="变更工单" class="cell_box_sq cell_box_sq3">' + data.changeTicket + '</div>';
+            html += '</div>';
+            html += '</div>';
+
+            return html;
+        };
+
+        self.getMonitorEdgeHtml = function (label) {
+            return '<div title="' + label + '" class="edge_label_style1">' + label + '</div>';
+        };
+
+        self.getStrLength = function (str) {
+            var re = /[\u0391-\uFFE5]/g;
+            var length = 0;
+            var i;
+
+            for (i = 0; i < str.length; i++) {
+                if (re.test(str[i])) {
+                    length += 1.5;
+                } else if ('-'.indexOf(str[i]) >= 0) {
+                    length += 0.5;
+                } else {
+                    length++;
+                }
+            }
+            return length;
+        };
+
+        self.trimCellHtml = function (str) {
+            str = str.replace(/[\n]/ig, '');
+            return str.replace(/>\s+</, '><');
+        };
+        /*获取数组中任意几个不重复得项*/
+        self.getArrayItems = function (arr, num) {
+            var temp_array = new Array();
+            for (var index in arr) {
+                temp_array.push(arr[index]);
+            }
+            var return_array = new Array();
+            for (var i = 0; i < num; i++) {
+                if (temp_array.length > 0) {
+                    var arrIndex = Math.floor(Math.random() * temp_array.length);
+                    //将此随机索引的对应的数组元素值复制出来
+                    return_array[i] = temp_array[arrIndex];
+                    //然后删掉此索引的数组元素,这时候temp_array变为新的数组
+                    temp_array.splice(arrIndex, 1);
+                } else {
+                    //数组中数据项取完后,退出循环,比如数组本来只有10项,但要求取出20项.
+                    break;
+                }
+            }
+            return return_array;
+        };
+        self.randint = function (n, m) {
+            var c = m - n + 1, num;
+            num = Math.random() * c + n;
+            return Math.floor(num);
+        };
+
+        self.hexCharCodeToStr = function (hexCharCodeStr) {
+            var trimedStr = hexCharCodeStr.trim();
+            var rawStr =
+                trimedStr.substr(0, 2).toLowerCase() === "0x"
+                    ?
+                    trimedStr.substr(2)
+                    :
+                    trimedStr;
+            var len = rawStr.length;
+            if (len % 2 !== 0) {
+                return "";
+            }
+            var curCharCode;
+            var resultStr = [];
+            for (var i = 0; i < len; i = i + 2) {
+                curCharCode = parseInt(rawStr.substr(i, 2), 16);
+                resultStr.push(String.fromCharCode(curCharCode));
+            }
+            return resultStr.join("");
+        };
+
+        /**
+         * 跳转到登录页
+         * @param {string} ssoServerRoot - 登录服务器地址
+         */
+        self.jumpToLogin = function (ssoServerRoot) {
+            var url = window.location.href;
+            var path = "/user/oauth/logout?beforeUrl=" + encodeURIComponent(url);
+            window.location.href = ssoServerRoot.replace(/\/$/, '') + path;
+        };
+        self.isNewVisitor = function (ssoServerRoot) {
+            var flg = localStorage.getItem('userLoginFlag');
+            if (flg) {
+                return false;/*已经存在不是新用户*/
+            } else {
+                return true;/*是新用户*/
+            }
+        };
+        self.getNowFormatDate = function (sep1, sep2) {
+            var seperator1 =sep1||'/';
+            var seperator2 =sep2||'/';
+            var date = new Date();
+            var month = date.getMonth() + 1;
+            var strDate = date.getDate();
+            if (month >= 1 && month <= 9) {
+                month = "0" + month;
+            }
+            if (strDate >= 0 && strDate <= 9) {
+                strDate = "0" + strDate;
+            }
+            var currentdate = date.getFullYear() + seperator1 + month + seperator1 + strDate
+                + " " + date.getHours() + seperator2 + date.getMinutes()
+                + seperator2 + date.getSeconds();
+            return currentdate;
+        }
+        return self;
+    }]);
+
+})(nameSpace.reg('graph'));

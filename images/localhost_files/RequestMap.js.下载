@@ -1,0 +1,28 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('RequestMap', function(){
+
+		var map = [];
+
+		return {
+
+			get: function(){
+				return map;
+			},
+
+			set: function(request){
+				map.push(request);
+			},
+
+			clear: function() {
+				map = [];
+			}
+
+		};
+
+
+	});
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,41 @@
+
+
+(function (graph) {
+
+	'use strict';
+
+	graph.app.controller('MainCtrl', ['$rootScope', '$scope', '$state', 'AuthService', 'Unit', 'UserInfo', 'Event', '$cookies',
+		function ($rootScope, $scope, $state, AuthService, Unit, UserInfo, Event, $cookies) {
+
+			$scope.LAYOUT = {};
+
+			$scope.LAYOUT.collapsedMainLeft = false;
+			$scope.LAYOUT.collapsedSidebar = false;
+			$scope.noPadding = false;
+			$scope.needNotify = !!window.localStorage.getItem('needNotify');
+
+			$scope.userInfo = UserInfo.get();
+
+			$scope.logout = function () {
+				$cookies.remove('token');
+				window.location.href = '/sso/';
+			};
+
+			$scope.$watch('LAYOUT.collapsedSidebar', function () {
+				$scope.$broadcast(Event.SIDEBAR_CALLAPSED, $scope.LAYOUT.collapsedSidebar);
+				$scope.$emit(Event.SIDEBAR_CALLAPSED, $scope.LAYOUT.collapsedSidebar);
+			});
+
+			$scope.goBack = function () {
+				$scope.lastStateObj = $scope.bHistoryState[$scope.bHistoryState.length - 1];
+				$state.go($scope.lastStateObj.state.name, $scope.lastStateObj.params);
+			};
+
+			$scope.goForward = function () {
+				$scope.laterStateObj = $scope.fHistoryState[$scope.fHistoryState.length - 1];
+				$state.go($scope.laterStateObj.state.name, $scope.laterStateObj.params);
+			};
+
+		}]);
+
+})(nameSpace.reg('graph'));

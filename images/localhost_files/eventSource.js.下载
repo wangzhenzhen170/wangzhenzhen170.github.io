@@ -1,0 +1,196 @@
+(function (graph) {
+
+    'use strict';
+    //右侧浮动层
+    graph.app.directive('eventSource', function () {
+        return {
+            restrict: 'AE',
+            replace: true,
+            scope: {
+                lineLong: '=lineLong'
+                //sourceId:'@sourceId'
+            },
+            templateUrl: 'app/directive/eventSource/eventSource.html',
+            controller: ['$scope', '$timeout', '$state', 'Unit', 'uDialog', 'MonitoringService', '$uibModal', function ($scope, $timeout, $state, Unit, uDialog, MonitoringService, $uibModal) {
+
+                $scope.L= L;
+                $scope.$on("sourceId", function (event, data) {
+                    $scope.sourceId = data;
+                });
+                $scope.initData = { checked: [] };
+                $scope.source = [];
+                //$scope.$emit("sourceId",[])
+                //获取管理范围字段
+                MonitoringService.queryDict({ groupId: 1 }).success(function (result) {
+                    $scope.source = result.data
+                    //console.log($scope.source)
+                    if (Array.isArray($scope.sourceId) && $scope.sourceId.length === 0) {
+                        $scope.sourceId = $scope.source.map(function (item) {
+                            return Number(item.code);
+                        });
+                    } else if ($scope.sourceId === null) {
+                        $scope.sourceId = [];
+                    }
+                }).error(function () {
+
+                });
+
+                //console.log($scope.sourceId)
+                $scope.sourceId = [];
+                $scope.isChecked = function (item) {
+                    return $scope.sourceId.indexOf((Number(item.code))) >= 0;
+                };
+                $scope.checkedItem = function (item, $index) {
+                    if (!$scope.isChecked(item)) {
+                        $scope.sourceId.push(Number(item.code))
+                    } else {
+
+                        var index = $scope.sourceId.indexOf(Number(item.code));
+                        $scope.sourceId.splice(index, 1)
+                    }
+
+                    if ($scope.sourceId.length == 0) {
+                        $scope.$emit("sourceId", null)
+                    }
+                    if ($scope.sourceId.length == $scope.source.length) {
+                        $scope.$emit("sourceId", [])
+                    }
+                    if ($scope.sourceId.length != $scope.source.length && $scope.sourceId.length > 0) {
+                        $scope.$emit("sourceId", $scope.sourceId)
+                    }
+                };
+                $scope.$on("sourceId", function (event, data) {
+
+                    $scope.sourceId = data;
+
+                    if (Array.isArray($scope.sourceId)) {
+                        $scope.sourceId = $scope.sourceId.map(function (item) {
+                            return Number(item)
+                        })
+                        $scope.allCheked = true;
+                    }
+
+                    if (Array.isArray($scope.sourceId) && $scope.sourceId.length === 0) {
+                        $scope.sourceId = $scope.source.map(function (item) {
+                            return Number(item.code);
+                        });
+                        $scope.allCheked = false;
+                    } else if ($scope.sourceId === null) {
+                        $scope.sourceId = [];
+                        $scope.allCheked = true;
+                    }
+
+                    // if ($scope.source && Array.isArray(data) && $scope.sourceId.length === 0) {
+                    //     $scope.sourceId = $scope.source.map(function(item){
+                    //         return item.code;
+                    //     });
+                    // }
+                    // $scope.allCheked=false;
+                    // $.each($scope.source,function(index,item){
+                    //     item.Cheked=false;
+                    // })
+
+                    //console.log(data)
+                    // $scope.initData.checked = data;
+                    // if(data.length==0){
+                    //     $scope.sourceId=[];
+                    // }else{
+                    //     $.each($scope.source,function(index,item){
+                    //         if(data.indexOf(parseInt(item.code))==-1){
+                    //             $scope.sourceId.push(parseInt(item.code))
+                    //         }
+                    //     })
+                    // }
+                    // console.log($scope.sourceId)
+                    // if($scope.sourceId.length==0){
+
+                    //     $scope.allCheked=false;
+
+                    //     $.each($scope.source,function(index,item){
+                    //         item.Cheked=false;
+
+                    //     })
+                    // }else if($scope.sourceId.length>0){
+
+                    //     $scope.allCheked=true;
+                    //     $.each($scope.source,function(index,item){
+                    //         $.each($scope.sourceId,function(index1,item1){
+                    //             if(item1==parseInt(item.code)){
+                    //                 // console.log(parseInt(item.code))
+                    //                 // console.log(item1)
+                    //                 item.Cheked=true;
+                    //             }
+                    //         })
+                    //     })
+                    // }
+                    // if (!$scope.$$phase) {
+                    // 	$scope.$apply();
+                    // }
+
+                })
+
+                $scope.checkAllFun = function () {
+
+                    //var checked=[]
+                    $scope.allCheked = !$scope.allCheked
+                    $scope.sourceId = !$scope.allCheked ? $scope.source.map(function (item) {
+                        return Number(item.code)
+                    }) : [];
+                    if ($scope.allCheked == true) {
+                        $scope.sourceId = null;
+                        $scope.$emit("sourceId", $scope.sourceId)
+                    } else {
+                        $scope.sourceId = [];
+                        $scope.$emit("sourceId", $scope.sourceId)
+                    }
+                    // if(!$scope.allCheked){
+
+
+                    //     $scope.sourceId=[];
+                    //     // $scope.$emit("sourceId",$scope.sourceId)
+                    // }else{
+
+                    //     $scope.sourceId=null;
+                    //     // $scope.$emit("sourceId",$scope.sourceId)
+                    //     // Unit.error("事件来源不能不选")
+                    // }
+
+                }
+                // $scope.ckekedSourceFun=function(){
+                //     var cheked=[];
+                //     $.each($scope.source,function(index,item){
+                //         if(!item.Cheked){
+                //             cheked.push(item.code);
+                //         }
+                //     })
+                //     $timeout(function(){
+
+                //         if(cheked.length==$scope.source.length){
+                //             $scope.allCheked=false;
+                //             $scope.sourceId=[];
+                //             $scope.$emit("sourceId",$scope.sourceId)
+                //         }else if(cheked.length==0){
+                //             $scope.allCheked=true;
+                //             $scope.sourceId=null;
+                //             $scope.$emit("sourceId",$scope.sourceId)
+                //             Unit.error("事件来源不能不选");
+
+                //         }else{
+                //             $scope.allCheked=true;
+                //             $scope.sourceId=cheked;
+                //             $scope.$emit("sourceId",$scope.sourceId)
+                //         }
+                //     },1)
+
+                // }
+
+
+            }],
+            link: function (scope) {
+                //console.log(scope)
+                scope.lineLong();
+            }
+        };
+    });
+
+})(nameSpace.reg('graph'));

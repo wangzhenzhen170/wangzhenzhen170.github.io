@@ -1,0 +1,111 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('GroupService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+
+		o.get = function(id){
+			if(id){
+				return $http.get(Unit.api('/portfolio/' + id));
+			}else{
+				return $http.get(Unit.api('/portfolio'));
+			}
+		};
+
+		o.save =function(data){
+			return $http.post(Unit.api('/portfolio/save'),data);
+		};
+		o.update =function(data){
+			return $http.put(Unit.api('/portfolio/update'),data);
+		};
+
+		o.delete = function(id){
+			if(id){
+				return $http.delete(Unit.api('/portfolio/' + id));
+			}
+		};
+		o.private = function (data) {
+//			return $http.get(Unit.api('/portfolio/private'));
+			return $http.post(Unit.api('/portfolio/private'), data);
+		};
+
+		o.public = function(data) {
+//			return $http.get(Unit.api('/portfolio/public'));
+			return $http.post(Unit.api('/portfolio/public'), data);
+		};
+
+        // 订阅
+        o.subscriber = function (id) {
+            return $http.put(Unit.api('/portfolio/subscriber/' + id));
+        };
+        // 取消订阅
+        o.cancelSub = function (id) {
+            return $http.put(Unit.api('/portfolio/cancelSub/' + id));
+        };
+
+        // 获取我订阅的
+        o.getSubscriber = function (data) {
+            return $http.post(Unit.api('/portfolio/subscriber'), data);
+        };
+
+        // 发布
+        o.publish = function (id) {
+            return $http.put(Unit.api('/portfolio/publish/' + id));
+        };
+        // 取消发布
+        o.cancelPublish = function (id) {
+            return $http.put(Unit.api('/portfolio/cancelPublish/' + id));
+        };
+
+		o.getPublicViewByUser = function(id) {
+			return $http.get(Unit.api('/portfolio/public/') + id);
+		};
+
+		o.deleteById = function(id) {
+			return $http.delete(Unit.api('/portfolio/' + id));
+		};
+
+		o.create = function(data) {
+			return $http.post(Unit.api('/portfolio'), data);
+		};
+
+		o.deletePrivateOrPublic = function(isPublic) {
+			if (isPublic) {
+				return $http.delete(Unit.api('/portfolio/public'));
+			} else {
+				return $http.delete(Unit.api('/portfolio/private'));
+			}
+		};
+
+		o.openView = function(id) {
+			return $http.put(Unit.api('/portfolio/open/' + id));
+		};
+
+		o.closeView = function(id) {
+			return $http.put(Unit.api('/portfolio/close/' + id));
+		};
+
+		o.subscription = function(id) {
+			return {data:id, message:'订阅组合视图成功(功能取消)'};
+		};
+
+		o.unsubscription = function(id) {
+			return {data:id, message:'取消订阅组合视图成功(功能取消)'};
+		};
+
+		o.getGroupMonitorTotal = function(id){
+			return $http.get(Unit.api('/portfolio/total/' + id));
+		};
+
+        // 获取我的场景里的场景告警信息
+        o.getMySceneAlarm = function () {
+            return $http.get(Unit.api('/portfolio/total/owner'));
+        };
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

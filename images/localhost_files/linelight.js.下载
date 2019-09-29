@@ -1,0 +1,115 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxLineLightEffect', ['_emxBaseLineEffetc',
+                               function (baseLine) {
+
+
+
+
+
+            /***************************************************************************/
+
+            /**
+             * 光点沿着连线移动的效果
+             */
+            return baseLine.extend({
+                /**
+                 * @param {mxCell} cell
+                 * @param {String} color
+                 * @param {Boolean} reverse - 光点是否反向移动
+                 * @param {Number} fixedR - 指定光点的半径，使其不随线宽而变
+                 */
+                createOneEffect: function (cell, color, reverse, fixedR) {
+                    this._super(cell);
+
+                    color = color || 'green';
+                    if (!this.cellNodes[cell.id] || !this.cellEffects[cell.id]) {
+                        this.cellNodes[cell.id] = this.getCellNode(cell);
+                        this.cellEffects[cell.id] = this.createSvg('circle', {
+                            filter: 'url(#' + this._defGaussianBlur(1) + ')'
+                        });
+                    }
+
+                    this.attr(this.cellEffects[cell.id], {
+                        fill: color
+                    });
+                    this.cellEffects[cell.id].isReverse = !!reverse;
+                    cell.effectLightR = +fixedR;
+
+                    this.syncEffect(cell);
+                },
+
+                syncEffect: function (cell) {
+                    this._super(cell);
+
+                    cell = this.getCell(cell);
+                    var nodeg = this.getCellNode(cell),
+                        path = nodeg && nodeg.childNodes[1],
+                        pos, r;
+
+                    // 如果path节点不存在则直接返回
+                    if (!path) return;
+
+                    var light = this.cellEffects[cell.id];
+                    // 容器的关闭打开操作会重新生成其内部的元素结点
+                    // 如果节点重新生成了则需要更新对其的引用
+                    if (nodeg !== this.cellNodes[cell.id]) {
+                        this.cellNodes[cell.id] = nodeg;
+                    }
+                    // 定义光点在线上所处的位置
+                    light.atLine = light.atLine || 0;
+                    pos = path.getPointAtLength(light.atLine);
+                    r = cell.effectLightR || +path.getAttribute('stroke-width') || 1;
+                    r = Math.max(r, 2);
+                    this.attr(light, {
+                        r: r,
+                        cx: pos.x,
+                        cy: pos.y
+                    });
+
+                    this.toCellFront(light, cell);
+                },
+
+                update: function (t) {
+                    var path, light, pos, diff, totalLength;
+                    this._animate_lasttime_ = this._animate_lasttime_ ? this._animate_lasttime_ : t;
+                    diff = t - this._animate_lasttime_;
+                    diff = diff % this._animate_duration_;
+
+                    for (var i in this.cellNodes) {
+                        if (!this.cellNodes[i]) continue;
+
+                        path = this.cellNodes[i].childNodes[1];
+                        totalLength = path.getTotalLength();
+                        light = this.cellEffects[i];
+                        if (light.isReverse) {
+                            light.atLine = light.atLine || totalLength;
+                            light.atLine -= diff * 100 / this._animate_duration_;
+                        } else {
+                            light.atLine = light.atLine || 0;
+                            light.atLine += diff * 100 / this._animate_duration_;
+                        }
+
+                        pos = path.getPointAtLength(light.atLine);
+                        this.attr(light, {
+                            cx: pos.x,
+                            cy: pos.y
+                        });
+
+                        // 光点如果已经到达连线的终点则回到起点位置
+                        if (light.atLine >= totalLength && !light.isReverse) {
+                            light.atLine = 0;
+                        }
+                        if (light.atLine <= 0 && light.isReverse) {
+                            light.atLine = totalLength;
+                        }
+                    }
+
+                    this._animate_lasttime_ = t;
+                }
+            });
+
+
+    }]);
+})();

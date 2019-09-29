@@ -1,0 +1,127 @@
+(function(graph) {
+
+    'use strict';
+
+    graph.app.controller('historyModalCtrl', ['$uibModal', '$scope', '$uibModalInstance', 'Unit', 'mineService','DiagramDiagramVersionService', 'editor','$state',
+    function($uibModal, $scope, $uibModalInstance, Unit, mineService, DiagramDiagramVersionService, editor,$state) {
+        $scope.historyForm = false;
+        $scope.historyView = [];
+        $scope.selectedHistory = {};
+
+        $scope.close = function() {
+            $('.toolbar-sidebar').find('.toolbar-btn').removeClass('active');
+            $uibModalInstance.close();
+        };
+        // 创建历史版本
+        $scope.createHistory = function() {
+            var id = $state.params.id;
+            if (id) {
+                var diagramEles = [];
+                angular.forEach(editor.action.getCisId(), function(id) {
+                    diagramEles.push({
+                        eleType: 1,
+                        eleId: id
+                    });
+                });
+
+                angular.forEach(editor.action.getTagsId(), function(id) {
+                    diagramEles.push({
+                        eleType: 2,
+                        eleId: id
+                    });
+                });
+
+                if(!$scope.versionDesc){
+                    Unit.error('请填写版本注释');
+                    return;
+                }
+
+                var data = {
+                    svg: mxUtils.getXml(editor.graph.getSvg()),
+                    xml: editor.action.getXml(),
+                    diagram: editor.state.view.diagram,
+                    diagramEles: diagramEles,
+                    tags: editor.state.view.tags,
+                    versionDesc: $scope.versionDesc,
+                    ci3dPoint: JSON.stringify(editor.graph.getJson())
+                };
+
+                if (editor.graph.background) {
+                    data.diagram.diagramBgCss = editor.graph.background;
+                }
+                if (editor.graph.backgroundImage) {
+                    data.diagram.diagramBgImg = editor.graph.backgroundImage.src;
+                }
+                
+                DiagramDiagramVersionService.saveDiagramVersion(data).success(function(result) {
+                    if(result.success){
+                        Unit.success('保存历史版本成功');
+                        $scope.queryDiagramVersion();
+                        $scope.historyForm = false;
+                    } else {
+                        Unit.error('保存历史版本失败');
+                    }
+                });
+            } else {
+                Unit.error('请先保存视图');
+            }
+        }     
+
+        // 查询历史版本
+        $scope.queryDiagramVersion = function() {
+            var id = $state.params.id;
+            if(id) {
+                mineService.queryDiagramVersionByDiagramId(id).success(function(data) {
+                    $scope.historyView = data.data;
+                }).error(function(error) {});
+            }
+        }
+        $scope.queryDiagramVersion();
+
+        // 删除历史版本
+        $scope.deleteHistory = function(id) {
+            mineService.removeDiagramVersionById(id).success(function(data) {
+                $scope.queryDiagramVersion();
+            }).error(function(error) {});
+        }
+
+        // 选择并查看一个历史版本
+        $scope.selectHistory = function(history, $event){
+            $event.stopPropagation();
+            angular.forEach( $scope.historyView , function(item,index){
+                if(item.id == history.id){
+                    item.select = !item.select;
+                } else {
+                    item.select = false;
+                }
+            });
+            if(history.select){
+                $scope.selectedHistory = history;
+                DiagramDiagramVersionService.queryDiagramVersionById($scope.selectedHistory.id).success(function (result) {
+                    if(!(angular.isObject(result.data) && result.data.xml)){
+                        return;
+                    }
+                    editor.action.openView(result.data);
+                });
+            } else {
+                $scope.selectedHistory = {};
+            }
+        }
+
+        // 还原历史版本
+        $scope.restoreHistory = function(){
+            if( $scope.selectedHistory.id ) {
+                var id = $scope.selectedHistory.id;
+                mineService.restoreDiagramVersionById(id).success(function(data){
+                    if(data.success){
+                        Unit.success('还原版本成功');
+                        $scope.queryDiagramVersion();
+                    }
+                }).error(function(error){});
+            } else {
+                Unit.error('请选择一个历史版本');
+            }
+            
+        }
+    }]);
+})(nameSpace.reg('graph'));

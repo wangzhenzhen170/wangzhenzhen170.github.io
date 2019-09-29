@@ -1,0 +1,49 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('ViewCateService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+
+		o.get = function(){
+			return $http.get(Unit.api('/viewcate'));
+		};
+
+		o.getPrivate = function(){
+			return $http.get(Unit.api('/viewcate/private'));
+		};
+
+		o.getPublic = function(){
+			return $http.get(Unit.api('/viewcate/public'));
+		};
+
+		o.create = function(data){
+			return $http.post(Unit.api('/viewcate'), data);
+		};
+
+		o.remove = function(id){
+			return $http.delete(Unit.api('/viewcate/' + id));
+		};
+
+		o.update = function(data){
+			return $http.put(Unit.api('/viewcate'), data);
+		};
+
+		o.getMonitorTask = function(){
+			return $http.get(Unit.api('/viewcate/treeinfo'));
+		};
+
+		o.getTree = function(type){
+			return $http.get(Unit.api('/viewcate/treeinfo/' + type));
+		};
+
+		o.getDirTree = function(type){
+			return $http.get(Unit.api('/viewcate/tree/' + type));
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

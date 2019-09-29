@@ -1,0 +1,54 @@
+(function(mxShape) {
+    /**
+     * 重写mxShape的paint方法，以嵌入特效及控制内容
+     */
+    mxShape.prototype._uBackupPaint = mxShape.prototype.paint;
+    mxShape.prototype.paint = function (canvas)　 {
+        var s = this.scale,
+            x = this.bounds.x / s,
+            y = this.bounds.y / s,
+            w = this.bounds.width / s,
+            h = this.bounds.height / s;
+
+        // 绘制背景特效
+        if (typeof this.uPaintEffectBackground === 'function') {
+            this.uPaintEffectBackground(canvas, x, y, w, h);
+        }
+
+        this._uBackupPaint.apply(this, arguments);
+
+        // 绘制前景特效
+        if (typeof this.uPaintEffectFront === 'function') {
+            this.uPaintEffectFront(canvas, x, y, w, h);
+        }
+
+        // 同步特效显示
+        this.syncEffect(canvas, x, y, w, h);
+
+        // 绘制控制点
+        if (typeof this.uPaintControl === 'function') {
+            this.uPaintControl(canvas, x, y, w, h);
+        }
+
+    };
+
+    // 同步元素上的特效
+    mxShape.prototype.syncEffect = function (canvas, x, y, w, h) {
+        if (!this.state) return;
+
+        var state = this.state,
+            cell = state.cell,
+            mxg = state.view.graph,
+            model = mxg.model;
+
+        if (!cell.uEffects) return;
+
+        cell.uEffects.forEach(function (eft) {
+            try {
+                eft.syncEffect(cell);
+            } catch (e) {
+                console.error(e);
+            }
+        })
+    };
+})(mxShape);

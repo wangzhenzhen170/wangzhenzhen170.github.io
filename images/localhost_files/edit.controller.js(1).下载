@@ -1,0 +1,38 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('MainGroupEditCtrl',['$scope', '$state','ViewService','GroupService', 'Unit',function($scope, $state,ViewService,GroupService, Unit){
+
+		var id = $state.params.id;
+
+		GroupService.get(id).success(function(res){
+			$scope.$parent.group = $.parseJSON(res.data.content);
+			$scope.$parent.group.roles = res.data.role;
+			$scope.$parent.group.focusCi = res.data.focusCi;
+			$scope.$parent.group.actionGroups = res.data.operationGroup;
+			$scope.$parent.groupImgBox = angular.copy($scope.$parent.group.content.d3setting.layers);
+		});
+
+		//删除视图
+		$scope.delGroupView = function(){
+
+			Unit.confirm(graph.translate('DELETE_CONFIRM'),function(){
+
+				GroupService.delete(id).success(function(){
+					$state.go('home.group.listmine');
+				});
+
+			});
+
+		};
+
+		ViewService.publicForRelation()
+			.success(function(result){
+				$scope.views =  result.data;
+			});
+
+	}]);
+
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

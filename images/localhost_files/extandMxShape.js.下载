@@ -1,0 +1,46 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxExpandMxShape', ['emxExtandShape',
+                                     function (uExtandShape) {
+
+
+
+
+        return function (mxg, defaultEdgeStyle) {
+            /*********************************************************************************/
+
+            /**
+             * 绘制节点控制内容
+             */
+            mxShape.prototype.uPaintControl = function (canvas, x, y, w, h) {
+                if (!this.state) return;
+
+                var state = this.state,
+                    cell = state.cell,
+                    mxg = state.view.graph,
+                    model = mxg.model,
+                    ctrl;
+
+                // 如果不是节点则直接退出
+                if (!model.isVertex(cell)) return;
+
+                if (mxg.foldingEnabled && cell.getChildCount() > 0) {
+                    try {
+
+                        // 容器控制对象
+                        ctrl = uExtandShape.controls.container;
+
+                        ctrl.paint(state, canvas, x, y, w, h);
+
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }
+            };
+
+            new uExtandShape(mxg, defaultEdgeStyle);
+        };
+
+    }]);
+})();

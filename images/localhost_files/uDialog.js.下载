@@ -1,0 +1,359 @@
+(function(graph) {
+
+    'use strict';
+
+    graph.app.factory('uDialog', ['$uibModal', 'Unit', '$q', function($uibModal, Unit, $q) {
+
+        var dialog = {};
+
+        // 确认对话框
+        /**
+         * 打开确认对话框
+         * @param   {object}   opt 对话框参数
+         * @param   {string}   opt.title 对话框标题
+         * @param   {string}   opt.content 对话框内容
+		 * @param   {string}   opt.class 对话框自定义类名
+		 * @param   {Number}   opt.width 对话框宽度
+		 * @param   {Number}   opt.height 对话框高度
+         * @param   {function}   opt.confirm 对话框确认时执行的回调函数
+		 * @param   {function}   opt.cancel 对话框取消时执行的回调函数
+		 * @param   {string}   opt.confirmBtnText 对话框确认按钮文本
+		 * @param   {string}   opt.cancelBtnText 对话框取消按钮文本
+		 *
+		 * 实例：
+		 * var opt = {
+				height: 600,
+				width: 300,
+				class: 'custom',
+				title: "确认保存",
+				content: "确认保存吗",
+				data: {}// 传递参数
+				confirm: function(){
+					// TODO
+				},
+				cancel: function(){
+					// TODO
+				}
+			}
+		 	uDialog.confirm(opt);
+		 *
+         */
+        dialog.confirm = function(opt) {
+            var dlg = $uibModal.open({
+                templateUrl: 'app/modal/dialog/uDialog-confirm.html',
+                size: opt.class,
+                resolve: {
+                    data: function() {
+                        return opt.data; //这个值会被模态框的控制器获取到
+                    }
+                },
+                windowClass: 'uDialog',
+                controller: ['$scope', '$uibModalInstance', '$timeout', 'data', function($scope, $uibModalInstance, $timeout, data) {
+                    $scope.opt = angular.extend({}, opt);
+                    $timeout(function() {
+                        opt.width && $('.uDialog').find('.modal-dialog').css('width', opt.width);
+                        opt.height && $('.uDialog').find('.modal-dialog').css('height', opt.height);
+                    }, 0)
+
+                    $scope.ok = function() {
+                        $uibModalInstance.close({ ok: true, data: data });
+                    };
+                    $scope.cancel = function() {
+                        $uibModalInstance.dismiss({ ok: false });
+                    };
+
+                    $scope.btnOK = true;
+                    $scope.btnCancel = true;
+                    $scope.confirmBtnText = opt.confirmBtnText ? opt.confirmBtnText : L.get('COMMON_CONFIRM');
+                    $scope.cancelBtnText = opt.cancelBtnText ? opt.cancelBtnText : L.get('COMMON_CANCEL');
+                }]
+            });
+
+            dlg.result.then(function(ok) {
+                opt.confirm && opt.confirm(ok);
+            }, function() {
+                opt.cancel && opt.cancel();
+            });
+        };
+
+        /**
+         * 信息提示对话框
+         * @param   {object}  opt - 对话框参数
+         * @param   {string}  opt.title - 对话框标题
+         * @param   {string}  opt.content - 对话框内容
+         * @param   {string}  opt.class - 自定义类
+         */
+        dialog.prompt = function(opt) {
+            var option = angular.extend({ btnOK: true, btnCancel: false }, opt);
+
+            var dlg = $uibModal.open({
+                templateUrl: 'app/modal/dialog/uDialog-confirm.html',
+                size: opt.class,
+                windowClass: 'uDialog',
+                controller: ['$scope', '$uibModalInstance', '$timeout', function($scope, $uibModalInstance, $timeout) {
+                    $scope.opt = option;
+                    $timeout(function() {
+                            opt.width && $('.uDialog .modal-dialog').css('width', opt.width);
+                            opt.height && $('.uDialog .modal-dialog').css('height', opt.height);
+                        }, 0)
+                        // 确定按钮
+                    $scope.ok = function() {
+                        $uibModalInstance.close({ ok: true });
+                    };
+                    // 取消按钮
+                    $scope.cancel = function() {
+                        $uibModalInstance.dismiss({ ok: false });
+                    };
+                    $scope.btnOK = $scope.opt.btnOK;
+                    $scope.btnCancel = $scope.opt.btnCancel;
+                    $scope.confirmBtnText = opt.confirmBtnText ? opt.confirmBtnText : L.get('COMMON_CONFIRM');
+                    $scope.cancelBtnText = opt.cancelBtnText ? opt.cancelBtnText : L.get('COMMON_CANCEL');
+                }]
+            });
+
+            dlg.result.then(function(ok) {
+                opt.confirm && opt.confirm(ok);
+            });
+
+        }
+
+        /**
+         * 输入框对话框
+         * @param   {object}   opt 对话框参数
+         * @param   {string}   opt.title 对话框标题
+         * @param   {string}   opt.placeholder 对话框文本占位符
+		 * @param   {string}   opt.class 对话框自定义类名
+		 * @param   {Number}   opt.width 对话框宽度
+		 * @param   {Number}   opt.height 对话框高度
+		 * @param   {String}   opt.data 传入文本框的值
+         * @param   {Number}   opt.maxLength 文本框的最大长度
+         * @param   {boole}   opt.checked 是否校验输入框的值，默认false
+         * @param   {String}   opt.errorMessage 输入框为空时错误信息
+         * @param   {String}   opt.overLengthMessage 输入框超出长度时提示信息
+         * @param   {String}   opt.remark 输入框下方备注信息
+         * @param   {function}   opt.confirm 对话框确认时执行的回调函数
+		 * @param   {function}   opt.cancel 对话框取消时执行的回调函数
+         * @param   {function}   opt.checkConfirm 对话框自定义校验函数，
+		 * @param   {string}   opt.confirmBtnText 对话框确认按钮文本
+		 * @param   {string}   opt.cancelBtnText 对话框取消按钮文本
+		 *
+		 * 实例：
+		 * var opt = {
+				height: 600,
+				width: 300,
+				class: 'custom',
+				title: "重命名",
+				data: 'name',
+				placeholder: '文件名',
+                checked: true | false,
+                errorMessage: '错误',
+                remark: '备注信息',
+                maxLength: 60;
+                overLengthMessage: '超出长度值',
+				confirm: function(result){
+					// TODO
+					// result.value为输入框的值
+				},
+				cancel: function(){
+					// TODO
+				},
+                checkConfirm: function(value, defer){
+                    // TODO
+                    Service.query(params).success(function(data) {
+						defer.resolve(data); // 关闭弹框
+					}).error(function(){
+                        defer.reject();
+                    });
+                }
+			}
+		 	uDialog.input(opt);
+		 *
+         */
+        dialog.input = function(opt) {
+            var option = angular.extend({ checked: false, btnOK: true, btnCancel: true }, opt);
+            var dlg = $uibModal.open({
+                templateUrl: 'app/modal/dialog/uDialog-input.html',
+                size: opt.class,
+                windowClass: 'uDialog',
+                resolve: {
+                    data: function() {
+                        return opt.data; //这个值会被模态框的控制器获取到
+                    }
+                },
+                controller: ['$scope', '$uibModalInstance', '$timeout', 'data', function($scope, $uibModalInstance, $timeout, data) {
+                    $scope.opt = option;
+                    $timeout(function() {
+                        opt.width && $('.uDialog .modal-dialog').css('width', opt.width);
+                        opt.height && $('.uDialog .modal-dialog').css('height', opt.height);
+                    }, 0)
+
+                    if (data) {
+                        $scope.inputValue = data;
+                    } else {
+                        $scope.inputValue = '';
+                    }
+                    // 确定按钮
+                    $scope.ok = function() {
+                        console.log($scope.inputValue)
+                        if($scope.opt.checked && !$scope.inputValue){
+                            $scope.opt.errorMessage && Unit.error($scope.opt.errorMessage);
+                            return;
+                        }
+
+                        if($scope.opt.maxLength){
+                            if($scope.inputValue.length > $scope.opt.maxLength){
+                                $scope.opt.overLengthMessage && Unit.error($scope.opt.overLengthMessage);
+                                return;
+                            }
+                        }
+
+                        if($scope.opt.checkConfirm) {
+                            $scope.checkedFn = function(){
+                                var def = $q.defer();
+                                $scope.opt.checkConfirm($scope.inputValue, def);
+                                return def.promise;
+                            };
+
+                            $scope.checkedFn().then(function(data){
+                                $uibModalInstance.close({ ok: true, value: $scope.inputValue, data: data });
+                            }, function(reason){});
+                        } else {
+                            $uibModalInstance.close({ ok: true, value: $scope.inputValue });
+                        }
+                    };
+                    // 取消按钮
+                    $scope.cancel = function() {
+                        $uibModalInstance.dismiss({ ok: false });
+                    };
+                    $scope.btnOK = $scope.opt.btnOK;
+                    $scope.btnCancel = $scope.opt.btnCancel;
+                    $scope.confirmBtnText = opt.confirmBtnText ? opt.confirmBtnText : L.get('COMMON_CONFIRM');
+                    $scope.cancelBtnText = opt.cancelBtnText ? opt.cancelBtnText : L.get('COMMON_CANCEL');
+                }]
+            });
+
+            dlg.result.then(function(ok) {
+                opt.confirm && opt.confirm(ok);
+            }, function() {
+                opt.cancel && opt.cancel();
+            });
+
+        }
+
+
+
+        /**
+         * 输入框对话框
+         * @param   {object}   opt 对话框参数
+         * @param   {string}   opt.title 对话框标题
+         * @param   {string}   opt.placeholder 对话框文本占位符
+		 * @param   {string}   opt.class 对话框自定义类名
+		 * @param   {Number}   opt.width 对话框宽度
+		 * @param   {Number}   opt.height 对话框高度
+		 * @param   {Number}   opt.data 传入文本框的值
+         * @param   {function}   opt.confirm 对话框确认时执行的回调函数
+		 * @param   {function}   opt.cancel 对话框取消时执行的回调函数
+		 * @param   {string}   opt.confirmBtnText 对话框确认按钮文本
+		 * @param   {string}   opt.cancelBtnText 对话框取消按钮文本
+		 *
+		 * 实例：
+		 * var opt = {
+				height: 600,
+				width: 300,
+				class: 'custom',
+				title: "重命名",
+				data: 'name',
+				placeholder: '文件名',
+				confirm: function(result){
+					// TODO
+					result.value为输入框的值
+				},
+				cancel: function(){
+					// TODO
+				}
+			}
+		 	uDialog.confirm(opt);
+		 *
+         */
+        dialog.textarea = function(opt) {
+            var option = angular.extend({ btnOK: true, btnCancel: true }, opt);
+            var dlg = $uibModal.open({
+                templateUrl: 'app/template/dialog/uDialog-textarea.html',
+                size: opt.class,
+                windowClass: 'uDialog',
+                resolve: {
+                    data: function() {
+                        return opt.data; //这个值会被模态框的控制器获取到
+                    }
+                },
+                controller: ['$scope', '$uibModalInstance', '$timeout', 'data', function($scope, $uibModalInstance, $timeout, data) {
+                    $scope.opt = option;
+                    $scope.txtcontent;
+//                    $scope.placeholder = placeholder;
+//                    console.log(placeholder)
+                    $timeout(function() {
+                        opt.width && $('.uDialog .modal-dialog').css('width', opt.width);
+                        opt.height && $('.uDialog .modal-dialog').css('height', opt.height);
+                    }, 0)
+                    // 确定按钮
+                    $scope.ok = function() {
+                        $uibModalInstance.close({ ok: true, value: $scope.txtcontent });
+                    };
+                    // 取消按钮
+                    $scope.cancel = function() {
+                        $uibModalInstance.dismiss({ ok: false });
+                    };
+                    $scope.btnOK = $scope.opt.btnOK;
+                    $scope.btnCancel = $scope.opt.btnCancel;
+                    $scope.confirmBtnText = opt.confirmBtnText ? opt.confirmBtnText : L.get('COMMON_CONFIRM');
+                    $scope.cancelBtnText = opt.cancelBtnText ? opt.cancelBtnText : L.get('COMMON_CANCEL');
+                }]
+            });
+
+            dlg.result.then(function(ok) {
+                opt.confirm && opt.confirm(ok);
+            }, function() {
+                opt.cancel && opt.cancel();
+            });
+
+        }
+
+
+        /**
+         * 自定义对话框
+         * @param   {object}   opt 对话框参数
+         * @param   {string}   opt.class 自定义对话框类名
+         * @param   {string}   opt.templateUrl 自定义对话框html模板路径
+         * @param   {function}   opt.controller 自定义对话框控制器
+         * @param   {object}   opt.resolve 自定义对话框传输数据
+         *
+         * 实例：
+         * 	var opt = {
+         * 		class: 'custom'
+        		templateUrl: 'app/modal/**',
+        		controller: 'controllerName',
+        		resolve: {
+        			item: function(){
+        				return item;//这个值会被模态框的控制器获取到
+        			}
+        		}
+        	}
+         	uDialog.dialog(opt);
+         */
+        dialog.dialog = function(opt) {
+            var dlg = $uibModal.open({
+                animation: true,
+                templateUrl: opt.templateUrl,
+                size: opt.class,
+                windowClass: 'uDialog',
+                resolve: opt.resolve, //入参,它可以把主控制器中的参数传到模态框控制器中
+                controller: opt.controller,
+            });
+
+            return dlg.result;
+        };
+
+        return dialog;
+    }]);
+
+})(nameSpace.reg('graph'));

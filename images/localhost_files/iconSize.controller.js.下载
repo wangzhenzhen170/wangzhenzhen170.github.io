@@ -1,0 +1,29 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalIconSizeCtrl', ['$scope', '$uibModalInstance', 'title', 'defaultValue', 'minValue', 'maxValue', 'fn', function($scope, $uibModalInstance, title, defaultValue, minValue, maxValue, fn){
+
+
+		$scope.setSize = function(size){
+			$scope.size = size;
+		};
+
+
+		$scope.ok = function(){
+			$uibModalInstance.close();
+			if(fn){
+				fn($scope.size);
+			}
+		};
+
+		$scope.$modal = $uibModalInstance;
+		$scope.title = title;
+
+		$scope._refresh();
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

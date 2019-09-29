@@ -1,0 +1,51 @@
+(function(graph){
+
+	'use strict';
+	// graph.app.controller('createCICtrl', function(){})
+	graph.app.controller('createKPICtrl', ['$uibModal','$scope', '$uibModalInstance', 'MonitoringService','Unit','ciCode','$sce','$cookies','$cookieStore','flag',function($uibModal,$scope, $uibModalInstance,MonitoringService,Unit,ciCode,$sce,$cookies,$cookieStore,flag) {
+		
+		
+		$scope.token=$cookies.get("token") ;
+		MonitoringService.selectCMVUrl({}).success(function(data) {
+			$scope.cmvUrl = data.data;
+			var url=$scope.cmvUrl+"/vmdb/base/kpi/kpiframe.html?ciCode="+ciCode+"&time="+Date.parse(new Date())+"&token="+$scope.token;
+			$scope.myURL = $sce.trustAsResourceUrl(url);
+		});
+		$scope.$on('modal.closing',function(){
+			window.removeEventListener("message",addListenerKpiFun);
+		})
+		function addListenerKpiFun(evt){
+			
+			if(evt.data.msg){
+				if(evt.data.msgType=="error"){
+					Unit.error(evt.data.msg)
+				}else if(evt.data.msgType=="success" && !evt.data.type){
+					Unit.success(evt.data.msg)
+					MonitoringService.saveCreateLog({
+						"objectCode": ciCode,
+						"objectType":2
+					}).success(function(data) {
+						flag();
+						
+					});
+					
+				}
+			}
+			if(evt.data.close==1){
+				$scope.cancel();
+			}
+			if(evt.data.ok==1){
+				//Unit.success('CI '+L.get('COMMON_CREATION_SUCCEEDED'));
+				//flag();
+			}
+		}
+		window.addEventListener('message', addListenerKpiFun);
+		
+		$scope.cancel = function () {
+			window.removeEventListener("message",addListenerKpiFun);
+			$uibModalInstance.close({ok: false});
+			
+		};
+
+	}])
+})(nameSpace.reg('graph'));

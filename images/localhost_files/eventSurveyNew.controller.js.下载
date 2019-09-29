@@ -1,0 +1,326 @@
+
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('eventSurveyNewCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+
+        $scope.toPercent = function (point) {
+            var str = Number(point * 100).toFixed(1);
+            str += '%';
+            return str;
+        };
+        $scope.page = 1;
+        $scope.pageSize = 8;
+        $scope.nosurepage = 1;
+        $scope.eventData = [];
+        $scope.noAckArray = [];
+        $scope.dealingArray = [];
+        $scope.indealpage = 1;
+        $scope.lastTime = 12;
+        var dateTemp = new Date().getTime();
+        //默认开始时间
+        $scope.startTime = dateTemp - 12 * 60 * 60 * 1000;
+        //默认截止时间
+        $scope.endTime = dateTemp;
+        $scope.load = function () {
+            angular.element('.eventSurveyNew').scroll(function () {
+                var scrollTop = document.getElementById('eventSurveyNew').scrollTop;
+                var scrollHeight = document.getElementById('eventSurveyNew').scrollHeight;
+                var offsetHeight = document.getElementById('eventSurveyNew').offsetHeight;
+                $scope.loadingIMG = false;
+                $scope.$apply();
+                if ($scope.eventDataAll.data) {
+
+                    if (scrollHeight - (offsetHeight + scrollTop) <= 0 && ($scope.eventDataAll.totalRows > $scope.eventData.length)) {
+                        $scope.page++;
+                        if ($scope.page > 1) {
+                            if ($scope.page <= $scope.eventDataAll.totalPages) {
+                                $scope.queryEventOverview();
+                            }
+
+                        }
+
+                    }
+                }
+
+            });
+
+        };
+        $scope.queryEventOverview = function () {
+            $scope.loadingIMG = true;
+            MonitoringService.queryEventOverview({ pageNum: $scope.page, pageSize: $scope.pageSize, startTime: $scope.startTime, endTime: $scope.endTime }).success(function (result) {
+                if (result.success) {
+                    $scope.eventDataAll = result.data;
+                    $scope.eventData = $scope.eventData.concat(result.data.data);
+
+                }
+
+                $scope.loadingIMG = false;
+            }).error(function (error) {
+                console.log(error);
+            });
+        };
+        $scope.queryEventOverview();
+        $scope.queryActiveEventCount = function(){
+            MonitoringService.queryActiveEventCount({ startTime: $scope.startTime, endTime: $scope.endTime }).success(function (result) {
+                if (result.success) {
+                    $scope.totalData = result.data;
+                }
+            }).error(function (error) {
+                console.log(error);
+            });
+        };
+        $scope.queryActiveEventCount();
+        $scope.loadNoSureFun = function () {
+            angular.element('#nosure').scroll(function () {
+                var scrollTop = document.getElementById('nosure').scrollTop;
+                var scrollHeight = document.getElementById('nosure').scrollHeight;
+                var offsetHeight = document.getElementById('nosure').offsetHeight;
+
+                $scope.$apply();
+                if ($scope.noAckObj.data) {
+
+                    if (scrollHeight - (offsetHeight + scrollTop) <= 0 && ($scope.noAckObj.totalRows > $scope.noAckArray.length)) {
+                        $scope.nosurepage++;
+                        if ($scope.nosurepage > 1) {
+                            if ($scope.nosurepage <= $scope.noAckObj.totalPages) {
+                                $scope.queryEventPageUp();
+                            }
+
+                        }
+
+                    }
+                }
+            });
+        };
+        $scope.queryEventPageUp = function () {
+            $scope.loadingnosure = true;
+            MonitoringService.queryEventPage({ pageSize: 10, pageNum: $scope.nosurepage, isAck: false, startTime: $scope.startTime, endTime: $scope.endTime, sortName: 'FIRSTOCCURRENCE', sortOrder: 'asc' }).success(function (result) {
+                if (result.success) {
+                    $scope.noAckObj = result.data;
+                    $scope.noAckArray = $scope.noAckArray.concat(result.data.data);
+                    $scope.loadingnosure = false;
+                } else {
+                    $scope.loadingnosure = false;
+                }
+            }).error(function (error) {
+                console.log(error);
+                $scope.loadingnosure = false;
+            });
+        };
+        $scope.queryEventPageUp();
+        $scope.loadInDealFun = function () {
+            angular.element('#indeal').scroll(function () {
+                var scrollTop = document.getElementById('indeal').scrollTop;
+                var scrollHeight = document.getElementById('indeal').scrollHeight;
+                var offsetHeight = document.getElementById('indeal').offsetHeight;
+                $scope.$apply();
+                if ($scope.indealObj.data) {
+
+                    if (scrollHeight - (offsetHeight + scrollTop) <= 0 && ($scope.indealObj.totalRows > $scope.noAckArray.length)) {
+                        $scope.indealpage++;
+                        if ($scope.indealpage > 1) {
+                            if ($scope.indealpage <= $scope.indealObj.totalPages) {
+                                $scope.queryEventPageDown();
+                            }
+
+                        }
+
+                    }
+                }
+            });
+        };
+        $scope.jumpToDefinedFun = function (item) {
+            $state.go('tarsier.monitoring.definedEvents', {
+                viewName: item.viewName,
+                viewId: item.viewId,
+                status: 0,
+                type: 1,
+            });
+        };
+        $scope.queryEventPageDown = function () {
+            $scope.loadingindeal = true;
+            MonitoringService.queryEventPage({ pageSize: 10, pageNum: $scope.indealpage, sendBill: true, startTime: $scope.startTime, endTime: $scope.endTime, sortName: 'FIRSTOCCURRENCE', sortOrder: 'asc' }).success(function (result) {
+                if (result.success) {
+                    $scope.loadingindeal = false;
+                    $scope.indealObj = result.data;
+                    $scope.dealingArray = $scope.dealingArray.concat(result.data.data);
+                } else {
+                    $scope.loadingindeal = false;
+                }
+            }).error(function (error) {
+                console.log(error);
+                $scope.loadingindeal = false;
+            });
+        };
+        $scope.queryEventPageDown();
+         //点击更多信息，弹出框出现
+         $scope.getMoreDetailFun1 = function (flag, item, css) {
+          //  console.log(item)
+            $scope.showSmallDetail = false;
+            var params = {
+                serial: item.SERIAL,
+                status: item.STATUS
+            };
+
+
+            uDialog.dialog({
+                class: 'detailMore',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/detailMore.html',
+                controller: 'detailMoreCtrl',
+                resolve: {
+                    flag: function () {
+                        return flag;
+                    },
+                    data: function () {
+                        return item;
+                    },
+                    params: function () {
+                        return params;
+                    },
+                    css: function () {
+                        return css;
+                    },
+                    pageFlag: function () {
+                        return 2;
+                    },
+                    eventType: function () {
+                        return 0;
+                    },
+                    viewId: function () {
+                        return $scope.viewId;
+                    },
+                    isOsreen: function () {
+                        return 0;
+                    }
+
+                }
+            });
+        };
+        /*timeSelect begin*/
+        var oDate = new Date();
+        var intStartTime = oDate.getFullYear() + '/' + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + '/' + oDate.getDate();
+        $scope.startD = intStartTime;
+        var intEndTime = oDate.getFullYear() + '/' + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1)) + '/' + oDate.getDate();
+        $scope.endD = intEndTime;
+        $scope.startTimeHour = '00:00:00';
+        $scope.endTimeHour = '00:00:00';
+        $scope.$on('startTimeHour', function (event, msg) {
+            $scope.startTimeHour = msg;
+        });
+        $scope.$on('endTimeHour', function (event, msg) {
+            $scope.endTimeHour = msg;
+        });
+        $scope.selectTimeDefaul =  L.get('EMV_NEARLY_TWENTY_FOUR_HOURS');
+        $scope.getSetTime = 12;
+        $scope.selectTimeListAry = [
+            { 'name': L.get('EMV_LAST_TWELVE_HOURS'), 'time': '12' },
+            { 'name': L.get('EMV_NEARLY_TWENTY_FOUR_HOURS'), 'time': '24' },
+            {'name':L.get('EMV_LAST_FORTY_EIGHT_HOUR'), 'time':'48'},
+            { 'name': L.get('EMV_LAST_WEEK'), 'time': '168' },
+        ];
+        $scope.selectTimeListFlag = false;
+        $scope.goToSelectTime = function (e) {
+            e.stopPropagation();
+            if ($scope.selectTimeListFlag === false) {
+                $scope.selectTimeListFlag = true;
+            } else {
+                $scope.selectTimeListFlag = false;
+            }
+        };
+        $scope.selectTimeLi = function (item) {
+            $scope.getStartAndEndTime(item.time);
+            $scope.selectTimeListFlag = false;
+            $scope.selectDefTimeFlag = false;
+            $scope.selectTimeDefaul = item.name;
+            $scope.showTitleDefalt = item.name;
+            $scope.page = 1;
+            $scope.nosurepage = 1;
+            $scope.indealpage = 1;
+            $scope.eventData = [];
+            $scope.queryEventOverview();
+            $scope.noAckArray = [];
+            $scope.queryEventPageUp();
+            $scope.dealingArray = [];
+            $scope.queryEventPageDown();
+            $scope.queryActiveEventCount();
+            $scope.startD = intStartTime;
+            $scope.endD = intEndTime;
+            $scope.startTimeHour = '00:00:00';
+            $scope.endTimeHour = '00:00:00';
+        };
+        $scope.selectDefTimeFlag = false;
+        $scope.selectDefTime = function () {
+            $scope.selectDefTimeFlag = true;
+        };
+        $scope.goBack = function () {
+            $scope.selectTimeListFlag = false;
+            $scope.selectDefTimeFlag = false;
+        };
+        /*获取时间开始时间和结束时间*/
+        $scope.getStartAndEndTime = function (hour) {
+            $scope.endTime = new Date().getTime();
+            $scope.startTime = $scope.endTime - hour * 60 * 60 * 1000;
+        };
+        /*自定义时间确定*/
+        $scope.goToTimeSearch = function () {
+            if (!$('#startTime').val() || !$scope.startTimeHour) {
+                Unit.error(L.get('EMV_PLEASE_SELECT_THE_START_TIME'));
+                return;
+            }
+            if (!$('#endTime').val() || !$scope.endTimeHour) {
+                Unit.error(L.get('EMV_PLEASE_SELECT_THE_END_TIME'));
+                return;
+            }
+            var startTime = ($('#startTime').val() + ' ' + $scope.startTimeHour);
+            var endTime = $('#endTime').val() + ' ' + $scope.endTimeHour;
+            $scope.startTime = Number((new Date(startTime)).getTime());
+            $scope.endTime = Number((new Date(endTime)).getTime());
+            if ($scope.startTime > $scope.endTime) {
+                Unit.error(L.get('COMMON_ENDTIMEMUSTBEGREATERTHANTHESTARTTIME'));
+                return;
+            }
+            $scope.startD = $('#startTime').val();
+            $scope.endD = $('#endTime').val();
+            $scope.startTimeHour = $scope.startTimeHour;
+            $scope.endTimeHour = $scope.endTimeHour;
+            /*自定义时间显示*/
+            var startGetD = $scope.startD.split('/');
+            var endGetD = $scope.endD.split('/');
+            $scope.selectTimeDefaul = startGetD[1] + '/' + startGetD[2] + '-' + endGetD[1] + '/' + endGetD[2];
+            $scope.showTitleDefalt = $scope.startD + ' ' + $scope.startTimeHour + ' - ' + $scope.endD + ' ' + $scope.endTimeHour;
+            $scope.selectTimeListFlag = false;
+            $scope.selectDefTimeFlag = false;
+            $scope.indealpage = 1;
+            $scope.nosurepage = 1;
+            $scope.page = 1;
+            $scope.eventData = [];
+            $scope.queryEventOverview();
+            $scope.noAckArray = [];
+            $scope.queryEventPageUp();
+            $scope.dealingArray = [];
+            $scope.queryEventPageDown();
+            $scope.queryActiveEventCount();
+        };
+        $(document).on('click', function (e) {
+            var ev = e || window.event;
+            var target = ev.target || ev.srcElement;
+            if (!$(target).parents('.selectTime').length && !$(target).hasClass('selectSpan')) {
+                $scope.$apply(function(){
+                    $scope.selectTimeListFlag = false;
+                });
+            }
+            if (!$(target).parents('.selectTime').length && !$(target).hasClass('definedT')) {
+                $scope.selectDefTimeFlag = false;
+            }
+            if (!$(target).parents('.public-select-time').length && !$(target).hasClass('timeInput')) {
+                $('.select-time').hide();
+            }
+        });
+        /*timeSelect end*/
+    }]);
+
+})(nameSpace.reg('graph'));

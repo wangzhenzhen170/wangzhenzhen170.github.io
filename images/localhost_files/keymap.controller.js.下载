@@ -1,0 +1,119 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalSettingOpenCtrl',['$scope', '$uibModalInstance',function($scope, $uibModalInstance){
+
+		$scope.$modal = $uibModalInstance;
+
+		$scope.themes = [
+			{
+				name:'Default'
+			},
+			{
+				name:'Mac OS X 10.5+'
+			},
+			{
+				name:'Emacs'
+			},
+			{
+				name:'Visual Studio'
+			},
+			{
+				name:'Default for XWin'
+			}
+		];
+		$scope.themesKeymap ={
+			'Default':[{key:'ctrl+s',fn:'save1(use to save the views)'},{key:'ctrl+delete',fn:'delete'},{key:'ctrl+enter',fn:'open'},{key:'ctrl+f',fn:'open'}],
+			'Mac OS X 10.5+':[{key:'ctrl+s',fn:'save2(use to save the views)'},{key:'ctrl+delete',fn:'delete'},{key:'ctrl+enter',fn:'open'}],
+			'Emacs':[{key:'ctrl+s',fn:'save3(use to save the views)'},{key:'ctrl+delete',fn:'delete'},{key:'ctrl+enter',fn:'open'}],
+			'Visual Studio':[{key:'ctrl+s',fn:'save4(use to save the views)'},{key:'ctrl+delete',fn:'delete'},{key:'ctrl+enter',fn:'open'}],
+			'Default for XWin':[{key:'ctrl+s',fn:'save5(use to save the views)'},{key:'ctrl+delete',fn:'delete'},{key:'ctrl+enter',fn:'open'}]
+		};
+
+		$scope.originalKeymap = angular.copy($scope.themesKeymap);
+
+		$scope.theme = $scope.themes[0];
+		$scope.keymapList = $scope.themesKeymap[$scope.theme.name];
+
+
+		$scope.ok = function(){
+			$uibModalInstance.close();
+		};
+
+		$scope.copy = function(){
+			$scope.themes.unshift({name:$scope.theme.name+' copy'});
+			$scope.themesKeymap[$scope.theme.name+' copy'] = $scope.themesKeymap[$scope.theme.name];
+			$scope.originalKeymap[$scope.theme.name+' copy'] = $scope.themesKeymap[$scope.theme.name];
+			$scope.theme = $scope.themes[0];
+		};
+
+		$scope.setTheme = function(){
+			$scope.keymapList = $scope.themesKeymap[$scope.theme.name];
+		};
+
+		$scope.delete = function(){
+			angular.forEach($scope.themes,function(data,index){
+				if(data.name === $scope.theme.name){
+					$scope.themes.splice(index,1);
+				}
+			});
+			$scope.theme = $scope.themes[0];
+			$scope.keymapList = $scope.themesKeymap[$scope.theme.name];
+		};
+
+		$scope.reset = function(){
+			$scope.keymapList = $scope.originalKeymap[$scope.theme.name];
+		};
+
+		$scope.setSelected = function(){
+			$scope.selectedIndex = this.$index;
+		};
+
+		$scope.showSetBox = function(){
+			$scope.keyShow = this.index;
+		};
+
+
+		$scope.checkKeys = function(ev,obj) {
+
+			var e = ev || window.event;  // cater for IE
+
+			var keyName = String.fromCharCode(e.keyCode);
+
+			if (e.keyCode > 111 && e.keyCode < 124)
+			{ keyName = 'F' + (e.keyCode - 111); }
+
+			switch (e.keyCode) {
+				case   9:  keyName = 'Tab';  break;
+				case  13:  keyName = 'Enter';  break;
+				case  33:  keyName = 'PageUp';  break;
+				case  34:  keyName = 'PageDown';  break;
+			}
+
+			if (e.shiftKey) { keyName = 'Shift+' + keyName; }
+			if (e.altKey) { keyName = 'Alt+' + keyName; }
+			if (e.ctrlKey) { keyName = 'Ctrl+' + keyName; }
+
+			// Prevent default action if Ctrl or Alt
+			if (e.ctrlKey || e.altKey) {
+				if (e.preventDefault) { e.preventDefault(); }
+				else { e.keyCode = 0; e.returnValue = false; }
+			}
+			var notice = keyName.toLowerCase();
+			for(var i=0;i<$scope.keymapList.length;i++){
+				if(notice === $scope.keymapList[i].key){
+					obj.notice = '提示：快捷键已被'+$scope.keymapList[i].fn+'占用，请更换';
+					break;
+				}else{
+					obj.notice = null;
+				}
+			}
+			obj.key = keyName.toLowerCase();
+		};
+
+	}] );
+
+
+})(nameSpace.reg('graph'));

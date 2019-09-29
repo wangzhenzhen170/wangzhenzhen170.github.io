@@ -1,0 +1,497 @@
+/* global Editor */
+/* global IMAGE_PATH */
+
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('Editor', ['GraphAction', 'GraphState', 'MxEditor', 'GraphHisotry', 'GraphModel', 'Unit', 'DiagramDiagramService', function (GraphAction, GraphState, MxEditor, GraphHisotry, GraphModel, Unit, DiagramDiagramService) {
+
+//        var backRedrawLabel = mxCellRenderer.prototype.redrawLabel;
+//        mxCellRenderer.prototype.redrawLabel = function(state){
+////            console.log(arguments);
+//            backRedrawLabel.apply(this, arguments);
+//
+//            var cell = state.cell;
+//            if (cell && cell.isTableMode) {
+//                var $element = $('#' + cell.id);
+//                var shape = state.shape;
+//
+//                var scale = shape.scale;
+//                var w = shape.bounds.width / scale;
+//                var h = shape.bounds.height / scale;
+//
+//                $element.css({'height': h + 'px', width: w + 'px'});
+////                console.log($element[0]);
+//            }
+//        };
+
+        /**
+         * 重写mxShape的paint方法，以嵌入特效及控制内容
+         */
+//        var backuppaint = mxShape.prototype.paint;
+//        mxShape.prototype.paint = function (canvas)　{
+//            var s = this.scale
+//              , x = this.bounds.x / s
+//              , y = this.bounds.y / s
+//              , w = this.bounds.width / s
+//              , h = this.bounds.height / s;
+//
+//            // 绘制背景特效
+////            if (typeof this.uPaintEffectBackground === 'function') {
+////                this.uPaintEffectBackground(canvas, x, y, w, h);
+////            }
+//
+//            var result = backuppaint.apply(this, arguments);
+//
+//            try {
+//                var cell = this.state.cell;
+//
+//                if (cell.isTableMode) {
+//
+//                    var $element = $('#' + cell.id);
+//
+//                    $element.css({'height': this.bounds.height + 'px', width: this.bounds.width + 'px'});
+//
+//                }
+//
+//                // test
+//                if (cell.id == 'ci_5B22E5BA94E794A8222C22E4BAA7E59381E7A094E58F91225D') {
+////                    console.log({'height': this.bounds.height + 'px', width: this.bounds.width + 'px'});
+//                    console.log($element);
+//                    window.testCell =cell;
+//                    window.testState = this.state;
+//                    window.testEle = $element;
+//                }
+//
+//            } catch (e) {
+//                console.error(e);
+//            }
+//
+//            // 绘制前景特效
+////            if (typeof this.uPaintEffectFront === 'function') {
+////                this.uPaintEffectFront(canvas, x, y, w, h);
+////            }
+//
+//            // 绘制控制点
+////            if (typeof this.uPaintControl === 'function') {
+////                this.uPaintControl(canvas, x, y, w, h);
+////            }
+//
+//            return result;
+//
+//        };
+
+
+		return function(diagramContainer, outlineContainer, nomousewheel, editorView, params){
+
+			var editor;
+
+            mxConstants.DEFAULT_FONTFAMILY = 'Microsoft YaHei';
+			diagramContainer.oncontextmenu = function(){return false;};
+			editor = new Editor();
+			editor.graph.init(diagramContainer);
+
+			editor.graph.setTooltips(false);
+			editor.graph.refresh();
+			editor.graph.container.style.backgroundImage = 'url(' + IMAGE_PATH + '/grid_bg.png)';
+            editor.graph.container.style.backgroundColor = '#fff';
+			editor.graph.container.focus();
+
+            // editor.graph.getSvg().onreadystatechange = function(){
+            //     console.log(12);
+            // };
+            //
+            // console.log(document.readyState);
+            // console.log(editor.graph.container);
+            // editor.graph.container.onreadystatechange = function(){
+			 //    console.log(34);
+            // };
+
+            if (outlineContainer) {
+				editor.outline.init(outlineContainer);
+			}
+
+            // 滚轮缩放
+            $(diagramContainer).mousewheel(function (event, delta) {
+                if (!editor.state.zoomLock) {
+                    if(!(nomousewheel) || (event.ctrlKey && nomousewheel)){
+                        if (delta > 0) {
+                            editor.action.zoomIn();
+                        } else {
+                            if(editor.graph.view.scale > 0.2){
+                                editor.action.zoomOut();
+                            }
+                        }
+                        mxEvent.consume(event);
+                    }
+                }
+            });
+
+			new MxEditor(editor);
+			editor.graph.lights = [];
+			editor.action = new GraphAction(editor, params);
+			editor.state = new GraphState(editor);
+			editor.history = new GraphHisotry(editor);
+			editor.model = new GraphModel(editor);
+
+            mxCodecRegistry.getCodec(mxCell).exclude.push('uEffects');
+            mxCodecRegistry.getCodec(mxCell).exclude.push('ugview');
+
+            editor.graph.addListener(mxEvent.FOLD_CELLS, function(sender,evt){
+
+                var cells = evt.getProperty('cells');
+
+                if(!evt.getProperty('collapse')){
+                    editor.action.orderUp(cells);
+                }else {
+                }
+            });
+
+			editor.action.exportSvg = function(noInfo){
+                var name = editor.state.view ? editor.state.view.name : 'untitle';
+                var fileName = 'view_' + name + '.svg';
+                this.getSvg(!noInfo, function(svg){
+                    if(typeof Blob === 'function'){
+                        saveAs(
+                            new Blob([svg], {type: 'text/plain;charset=utf-8'}),
+                            fileName
+                        );
+                    }else{
+                        Unit.alert('SYSTEM_ERROR');
+                    }
+                });
+            };
+
+            editor.action.exportPng = function(noInfo){
+                var name = editor.state.view ? editor.state.view.name : 'untitle';
+                var fileName = 'view_' + name + '.png';
+                this.getSvg(!noInfo, function(svg, root){
+                    // console.log(svg);
+
+                    DiagramDiagramService.saveTmpSvg({name: name, content: svg}).success(function(result){
+
+                        DiagramDiagramService.svgToPng({name: fileName, url: result.data});
+                        // if(typeof Blob === 'function'){
+                        //     saveAs(
+                        //         new Blob([result], {type: 'image/png;charset=utf-8'}),
+                        //         fileName
+                        //     );
+                        // }else{
+                        //     Unit.alert('SYSTEM_ERROR');
+                        // }
+                    });
+                });
+            };
+
+
+
+			var imagesUrlToBase64 = function(images){
+                var img,canvas, context,fileType, type, imgData;
+                img = new Image();
+                canvas = document.createElement('canvas');
+                context = canvas.getContext('2d');
+                fileType = function (type) {
+                    type = type.toLowerCase().replace(/jpg/i, 'jpeg');
+                    var r = type.match(/png|jpeg|bmp|gif/)[0];
+                    return 'image/' + r;
+                };
+
+                if(angular.isObject(images)){
+                    angular.forEach(images, function(item){
+                        var url = item.getAttribute('xlink:href');
+                        // toDataUrl(url, function(base64){
+                        //     console.log(base64);
+                        // });
+                        // return;
+                        type = url.split('.').pop();
+
+                        img.width = item.getAttribute('width');
+                        img.height = item.getAttribute('height');
+                        // img.setAttribute('crossOrigin', 'anonymous');
+                        // img.src = 'data:image/' + type + ';base64,' + url;
+                        // img.src = 'assets/images/tarsier/m-tlock.png';
+                        img.src = 'https://assets.servedby-buysellads.com/p/manage/asset/id/32054' ;  //url;
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        img.onload = function(){
+                            context.drawImage(img, 0, 0);
+                            // imgData = canvas.toDataURL("image/png");
+                            imgData = canvas.toDataURL();
+                            console.log(imgData);
+                            imgData = imgData.replace(fileType(type), 'image/octet-stream');
+                            item.setAttribute('xlink:href', imgData);
+                        };
+
+
+                        // item.setAttribute('xlink:href', imgData);
+                        // console.log(item.getAttribute('width'));
+                        // console.log(item.getAttribute('height'));
+                    });
+                }
+            };
+
+            function getBase64Image(img) {
+                var canvas = document.createElement("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                var ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+                var dataURL = canvas.toDataURL("image/png");
+                // return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+                return dataURL;
+            }
+
+            var imageUrlToBase64 = function(image, url, fun, root){
+                var img,canvas, context,fileType, type, imgData;
+                img = new Image();
+                canvas = document.createElement('canvas');
+                context = canvas.getContext('2d');
+                fileType = function (type) {
+                    type = type.toLowerCase().replace(/jpg/i, 'jpeg');
+                    var r = type.match(/png|jpeg|bmp|gif/)[0];
+                    return 'image/' + r;
+                };
+
+                // toDataUrl(url, function(base64){
+                //     console.log(base64);
+                // });
+                // return;
+                type = url.split('.').pop();
+
+                // img.setAttribute('crossOrigin', 'anonymous');
+                // img.src = 'data:image/' + type + ';base64,' + url;
+                // img.src = 'assets/images/tarsier/m-tlock.png';
+                img.src = url ;  //url;
+                // img.width = image.getAttribute('width');
+                // img.height = image.getAttribute('height');
+
+                img.width = 96;
+                img.height = 59;
+
+                img.onload = function(){
+                    image.setAttribute('xlink:href', getBase64Image(img));
+                    fun(mxUtils.getXml(root), root);
+
+                };
+                return  getBase64Image(img);
+                console.log(getBase64Image(img));
+                canvas.width = img.width;
+                canvas.height = img.height;
+                context.drawImage(img, 0, 0);
+                imgData = canvas.toDataURL();
+                console.log(imgData);
+                imgData = imgData.replace(fileType(type), 'image/octet-stream');
+
+                return imgData;
+                // img.onload = function(){
+                //     context.drawImage(img, 0, 0);
+                //     // imgData = canvas.toDataURL("image/png");
+                //     imgData = canvas.toDataURL();
+                //     console.log(imgData);
+                //     imgData = imgData.replace(fileType(type), 'image/octet-stream');
+                //     item.setAttribute('xlink:href', imgData);
+                // };
+            };
+
+
+			editor.action.getSvg = function(viewInfo, fun){
+			    var root = editor.graph.getSvg();
+			    if(editor.graph.container && editor.graph.container.querySelector('svg')){
+                    var defs = editor.graph.container.querySelector('svg').querySelector('defs');
+                    if(defs){
+                        root.insertBefore(defs, root.childNodes[0]);
+                    }
+                }
+                // 是否加上视图详情
+                if(viewInfo && root && angular.isObject(editor.state.view) && angular.isObject(editor.state.view.diagram)){
+                    var svgDoc = mxUtils.createXmlDocument();
+                    var tableHeight = 100;
+                    var rootHeight = parseInt(root.getAttribute('height'));
+                    var top = rootHeight + 20;
+                    var svgByGetWidth;
+
+                    if(parseInt(root.getAttribute('width')) < 900){
+                        root.setAttribute('width', '900px');
+                    }
+                    var createDom = function(nodeName){
+                        return (svgDoc.createElementNS != null) ? svgDoc.createElementNS(mxConstants.NS_SVG, nodeName) : svgDoc.createElement(nodeName);
+                    };
+
+                    var getTextWidth = function(text){
+                        var width;
+                        svgByGetWidth.appendChild(text);
+                        width = text.getComputedTextLength();
+                        return width;
+                    };
+
+                    var createText = function(parent, x, y, value, fill){
+                        var text = createDom('text');
+                        var width,fontSize = 12;
+                        text.style.fontSize = fontSize + 'px';
+                        text.style.fontFamily = '"Helvetica Neue", Helvetica, Arial, "Microsoft YaHei", "微软雅黑", sans-serif !important';
+                        text.setAttribute('x', x);
+                        text.setAttribute('y', y + (fontSize / 2));
+                        text.setAttribute('fill', fill ? fill: 'rgb(138, 144, 144)');
+                        text.innerHTML = value;
+                        width = getTextWidth(text);
+                        parent.appendChild(text);
+
+                        return width;
+                    };
+
+                    var createImage = function(parent, x, y, icon){
+                        var image = createDom('image');
+                        var imageWidth = 96 / 3;
+                        var imageHeight = 59 / 3;
+                        image.setAttribute('x', x + 5);
+                        image.setAttribute('y', y + 40);
+                        image.setAttribute('width', imageWidth);
+                        image.setAttribute('height', imageHeight);
+                        imageUrlToBase64(image, icon, fun, root);
+                        parent.appendChild(image);
+                        return imageWidth;
+                    };
+
+                    var createRect = function(x, y, w, h, value, icon){
+                        var g = createDom('g');
+                        var width, iconWidth;
+                        g.setAttribute('transform', 'translate(0.5,0.5)');
+                        var rect = createDom('rect');
+
+                        rect.setAttribute('x', x);
+                        rect.setAttribute('y', y);
+                        rect.setAttribute('width', w);
+                        rect.setAttribute('height', h);
+                        rect.setAttribute('fill', '#fff');
+                        rect.setAttribute('stroke', 'rgb(221,221,221)');
+                        g.appendChild(rect);
+
+                        if(icon){
+                            iconWidth = createImage(g, x, y, icon);
+                        }
+
+                        if(angular.isArray(value)){
+                            var geoWidth =  0;
+                            angular.forEach(value, function(item, $index){
+                                geoWidth = geoWidth + createText(g, (x + geoWidth + ($index * 50)) + 20, y + (h / 2), item);
+                            });
+                        }else {
+                            if(!angular.isNumber(iconWidth)){
+                                iconWidth = 0;
+                            }
+                            width = createText(g, x + 20 + iconWidth, y + (h / 2), value);
+                            width += iconWidth;
+                        }
+
+                        root.appendChild(g);
+                        return width;
+                    };
+                    svgByGetWidth = createDom('svg');
+                    svgByGetWidth.style.display = 'block';
+                    svgByGetWidth.style.fontFamily = '"Helvetica Neue", Helvetica, Arial, "Microsoft YaHei", "微软雅黑", sans-serif !important';
+                    svgByGetWidth.style.fontSize = '12px';
+                    document.body.appendChild(svgByGetWidth);
+
+                    var viewNameWidth = createRect(-1, top + 20, parseInt(root.getAttribute('width')) + 1, tableHeight,  editor.state.view.diagram.name, './assets/images/tarsier/m-null.png');
+                    createRect(viewNameWidth + 50, top + 20, parseInt(root.getAttribute('width')) - viewNameWidth - 50, tableHeight / 2,  [
+                        '作者 | ' + editor.state.view.diagram.creator,
+                        '创建时间 |  ' + Unit.unixToDatetimeByTime(editor.state.view.diagram.createTime),
+                        // '版本 | 2.2'
+                    ]);
+                    createRect(viewNameWidth + 50, (top + 20) + (tableHeight / 2), parseInt(root.getAttribute('width')) - viewNameWidth - 50, tableHeight / 2,  [
+                        '最后修改者 | ' + editor.state.view.diagram.modifier,
+                        '最后修改时间 | ' + Unit.unixToDatetimeByTime(editor.state.view.diagram.modifyTime)
+                    ]);
+
+                    document.body.removeChild(svgByGetWidth);
+                    root.setAttribute('height', (rootHeight + 140) + 'px');
+                    root.style.border = '1px solid #ddd';
+                    root.style.margin = '5px';
+                    // imageUrlToBase64(root.querySelectorAll('image'));
+                }else{
+                    if(angular.isFunction(fun)){
+                        fun(mxUtils.getXml(root), root);
+                    }
+                }
+                return mxUtils.getXml(root);
+            };
+            
+//            editor.graph.addListener(mxEvent.SIZE, function (graph) {
+//                var root = graph.view.getDrawPane().ownerSVGElement;
+//                if(editorView){
+//                    editorView.minWidth = root.style.minWidth;
+//				}
+//				if(!root.parentNode.parentNode.style.paddingTop){
+//                    root.parentNode.parentNode.style.paddingTop = 0;
+//                }
+//
+//                if(!root.parentNode.parentNode.style.paddingBottom){
+//                    root.parentNode.parentNode.style.paddingBottom = 0;
+//                }
+//                var bodyHeight = root.parentNode.parentNode.offsetHeight - parseInt(root.parentNode.parentNode.style.paddingTop) - parseInt(root.parentNode.parentNode.style.paddingBottom);
+//
+//                root.style.minHeight = parseInt(root.style.minHeight) + 10 + 'px';
+//                root.style.minWidth = parseInt(root.style.minWidth) + 40 + 'px';
+//
+//                if (parseInt(root.style.minHeight) > bodyHeight) {
+//                    root.parentNode.style.height = 'auto';
+//                } else {
+//                    root.parentNode.style.height = '100%';
+//                }
+//
+//                if(root.parentNode.parentNode.offsetWidth <= parseInt(root.style.minWidth)){
+//                    root.parentNode.style.minWidth = parseInt(root.style.minWidth) + 'px';
+//                }else {
+//                    root.parentNode.style.minWidth = '100%';
+//                }
+//            });
+
+            /**
+             * 设置缩放时label显示状态
+             */
+            function setScaleLabelState(scale, minFontSize) {
+                var mxg = editor.graph,
+                    model = mxg.model,
+                    view = mxg.view,
+                    cell, style, state;
+
+                minFontSize || (minFontSize = 10);
+
+                model.beginUpdate();
+                try{
+                    for(var i in model.cells) {
+                        cell = model.cells[i];
+                        state = view.getState(cell);
+                        if (mxg.isCellVisible(cell) && (cell.isVertex() || cell.isEdge()) && state && state.style && state.style.shape !== mxConstants.SHAPE_LABEL) {
+                            style = model.getStyle(cell);
+                            style = scale * state.style.fontSize > minFontSize ?
+                                mxUtils.removeStylename(style, mxConstants.uSTYLE_SCALE_HIDELABEL) :
+                                mxUtils.addStylename(style, mxConstants.uSTYLE_SCALE_HIDELABEL);
+                            model.setStyle(cell, style);
+                        }
+                    }
+                } finally {
+                    model.endUpdate();
+                }
+            }
+
+            // 缩放时隐藏或显示元素label
+            function scaleListener(sender, evt) {
+                var scale = +evt.getProperty('scale');
+
+                if(isNaN(scale)) return;
+
+                setScaleLabelState(scale, 10);
+            }
+            // 监听缩放事件 to-do 解决容器样式问题后再启用
+//            editor.graph.view.addListener(mxEvent.SCALE_AND_TRANSLATE, scaleListener);
+//            editor.graph.view.addListener(mxEvent.SCALE, scaleListener);
+
+			return editor;
+		};
+	}]);
+
+})(nameSpace.reg('graph'));
+

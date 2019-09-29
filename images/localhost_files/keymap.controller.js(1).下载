@@ -1,0 +1,60 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ShowKeyMapCtrl', ['$scope', '$uibModalInstance',function($scope, $uibModalInstance){
+
+		$scope.keymap = [
+			{
+				'ctrl + s': '保存视图',
+				'ctrl + a': '选择全部元素'
+			},
+			{
+				'ctrl + c': '复制',
+				'ctrl + v': '粘贴'
+			},
+			{
+				'ctrl + x': '剪切',
+				'ctrl + u': '更新视图'
+			},
+			{
+				'ctrl + z': '还原',
+				'ctrl + y': '恢复'
+			},
+			{
+				'ctrl + e': '清空视图',
+				'ctrl + o': '打开视图'
+			},
+			{
+				'ctrl + l': '编辑节点链接',
+				'alt + n': '创建视图'
+			},
+			{
+				'alt + c': '适应画布',
+				'alt + i': '放大'
+			},
+			{
+				'alt + o': '缩小',
+				'alt + u': '置前'
+			},
+			{
+				'alt + d': '置后',
+				'alt + f': '字体'
+			},
+			{
+				'alt + l': '自动布局开关',
+				'alt + e': '自动关系开关'
+			},
+			{
+				'delete' : '移除选中节点'
+			}
+		];
+
+		$scope.$modal = $uibModalInstance;
+	}]);
+
+
+})(nameSpace.reg('graph'));
+
+

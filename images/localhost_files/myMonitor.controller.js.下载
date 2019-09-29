@@ -1,0 +1,53 @@
+/* global CanvasJS */
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalMyMonitorCtrl', ['$scope', '$uibModalInstance', 'CiMonitorService', 'ci', 'kpi', 'instance', function($scope, $uibModalInstance, CiMonitorService, ci, kpi,instance) {
+
+		$scope.$modal = $uibModalInstance;
+		$scope.isEmpty = false;
+		//var now = new Date();
+		//var startTime = Unit.unixToDatetime(now.getTime() - 3600000 * 24);
+		//var startTime = '2014-01-01 00:00:00'; // 测试
+		//var endTime = Unit.unixToDatetime(now.getTime());
+		$scope.isLoading = true;
+		CiMonitorService.getPerformanceChart({kpi: kpi, ci: ci, kpiInstance: instance}).success(function(result) {
+			$scope.isLoading = false;
+			var data = result.datas.values;
+			var dataObj = JSON.parse(data)[0];
+			var dataArr = [];
+			$scope.isEmpty = false;
+			if (dataObj === undefined) {
+				$scope.isEmpty = true;
+				return;
+			}
+			$.each(dataObj.value, function() {
+				dataArr.push({
+					label: this.label.split(' ')[1],
+					y: parseFloat(this.value)
+				});
+			});
+			dataArr.reverse();
+			var chart = new CanvasJS.Chart($('.user-monitor-char')[0], {
+				title:{
+					text: dataObj.inst
+				},
+				zoomEnabled: true,
+				animationEnabled: true,
+				height: 200,
+				data: [
+					{
+						type: 'line',
+						dataPoints: dataArr
+					}
+				]
+			});
+			chart.render();
+		}).error(function() { $scope.isLoading = false; });
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

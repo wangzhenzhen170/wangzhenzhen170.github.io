@@ -1,0 +1,88 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('GraphMonitor', function(CiMonitorService, Unit, Const, $timeout, $window, $rootScope, Event){
+
+		var timer = null;
+
+		return function(options){
+
+			$timeout.cancel(timer);
+
+			var _this = this;
+			this.editor = options.editor;
+
+			this.update = function(){
+				var state = this.editor.state;
+				var startTime, endTime;
+				if(state.startTime && state.endTime){
+					startTime = state.startTime;
+					endTime = state.endTime;
+				}else{
+					if(state.timeAverage){
+						state.timeAverage = Const.TIME_AVERAGE;
+					}
+
+					endTime = $window.parseInt((new Date()).getTime() / 1000);
+					startTime = endTime - state.timeAverage;
+				}
+
+				CiMonitorService.getView([state.view.id], startTime, endTime)
+					.success(function(result){
+						var arr = [];
+
+						if(result.data[state.view.id]){
+							$.each(result.data[state.view.id], function(){
+								arr.push({
+									id: this.id,
+									kpiUnusual: this.alarmedKpi,
+									kpiCount: this.totalKpi
+
+								});
+							});
+
+							_this.editor.model.updateMonitorData(arr);
+							$rootScope.$broadcast(Event.GRAPH_MONITOR_UPDATE);
+						}
+
+					});
+
+
+				CiMonitorService.getMonitorByCis(_this.getCiIds())
+					.success(function(result){
+						var arr = [];
+						$.each(result.data, function(){
+							arr.push({
+								id: this.jsonId,
+								changeTicket: this.changes,
+								monitorEvent: this.monitos,
+								eventTicket: this.incidents
+							});
+						});
+
+						_this.editor.model.updateMonitorData(arr);
+					});
+			};
+
+			this.getCiIds = function(){
+				var cells = [];
+
+				$.each(_this.editor.graph.getDepVertexs(), function(){
+					var cell = this;
+
+					if(Unit.isCiCell(this)){
+						cells.push(Unit.getCiIdByCell(cell));
+					}
+
+				});
+
+				return cells;
+			};
+
+		};
+
+	});
+
+})(nameSpace.reg('graph'));

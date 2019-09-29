@@ -1,0 +1,23 @@
+/**
+ * Created by Lee on 12/10/15.
+ */
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('PerformanceService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+
+		o.getChart = function(ciId, kpiId){
+			return $http.post(Unit.api('/performance/chart'), {
+				ci: ciId,
+				kpi: kpiId
+			});
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

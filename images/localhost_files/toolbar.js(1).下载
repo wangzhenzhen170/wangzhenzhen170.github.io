@@ -1,0 +1,600 @@
+/* global mxConstants */
+
+(function(){
+
+	'use strict';
+
+	var timer;
+
+	var labelMap = {
+		save: 'SAVE',
+		refresh: 'UPDATE',
+		search: 'ACTUAL',
+		zoomOut: 'ZOOM_OUT',
+		zoomIn: 'ZOOM_IN',
+		orderUp: 'ORDER_UP',
+		orderDown: 'ORDER_DOWN',
+		alignExpand: 'ALIGN',
+		undo: 'UNDO',
+		redo: 'REDO',
+		trash: 'DELETE_SELECTED',
+		link: 'SETTINGS_LINK',
+		paint: 'FILL_COLOR',
+		border: 'STROKE_COLOR',
+		shadow: 'SHADOW',
+		fontExpand: 'TEXT_STYLE',
+		lineExpand: 'EDGE_STYLE',
+		grid: 'ENABLED_OR_DISABLED_THE_GRID',
+		assistLine: 'ENABLED_OR_DISABLED_THE_ASSIST_LINE',
+		imageExpand: 'BACKGROUND_IMAGE',
+		penExpand: 'MARKER_CI',
+		autoLayout: 'ENABLED_OR_DISABLED_AUTO_LAYOUT',
+		autoLine: 'ENABLED_OR_DISABLED_THE_AUTO_CREATE_EDGE',
+		searchExpand: 'SEARCH',
+		tableExpand: 'DISPLAY_MODLE',
+		image: 'UPLOAD_BACKGROUND_IMAGE',
+		noimage: 'DELETE_BACKGROUND_IMAGE',
+        paintPanel: 'PAINTING_PANEL',
+        clearPaintPanel: 'CLEAR_PAINTING_PANEL',
+		pen: 'HIGHLIGHT_CI',
+		nopen: 'UNHIGHLIGHT_CI',
+		newFile: 'NEW',
+		folder: 'OPEN',
+		searchClear: 'UNHIGHLIGHT',
+		searchNode: 'SEARCH',
+		threshold: 'THRESHOLD_SETTINGS'
+	};
+
+
+	var Action = function(editor){
+		var ac = editor.action;
+
+		this.image = function(){
+			ac.backgroundImage();
+		};
+
+		this.noimage = function(){
+			ac.clearBackgroundImage();
+		};
+
+		this.grid = function(){
+			ac.grid();
+		};
+
+		this.assistLine = function(){
+			ac.assistLine();
+		};
+
+		this.save = function(){
+			ac.save();
+		};
+
+		this.refresh = function(){
+			ac.update();
+		};
+
+		this.newFile = function(){
+			ac.create();
+		};
+
+		this.folder = function(){
+			ac.open();
+		};
+
+		this.shadow = function(){
+			ac.shadow();
+		};
+
+		this.link = function(){
+			ac.linkEdit();
+		};
+
+		this.zoomOut = function(){
+			ac.zoomOut();
+		};
+
+		this.zoomIn = function(){
+			ac.zoomIn();
+		};
+
+		this.search = function(){
+			ac.zoomActual();
+		};
+
+		this.orderUp = function(){
+			ac.orderUp();
+		};
+
+		this.orderDown = function(){
+			ac.orderDown();
+		};
+
+		this.redo = function(){
+			ac.redo();
+		};
+
+		this.undo = function(){
+			ac.undo();
+		};
+
+		this.alignLeft = function(){
+			ac.alignCells(mxConstants.ALIGN_LEFT);
+		};
+
+		this.alignCenter = function(){
+			ac.alignCells(mxConstants.ALIGN_CENTER);
+		};
+
+		this.alignRight = function(){
+			ac.alignCells(mxConstants.ALIGN_RIGHT);
+		};
+
+		this.alignTop = function(){
+			ac.alignCells(mxConstants.ALIGN_TOP);
+		};
+
+		this.alignMiddle = function(){
+			ac.alignCells(mxConstants.ALIGN_MIDDLE);
+		};
+
+		this.alignBottom = function(){
+			ac.alignCells(mxConstants.ALIGN_BOTTOM);
+		};
+
+		this.alignDistributeHorizontal = function(){
+			ac.alignDistribute(true);
+		};
+
+		this.alignDistributeVertical = function(){
+			ac.alignDistribute(false);
+		};
+
+		this.lineStraight = function(){
+			ac.edgeClearStyle();
+		};
+
+		this.lineEntityRelation = function(){
+			ac.edgeStyle('entityRelationEdgeStyle');
+		};
+
+		this.lineElbowHorizontal = function(){
+			ac.edgeStyle('elbowHorizontal');
+		};
+
+		this.lineElbowVertical = function(){
+			ac.edgeStyle('elbowVertical');
+		};
+
+		this.lineSegment = function(){
+			ac.edgeStyle('segmentEdgeStyle');
+		};
+
+		this.lineOrthogonal = function(){
+			ac.edgeStyle('orthogonalEdgeStyle');
+		};
+
+		this.startNoarrow = function(){
+			ac.startArrow(mxConstants.NONE);
+		};
+
+		this.startClassic = function(){
+			ac.startArrowFill(mxConstants.ARROW_CLASSIC);
+		};
+
+		this.startOpen = function(){
+			ac.startArrowFill(mxConstants.ARROW_OPEN);
+		};
+
+		this.startBlock = function(){
+			ac.startArrowFill(mxConstants.ARROW_BLOCK);
+		};
+
+		this.startOval = function(){
+			ac.startArrowFill(mxConstants.ARROW_OVAL);
+		};
+
+		this.startDiamond = function(){
+			ac.startArrowFill(mxConstants.ARROW_DIAMOND);
+		};
+
+		this.startThinDiamond = function(){
+			ac.startArrowFill(mxConstants.ARROW_DIAMOND_THIN);
+		};
+
+		this.startClassicTrans = function(){
+			ac.startArrow(mxConstants.ARROW_CLASSIC);
+		};
+
+		this.startBlockTrans = function(){
+			ac.startArrow(mxConstants.ARROW_BLOCK);
+		};
+
+		this.startOvalTrans = function(){
+			ac.startArrow(mxConstants.ARROW_OVAL);
+		};
+
+		this.startDiamondTrans = function(){
+			ac.startArrow(mxConstants.ARROW_DIAMOND);
+		};
+
+		this.startThinDiamondTrans = function(){
+			ac.startArrow(mxConstants.ARROW_DIAMOND_THIN);
+		};
+
+		this.endNoarrow = function(){
+			ac.endArrow(mxConstants.NONE);
+		};
+
+		this.endClassic = function(){
+			ac.endArrowFill(mxConstants.ARROW_CLASSIC);
+		};
+
+		this.endOpen = function(){
+			ac.endArrowFill(mxConstants.ARROW_OPEN);
+		};
+
+		this.endBlock = function(){
+			ac.endArrowFill(mxConstants.ARROW_BLOCK);
+		};
+
+		this.endOval = function(){
+			ac.endArrowFill(mxConstants.ARROW_OVAL);
+		};
+
+		this.endDiamond = function(){
+			ac.endArrowFill(mxConstants.ARROW_DIAMOND);
+		};
+
+		this.endThinDiamond = function(){
+			ac.endArrowFill(mxConstants.ARROW_DIAMOND_THIN);
+		};
+
+		this.endClassicTrans = function(){
+			ac.endArrow(mxConstants.ARROW_CLASSIC);
+		};
+
+		this.endBlockTrans = function(){
+			ac.endArrow(mxConstants.ARROW_BLOCK);
+		};
+
+		this.endOvalTrans = function(){
+			ac.endArrow(mxConstants.ARROW_OVAL);
+		};
+
+		this.endDiamondTrans = function(){
+			ac.endArrow(mxConstants.ARROW_DIAMOND);
+		};
+
+		this.endThinDiamondTrans = function(){
+			ac.endArrow(mxConstants.ARROW_DIAMOND_THIN);
+		};
+
+		this.trash = function(){
+			ac.removeCells();
+		};
+
+		this.paint = function(){
+			ac.cellFillColor();
+		};
+
+		this.border = function(){
+			ac.cellStrokeColor();
+		};
+
+		this.fontExpand = function(){
+			ac.font();
+		};
+
+		this.pen = function(){
+			ac.hightLightCi();
+		};
+
+		this.nopen = function(){
+			ac.clearHight();
+		};
+
+		this.autoLayout = function(){
+			ac.toggleAutoLayout();
+		};
+
+		this.autoLine = function(){
+			ac.toggleAutoLine();
+		};
+
+		this.table = function(){
+			ac.showCiTable();
+		};
+
+		this.sitemap = function(){
+			ac.hideCiTable();
+		};
+
+		this.threshold = function(){
+			ac.threshold();
+		};
+
+		this.searchNode = function(){
+			ac.searchNode();
+		};
+
+		this.searchPath = function(){
+			ac.searchPath();
+		};
+
+		this.searchClear = function(){
+			ac.clearHight();
+		};
+
+        // 画板
+        this.paintPanel = function () {
+            ac.paintPanel();
+        };
+        // 清除画板
+        this.clearPaintPanel = function () {
+            ac.clearPaintPanel();
+        };
+
+	};
+
+	var app = angular.module('graphToolbar', []);
+
+	app.factory('GraphToolbar', function(){
+
+		return function(settings){
+
+			//var self = this;
+
+			this.toolbarGroup = [
+				['newFile', 'folder', 'save'],
+				['search', 'zoomOut', 'zoomIn'],
+				['orderUp', 'orderDown', 'alignExpand'],
+				['undo', 'redo', 'trash', 'link'],
+				['paint', 'border', 'shadow', 'fontExpand', 'lineExpand'],
+				['grid', 'assistLine'],
+				['image', 'noimage', 'paintPanel', 'clearPaintPanel'],
+				['autoLayout', 'autoLine'],
+				['pen', 'searchNode', 'searchClear'],
+				//['pen', 'searchClear'],
+				['threshold']
+			];
+
+			this.dropdown = {
+				alignExpand: [
+					'alignLeft', 'alignCenter', 'alignRight',
+					'alignTop', 'alignMiddle', 'alignBottom',
+					'alignDistributeHorizontal', 'alignDistributeVertical'
+				],
+				lineExpand: [
+					[
+						'lineStraight', 'lineEntityRelation', 'lineElbowHorizontal',
+						'lineElbowVertical', 'lineSegment', 'lineOrthogonal'
+					],
+
+					'-',
+
+					[
+						'startNoarrow', 'startClassic', 'startOpen',
+						'startBlock', 'startOval', 'startDiamond',
+						'startThinDiamond', 'startClassicTrans', 'startBlockTrans',
+						'startOvalTrans', 'startDiamondTrans', 'startThinDiamondTrans'
+					],
+
+					'-',
+
+					[
+						'endNoarrow', 'endClassic', 'endOpen',
+						'endBlock', 'endOval', 'endDiamond',
+						'endThinDiamond', 'endClassicTrans', 'endBlockTrans',
+						'endOvalTrans', 'endDiamondTrans', 'endThinDiamondTrans'
+					]
+				],
+				tableExpand: [
+					'sitemap',
+					'threshold'
+				],
+
+				searchExpand: [
+					'searchNode',
+					'searchPath'
+				]
+			};
+
+			this.settings = function(settings){
+				var _this = this;
+
+				if(settings){
+					if(settings.toolbarGroup){
+						_this.toolbarGroup = settings.toolbarGroup;
+					}
+
+					if(settings.disabledMap){
+						$.each(settings.disabledMap, function(){
+							_this.disabledMap[this] = true;
+						});
+					}
+
+					if(settings.editor){
+						_this.editor = settings.editor;
+						_this.action = new Action(_this.editor);
+					}
+				}
+			};
+
+			this.triggerAction = function(action, $event){
+				if(this.action[action]){
+					this.action[action]($event.target);
+					this.editor.graph.refresh();
+					this.refresh();
+				}
+			};
+
+			this.refresh = function(){
+				if(!this.editor || !this.editor.state){
+					return false;
+				}
+
+				this.statusMap.autoLayout = !!this.editor.state.isAutoLayout;
+				this.statusMap.autoLine = !!this.editor.state.isAutoLine;
+				this.statusMap.grid = !!this.editor.state.isShowGrid;
+				this.statusMap.assistLine = !!this.editor.state.isAssistLine;
+			};
+
+			this.statusMap = {};
+			this.disabledMap = {};
+
+			this.settings(settings);
+			this.refresh();
+
+			return this;
+		};
+	});
+
+
+	app.controller('DirectiveGraphToolbarCtrl', ['$scope', '$element', '$attrs', '$compile', '$parse', 'GraphToolbar', 'Event',
+		'$interval', 'UserInfo', '$state', function($scope, $element, $attrs, $compile, $parse, GraphToolbar, Event,
+														 $interval, UserInfo, $state){
+
+		if(!$scope.hasOwnProperty('params')){
+			$scope.params = new GraphToolbar();
+		}
+
+
+		this.setupBindingsToInternalScope = function(toolbarParamsExpr){
+			var toolbarParamsGetter = $parse(toolbarParamsExpr);
+
+			$scope.$watch(toolbarParamsGetter, function(params){
+				if(angular.isUndefined(params)){
+					return;
+				}
+
+				$scope.params = params;
+			}, false);
+		};
+
+		$scope.actionTransferClass = function(name){
+			var arr = name.split(''), i;
+
+			for(i=0; i<arr.length; i++){
+				if(i && arr[i] === arr[i].toUpperCase()){
+					arr[i] = '-' + arr[i].toLowerCase();
+				}
+			}
+
+			return arr.join('');
+		};
+
+		$scope.actionTransferLabel = function(name){
+			return labelMap[name];
+		};
+
+		$scope.isShow = function(obj){
+
+		};
+
+		$scope.isString = function(something){
+			return angular.isString(something);
+		};
+
+		$scope.isArray = function(something){
+			return angular.isArray(something);
+		};
+
+		$scope.showPopover = function($event){
+			$($event.currentTarget).popover('show');
+		};
+
+		$scope.hidePopover = function($event){
+			$($event.currentTarget).popover('hide');
+		};
+
+		$scope.isDisabled = function(action){
+			var rel = false;
+
+			var userInfo = UserInfo.get();
+			var editor = $scope.params.editor;
+
+			if(!editor || $scope.params.disabledMap[action]){ return true; }
+
+			if(action === 'refresh' && (!editor.state.view ||
+					(editor.state.view && userInfo && userInfo.loginName !== editor.state.view.userName))){
+				rel = true;
+			}
+
+			if(action === 'searchClear' && !editor.graph.lights.length){
+				return true;
+			}
+
+			if(!$scope.params.editor.graph.getSelectionCell() && (
+					action === 'orderUp' ||
+					action === 'orderDown' ||
+					action === 'alignExpand' ||
+					action === 'fontExpand' ||
+					action === 'trash' ||
+					action === 'link' ||
+					action === 'paint' ||
+					action === 'border' ||
+					action === 'shadow' ||
+					action === 'lineExpand'
+				)){ rel = true; }
+
+			if(!$scope.params.editor.graph.getDepCells().length && (
+					action === 'searchExpand'
+				)){ rel = true; }
+
+			if(!$scope.params.editor.action.getCis().length && (
+					action === 'tableExpand' ||
+					action === 'pen' ||
+					action === 'nopen'
+				)){ rel = true; }
+
+			if(!$scope.params.editor.undoManager.history.length && (
+					action === 'redo' ||
+					action === 'undo'
+				)){ rel = true; }
+
+			//TODO 尝试修改，隐藏掉绘图模块中的阈值按钮
+			if ($state.current.name === 'home.edit' && action === 'threshold') {
+				return true;
+			}
+
+			return rel;
+		};
+
+		$scope.hideOutFloat = function(){
+			$('.toolbar .toolbar-group').each(function(){
+				var pos = $(this).position();
+				var opacity = pos.top >= 10 ? 0 : 1;
+				$(this).css('opacity', opacity);
+			});
+
+			return true;
+		};
+
+
+		if(timer){
+			$interval.cancel(timer);
+		}
+
+		timer = $interval(function(){
+			$scope._refresh();
+		}, 1000);
+	}]);
+
+	app.directive('graphToolbar', ['$q', '$parse', function(){
+
+		return {
+			restrict: 'A',
+			priority: 1001,
+			scope: true,
+			templateUrl: 'app/directive/toolbar/toolbar.html',
+			controller: 'DirectiveGraphToolbarCtrl',
+			compile: function(){
+				return function(scope, element, attrs, controller){
+					controller.setupBindingsToInternalScope(attrs.graphToolbar);
+				};
+			}
+		};
+
+	}]);
+
+})(nameSpace.reg('graph'));

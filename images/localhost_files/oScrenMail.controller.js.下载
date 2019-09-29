@@ -1,0 +1,279 @@
+(function(graph){
+
+	'use strict';
+	graph.app.filter('mail',function(){
+		return function(string){
+			var String=string.toString();
+			var mailString;
+			mailString='<'+String+'>';
+			return mailString ;
+		}
+	});
+	graph.app.controller('ModalOscrenMailCtrl', ['$uibModal','$scope', '$uibModalInstance', 'MonitoringService','Unit','mailName','isHistorystatus','items',function($uibModal,$scope, $uibModalInstance,MonitoringService,Unit,mailName,isHistorystatus,items) {
+		console.log(isHistorystatus)
+		$scope.placeholder=true;
+		$scope.mailName=mailName;
+		$scope.tellManArry=[];
+		$scope.tellManNameArry=[];
+		$scope.myreg = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/;
+		console.log(items)
+
+		//查询联系人接口
+		$scope.queryFun=function(){
+			MonitoringService.queryOpList({cdt: {opName: $scope._filterCode}}).success(function(result){
+				$scope.tellMan=result.data;
+				/*if($scope.tellMan.length==0){
+					Unit.error("没有找到联系人，您可以直接输入邮箱")
+				}*/
+
+				//console.log(result.data)
+			}).error(function(){
+
+			});
+		}
+
+		//点击列表的某个联系人添加到发送人中
+		$scope.editGetMemberName=function(OpName){
+			$scope.errorSame=false;
+			if($scope.myreg.test(OpName.emailAdress)){
+				if($scope.tellManArry.length>0){
+
+					//console.log(OpName.emailAdress)
+					//console.log($scope.tellManArry)
+					for(var i=0;i<$scope.tellManArry.length;i++){
+						if($scope.tellManArry[i] == OpName.emailAdress){
+							$scope.errorSame=true;
+						}
+					}
+					if($scope.errorSame){
+						Unit.error( L.get('EMV_EMAIL_HAS_BEEN_SELECTED'))
+					}else{
+						$scope.tellManArry.unshift(OpName.emailAdress);
+						$scope.tellManNameArry.unshift(OpName.opName);
+						$scope._filterCode="";
+					}
+				}else{
+					$scope.tellManArry.unshift(OpName.emailAdress);
+					$scope.tellManNameArry.unshift(OpName.opName);
+					$scope._filterCode="";
+				}
+			}else{
+				Unit.error(L.get('EMV_EMAIL_FROMAT_IS_ILLEGAL'))
+			}
+
+
+
+		}
+		//点击删除某个已经选中的发送人
+		$scope.editMemDel=function($index){
+			//console.log($index)
+			$scope.tellManArry.splice($index,1)
+			$scope.tellManNameArry.splice($index,1)
+		}
+
+		//鼠标悬浮
+		$scope.mouserover = function() {
+			/*index=$index;
+			console.log(index)
+			/!*if(index>3){
+				$(".m-container-wrapper").eq(0).scrollTop(index*30);
+			}*!/
+			$(".m-container").blur();
+			$(".m-container").eq(index).focus();*/
+			angular.element('.m-container').css('background-color','#fff')
+			$(event.target).css('background-color','#f0f2f4')
+		}
+		//鼠标离开
+		/*$scope.mouseleave = function(){
+			$(event.target).css('background-color','#fff')
+				.css('color','#74797c')
+			//angular.element('.team-creat-p-titledetail').css('margin-top','5px')
+		}*/
+		/*//鼠标点击 -- 成员
+		$scope.mousedown = function(){
+			$(event.target).css('background-color','#40a8de')
+				.css('color','#fff')
+		}*/
+		/*$scope.all=function(){
+			alert(1)
+		}*/
+		//按下enter键添加新联系人
+		$scope.addTellManFun=function(e){
+			var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+			$scope.errorSame=false;
+
+			if ($scope._filterCode) {
+				if (keycode == 13) {
+					if($scope.myreg.test($scope._filterCode)){
+						if($scope.tellManArry.length>0){
+							for(var i=0;i<$scope.tellManArry.length;i++){
+								if($scope.tellManArry[i]==$scope._filterCode){
+									$scope.errorSame=true;
+								}
+							}
+							if($scope.errorSame){
+								Unit.error(L.get('EMV_EMAIL_HAS_BEEN_SELECTED'))
+							}else{
+								$scope.tellManArry.unshift($scope._filterCode);
+								$scope.tellManNameArry.unshift($scope._filterCode);
+								$scope._filterCode="";
+								$scope.queryFun();
+							}
+						}else{
+							$scope.tellManArry.unshift($scope._filterCode);
+							$scope.tellManNameArry.unshift($scope._filterCode);
+							$scope._filterCode="";
+							$scope.queryFun();
+
+						}
+					}else{
+						Unit.error(L.get('EMV_EMAIL_FROMAT_IS_ILLEGAL'))
+					}
+
+
+
+				}
+
+			}
+		}
+		$scope._outAllNo = function(){
+			$scope._out =  false;
+			angular.element('.m-wrapper').css('border','1px solid #ddd').css('position','static').css('width','100%');
+			angular.element('.team-creat-p-titledetail').css('margin-top','5px')
+		}
+
+		//鼠标点击 -- 外框
+		$scope._outAll = function(){
+			$scope.queryFun();
+			$scope._out = true;
+
+			angular.element('.m-wrapper').css('border','1px solid #FF9429')
+				.css('box-shadow','0 0 10px 0px #e5f3fa').css('position','absolute').css('width','92%');
+			angular.element('.team-creat-p-titledetail').css('margin-top','80px')
+			setTimeout(function(){
+				angular.element('.m-ipt')[0].focus();
+			},300);
+
+		}
+		/*var list=document.getElementsByClassName("m-container");
+		var index=0;
+		//按下上下键移动，enter键选中
+		document.onkeydown=function(e){
+			/!*var currentFocus=$(".m-container").eq(0);
+			currentFocus.focus();
+			currentFocus.css("background-color","#f0f2f4");*!/
+
+			//console.log(list.length)
+			e=e||window.event;
+			//console.log(e.keyCode);
+			switch(e.keyCode){
+				case 13:{
+					for(var i=0;i<$scope.tellMan.length;i++){
+						if(i==index){
+							console.log($scope.tellMan[i])
+							$scope.editGetMemberName($scope.tellMan[i])
+						}
+					}
+					break;
+				}
+				case 38:{
+					console.log(index)
+					if( index>0 && index<list.length){
+						index--;
+						$(".m-container-wrapper").eq(0).scrollTop(index*30)
+						$(".m-container").eq(index).css("background-color","#f0f2f4");
+						$(".m-container").eq(index).focus();
+						$(".m-container").eq(index+1).css("background-color","#fff");
+						$(".m-container").eq(index+1).blur();
+					}
+
+
+					break;
+				}
+				case 40:{
+					console.log($(".m-container-wrapper").eq(0).scrollTop())
+					if(index<list.length-1)
+					{
+						index++;
+						if(index>3){
+							$(".m-container-wrapper").eq(0).scrollTop(index*30)
+						}
+
+						$(".m-container").eq(index).css("background-color","#f0f2f4");
+						$(".m-container").eq(index).focus();
+						$(".m-container").eq(index-1).css("background-color","#fff");
+						$(".m-container").eq(index-1).blur();
+
+
+
+					}
+					if(index==list.length-1){
+						$(".m-container").eq(index).css("background-color","#f0f2f4");
+						$(".m-container").eq(index).focus();
+						$(".m-container-wrapper").eq(0).scrollTop(index*30)
+					}
+					break;
+				}
+
+			}
+
+		}*/
+		$scope.ok = function () {
+			$scope.errorMail=false;
+			if($scope.tellManArry.length>0){
+				for(var i=0;i<$scope.tellManArry.length;i++){
+					if(!$scope.myreg.test($scope.tellManArry[i])){
+						$scope.errorMail=true;
+					}
+				}
+				if($scope.errorMail){
+					Unit.error(L.get('EMV_ILLEGAL_EMAIL_FORMAT_EXISTS'))
+				}else{
+                    var serial = [];
+                    var type = [];
+                    var status = [];
+					$uibModalInstance.close( );
+					Unit.success(L.get('EMV_NOTICE_IS_SENDING'))
+                    console.log(items)
+                    if(angular.isArray(items)){
+                        serial = items.filter(function(data){
+                            return data;
+                        }).map(function(data){
+                            return data.SERIAL
+                        })
+                    }else{
+                        serial.push(items.SERIAL)
+                    }
+					MonitoringService.sendEvents( {
+						"serial": serial,
+						"type": 1,
+						"status":isHistorystatus,
+						"receivers":$scope.tellManArry,
+						"content":$scope.describObj || "",
+						"userCodes":$scope.tellManNameArry
+					}).success(function(result){
+
+						if(result.success==true){
+							Unit.success(L.get('EMV_NOTICE_SENT_LY'))
+
+						}else {
+							Unit.error(L.get('EMV_NOTICE_FAILED_TO_BE_SENT'))
+						}
+					}).error(function(){
+
+					});
+				}
+			}else{
+				Unit.error(L.get('EMV_SENDERS_CANNOT_BE_EMPTY'))
+			}
+		};
+
+		// 取消按钮
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+
+
+
+	}])
+})(nameSpace.reg('graph'));

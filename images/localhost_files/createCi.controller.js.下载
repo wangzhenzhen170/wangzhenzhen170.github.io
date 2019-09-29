@@ -1,0 +1,277 @@
+
+(function(graph){
+
+    'use strict';
+
+    var controller = function($scope, $uibModalInstance,DiagramCIService, $uibModal, DiagramCIClassService, Unit, fn){
+        $scope.$modal = $uibModalInstance;
+        $scope.initMap = {};
+        $scope.searchObj = {};
+        $scope.position = {};
+        $scope.colorList = ['rgb(85,168,253)','rgb(102,204,153)','rgb(255,204,102)','rgb(255,102,102)','rgb(255,102,255)','rgb(255,153,102)','rgb(102,102,255)','rgb(0,102,255)','rgb(51,204,102)','rgb(102,204,255)','rgb(51,102,153)','rgb(74,137,220)','rgb(214,194,184)','rgb(255,124,84)','rgb(101,109,120)','rgb(67,74,84)','rgb(150,122,220)','rgb(255,148,142)','rgb(232,65,27)','rgb(112,141,215)','rgb(242,131,106)','rgb(214,88,89)','rgb(251,192,178)','rgb(102,51,204)','rgb(255,61,103)','rgb(106,219,124)','rgb(153,153,153)','rgb(31,123,216)','rgb(153,102,204)','rgb(51,204,204)','rgb(255,153,204)','rgb(255,153,51)','rgb(255,102,0)','rgb(255,204,153)','rgb(255,204,255)','rgb(51,51,102)','rgb(153,204,255)','rgb(102,153,255)','rgb(153,0,204)','rgb(255,102,204)','rgb(153,153,204)'];
+
+        $scope.colorItem = $scope.colorList[0];
+
+        $scope.ok = function(){
+            $scope.save();
+            // $scope.close();
+        };
+
+        $scope.getCiNameByIndexByAttr = function (item, itemCi) {
+            $scope.nameAttr = [];
+            $scope.attrValObj = {};
+            var __name = [];
+            angular.forEach(item.attrDefs, function (x) {
+                if (x.isCiDisp === 1) {
+                    $scope.attrValObj[x.proStdName] = itemCi.attrs[x.proStdName];
+                    $scope.nameAttr.push(x.proStdName);
+                    if (itemCi.attrs[x.proStdName]) {
+                        __name.push(itemCi.attrs[x.proStdName]);
+                    }
+                }
+            });
+
+            if (__name.length > 0) {
+                __name = __name.join(',');
+            } else {
+                __name = itemCi.ci.ciCode;
+            }
+
+            return __name;
+        };
+
+
+        $scope.save = function(){
+            if(!angular.isObject($scope.position.categoryNode)){
+                return;
+            }
+
+            var obj = {},i, required;
+
+            obj.ciClassId = $scope.position.categoryNode.ciClass.id;
+            obj.attrs = {};
+
+            for(i = 0; i < $scope.position.categoryNode.attrDefs.length; i++){
+                if($scope.position.categoryNode.attrDefs[i].isRequired === 1 && !$scope.position.categoryNode.attrDefs[i].value){
+                    required = true;
+                    break;
+                }
+                obj.attrs[$scope.position.categoryNode.attrDefs[i].proName] = $scope.position.categoryNode.attrDefs[i].value;
+            }
+
+            if(required){
+                return;
+            }
+
+            DiagramCIService.saveOrUpdate(obj).success(function(result){
+                if(!result.success){
+                    Unit.error(result.message);
+                }else {
+                    $scope.close();
+                    if(typeof fn === 'function'){
+                        DiagramCIService.queryById(result.data).success(function(ciInfo){
+                            var name = $scope.getCiNameByIndexByAttr($scope.position.categoryNode, ciInfo.data);
+                            fn(ciInfo.data, name, $scope.nameAttr, $scope.attrValObj, ciInfo.data.attrs);
+                        });
+                    }
+                }
+            });
+        };
+
+        $scope.close = function(){
+            $uibModalInstance.close();
+        };
+
+        $scope.isShowPath = function(){
+            $scope.savePathShow = !$scope.savePathShow;
+        };
+
+        $scope.hasClass = function(dom, list){
+            var i, res;
+            for(i = 0; i < list.length; i++){
+                if($(dom).hasClass(list[i])){
+                    res = true;
+                    break;
+                }
+            }
+
+            return res;
+        };
+
+        $scope.selectColor  = function(item){
+            $scope.colorItem = item;
+        };
+
+        $scope.isSelectColorShow = function(){
+            $scope.selectColorShow = !$scope.selectColorShow;
+        };
+
+        $scope.cancelTree = function(e){
+            // console.log(e.target);
+            if(!$scope.hasClass(e.target, ['view-save-select-path', 'select-path-team'])){
+                if($scope.savePathShow){
+                    $scope.isShowPath();
+                }
+            }
+
+            if(!$scope.hasClass(e.target, ['colorChoice', 'colorCotain', 'colorDisplay'])){
+                if($scope.selectColorShow){
+                    $scope.isSelectColorShow();
+                }
+            }
+        };
+
+        $scope.initEnumValues = function(item){
+            if(item.enumValues){
+                item.enumValuesList = angular.fromJson(item.enumValues);
+            }
+        };
+
+        $scope.selectPathConfig = function(item, loadConfig){
+            // angular.forEach($scope.configCiClassList, function(configItem){
+            //     configItem._selectActive = false;
+            // });
+            if(angular.isObject($scope.position.categoryNode)){
+                $scope.position.categoryNode._selectActive = false;
+            }
+
+            if(angular.isObject(item)){
+                item._selectActive = true;
+            }
+
+            if(loadConfig){
+                $scope.searchObj.configurationSearchText = '';
+                $scope.initConfig(true);
+            }
+            
+            $scope.position.categoryNode = item;
+
+            if (!$scope.$$phase) {
+			    $scope.$apply();
+		    }
+        };
+
+        $scope.typeLoad = function(item){
+            var res = 'text';
+            switch (item.proType){
+                case 1:
+                    // res  = 'number';
+                    break;
+                case 2:
+                    res  = 'number';
+                    break;
+                case 6:
+                    break;
+                case 7:
+                    break;
+            }
+            return res;
+        };
+
+        $scope.maxLengthLoad = function(item){
+            var res = -1;
+            if(angular.isObject($scope.position.categoryNode)){
+                if($scope.position.categoryNode.fixMapping.nmCiCode === item.proName){
+                    res  = 50;
+                }
+            }else {
+                switch (item.proType){
+                    case 3:
+                        res = 200;
+                        break;
+                    case 4:
+                        res  = 1000;
+                        break;
+                    case 6:
+                        res = 200;
+                        break;
+                    case 7:
+                        res = 200;
+                        break;
+                }
+            }
+            return res;
+        };
+
+        $scope.selectIcon = function(){
+            $uibModal.open({
+                // size: 'lg',
+                animation: true,
+                templateUrl: 'app/modal/selectIcon/selectIcon.html',
+                controller: 'ModalSelectIconCtrl',
+                resolve: {
+                    fn: function () {
+                        return function () {
+                        };
+                    }
+                }
+            });
+        };
+
+        $scope.initConfig = function (query, init) {
+            if (!query) {
+                return;
+            }
+            $scope.initMap.config = true;
+
+            if ($scope.initConfigTime) {
+                $scope.initConfigTime.cancel();
+                $scope.initMap.configReloadCencel = true;
+            }
+
+            $scope.initMap.configReload = true;
+            var obj = {};
+            if($scope.searchObj.configurationSearchText){
+                obj.classStdCode = '%' + $scope.searchObj.configurationSearchText + '%';
+            }
+
+            $scope.initConfigTime = DiagramCIClassService.queryList(obj).success(function (result) {
+                $scope.initMap.configReload = false;
+                $scope.configCiClassList = result.data;
+                if(init){
+                    $scope.selectPathConfig($scope.configCiClassList[0]);
+                }
+
+                if($scope.position.categoryNode){
+                    var i;
+                    for(i = 0; i < $scope.configCiClassList.length; i++){
+                        if(String($scope.configCiClassList[i].ciClass.id) === String($scope.position.categoryNode.ciClass.id)){
+                            $scope.selectPathConfig($scope.configCiClassList[i]);
+                            break;
+                        }
+                    }
+                    
+                }
+
+//                    console.log(result.data.classInfos)
+                if (!$scope.searchObj.configurationSearchText) {
+                    $scope.configCiClassListLength = !!$scope.configCiClassList;
+                }
+
+                // angular.forEach($scope.configCiClassList, function (item) {
+                //     (function (i) {
+                //         var icon = i.ciClass.icon;
+                //         var img = new Image();
+                //         img.src = icon;
+                //         img.defer = 'defer';
+                //
+                //         img.onload = function () {
+                //             i.__height = 15 * (img.height / img.width);
+                //         }
+                //     })(item);
+                // });
+            }).error(function () {
+                if ($scope.initMap.configReloadCencel) {
+                    $scope.initMap.configReloadCencel = false;
+                } else {
+                    $scope.initMap.configReload = false;
+                }
+            });
+        };
+
+    };
+
+    graph.app.controller('ModalViewCreateCiCtrl', ['$scope', '$uibModalInstance', 'DiagramCIService', '$uibModal','DiagramCIClassService', 'Unit', 'fn', controller]);
+
+
+})(nameSpace.reg('graph'));

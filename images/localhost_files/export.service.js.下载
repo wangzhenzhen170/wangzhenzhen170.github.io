@@ -1,0 +1,22 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('ExportService', ['$http', 'Unit', function($http, Unit){
+
+		return {
+
+			exportPdf: function(svg, name){
+				return $http.post(Unit.api('/view/exportpdf'), {svg: svg, name: name});
+			},
+
+			exportPng: function(svg, name){
+				return $http.post(Unit.api('/view/exportpng'), {svg: svg, name: name});
+			}
+
+		};
+
+	}]);
+
+})(nameSpace.reg('graph'));

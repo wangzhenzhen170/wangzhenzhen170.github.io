@@ -1,0 +1,519 @@
+/* global Sidebar */
+
+(function(graph, self){
+
+	'use strict';
+
+	/**
+	 * 把服务端的数据转换为页面展现的分类数据结构，方便页面展示.
+	 * @param data
+	 * @returns {Array}
+	 */
+	self.format = function(data){
+		var arr = [], k;
+
+		for(k=0; k<data.length; k++){
+			var o = {
+				items: []
+			};
+
+			var item = data[k];
+
+			if(!item.parent){
+				o.items.push(item);
+				o.label = item.name;
+				arr.push(o);
+			}else{
+				var i, j, isExsting = false;
+
+				for(i=0; i<arr.length; i++){
+					for(j=0; j<arr[i].items.length; j++){
+						if(arr[i].items[j].id === item.parent){
+							arr[i].items.push(item);
+							isExsting = true;
+							break;
+						}
+					}
+				}
+
+				// 这里需要做一个push次数限制，以防止当前for循环会因为item找不到父亲节点而进入死循环
+				// 按正常的数据是不应该出现item没有父亲节点情况的
+				// 因此这里做了这个判断等于是担心后台数据出现错误导致前端浏览器死循环崩溃的一个判断
+				// 判断条件中的3是限制item push次数限制，这个数字应该是这个树形数据最大的纵深数
+				// 比如有6级子节点这里就需要把3修改为6
+				if(!isExsting && (!item._count || item._count <=3)){
+					if(!item._count){
+						item._count = 0;
+					}
+					item._count++;
+					data.push(item);
+				}
+			}
+		}
+
+		return arr;
+	};
+
+	graph.app.controller('MainEditCtrl', [
+		'$scope',
+		'$timeout',
+		'CiCateService',
+		'LjwGraphToolbar',
+		'Editor',
+		'GraphContextMenu',
+		'CiService',
+		'NgTableParams',
+		'DataDraw',
+		'IconService',
+		'Unit',
+		'ViewService',
+		'GraphInfo',
+		'ContextLibs',
+		'GraphTable',
+		'Const',
+		'Event',
+		'Keymap',
+		function($scope, $timeout, CiCateService, GraphToolbar, Editor, GraphContextMenu, CiService, NgTableParams,
+				 DataDraw, IconService, Unit, ViewService, GraphInfo, ContextLibs, GraphTable, Const, Event, Keymap){
+
+			$scope.LAYOUT.collapsedSidebar = false;
+
+			$scope.initMap = {};
+			$scope.isCollapsedConfigForm = true;
+			$scope.isSearch = false;
+			$scope.cates = [];
+			$scope.config = {};
+			$scope.selectCates = [];
+			$scope.checkboxes = {
+				checked: false,
+				items: {}
+			};
+
+			$scope.icon = {
+				page: 1,
+				pageSize: 30,
+				total: 0
+			};
+
+			$scope.icons = [];
+
+			$scope.initCate = function(){
+				var $container = $('#category_icon');
+				$container.find('.drag-box-item').each(function(){
+					self.sidebar.addImagePalette(
+						this,
+						$(this).attr('data-name'),
+						$(this).attr('data-icon'),
+						Const.GRAPH_DRAG_WIDTH,
+						Const.GRAPH_DRAG_HEIGHT,
+						Const.GRAPH_DRAG_WIDTH,
+						Const.GRAPH_DRAG_HEIGHT
+					);
+				});
+			};
+
+			$scope.initBaseIcon = function(){
+
+				if($scope.initMap.base){
+					return;
+				}
+
+				$scope.initMap.base = true;
+
+				$timeout(function(){
+					var content = document.querySelector('#base_icon');
+
+					self.sidebar.addGeneralPalette(content,'swimlane', 200, 200, 'Container');
+					self.sidebar.addGeneralPalette(content,'swimlane;horizontal=0', 200, 200, 'Pool');
+					self.sidebar.addGeneralPalette(content,'text', 40, 26, 'Text');
+					self.sidebar.addGeneralPalette(content, null, 120, 60);
+					self.sidebar.addGeneralPalette(content,'rounded=1', 120, 60);
+					self.sidebar.addGeneralPalette(content,'ellipse', 80, 80);
+					self.sidebar.addGeneralPalette(content,'ellipse;shape=doubleEllipse', 80, 80);
+					self.sidebar.addGeneralPalette(content,'shape=trapezoid;whiteSpace=wrap;html=1;', 120, 60);
+					self.sidebar.addGeneralPalette(content,'shape=document;whiteSpace=wrap;html=1;', 120, 60);
+					self.sidebar.addGeneralPalette(content,'shape=parallelogram;whiteSpace=wrap;html=1;', 120, 60);
+					self.sidebar.addGeneralPalette(content,'shape=ext;rounded=1;html=1;whiteSpace=wrap;dashed=1;dashPattern=1 4;', 120, 80);
+					self.sidebar.addGeneralPalette(content,'shape=ext;html=1;whiteSpace=wrap;dashed=1;dashPattern=1 4;', 120, 80);
+
+					self.sidebar.addGeneralPalette(content,'triangle', 60, 80);
+					self.sidebar.addGeneralPalette(content,'rhombus', 80, 80);
+					self.sidebar.addGeneralPalette(content,'shape=hexagon', 120, 80);
+					self.sidebar.addGeneralPalette(content,'shape=actor;verticalLabelPosition=bottom;verticalAlign=top', 40, 60);
+					self.sidebar.addGeneralPalette(content,'ellipse;shape=cloud', 120, 80);
+					self.sidebar.addGeneralPalette(content,'shape=cylinder', 60, 80);
+					self.sidebar.addGeneralPalette(content,'line', 160, 10);
+					self.sidebar.addGeneralPalette(content,'line;direction=south', 10, 160);
+					self.sidebar.addGeneralPalette(content,'shape=xor', 60, 80);
+					self.sidebar.addGeneralPalette(content,'shape=or', 60, 80);
+					self.sidebar.addGeneralPalette(content,'shape=step', 120, 80);
+					self.sidebar.addGeneralPalette(content,'shape=tape', 120, 100);
+					self.sidebar.addGeneralPalette(content,'shape=cube', 120, 80);
+					self.sidebar.addGeneralPalette(content,'shape=note', 80, 100);
+					self.sidebar.addGeneralPalette(content,'shape=folder', 120, 120);
+					self.sidebar.addGeneralPalette(content,'shape=card', 60, 80);
+					self.sidebar.addGeneralPalette(content,'shape=plus', 20, 20);
+
+					self.sidebar.createEdgeTemplate(content,'edgeStyle=none;endArrow=none;', 100, 100);
+					self.sidebar.createEdgeTemplate(content,'edgeStyle=none', 100, 100);
+					self.sidebar.createEdgeTemplate(content,'edgeStyle=elbowEdgeStyle;elbow=horizontal', 100, 100);
+					self.sidebar.createEdgeTemplate(content,'edgeStyle=elbowEdgeStyle;elbow=vertical', 100, 100);
+					self.sidebar.createEdgeTemplate(content,'edgeStyle=segmentEdgeStyle', 100, 100);
+					self.sidebar.createEdgeTemplate(content,'endArrow=classic;startArrow=classic;', 100, 100);
+					self.sidebar.createEdgeTemplate(content,'shape=link;html=1;', 100, 100);
+
+					self.sidebar.createEdgeTemplate(content,'endArrow=none;html=1;dashed=1;dashPattern=1 4;', 100, 100);
+					self.sidebar.createEdgeTemplate(content,'endArrow=none;dashed=1;html=1;', 100, 100);
+					self.sidebar.createEdgeTemplate(content,'endArrow=open;endSize=12;dashed=1;html=1;', 160, 0, 'Use');
+
+					self.sidebar.createEdgeTemplate(content,'arrow', 100, 100);
+				}, 100);
+			};
+
+			$scope.initOwnIcon = function(){
+
+				var $container = $('#own_icon');
+				$container.find('.drag-box-item').each(function(){
+					self.sidebar.addImagePalette(
+						this,
+						$(this).attr('data-name'),
+						$(this).attr('data-icon'),
+						Const.GRAPH_DRAG_WIDTH,
+						Const.GRAPH_DRAG_HEIGHT,
+						Const.GRAPH_DRAG_WIDTH,
+						Const.GRAPH_DRAG_HEIGHT
+					);
+				});
+
+				//$scope.reloadIcon();
+			};
+
+			$scope.reloadIcon = function(isForeReload){
+
+				if(!isForeReload && $scope.initMap.icon){
+					return;
+				}
+
+				$scope.initMap.icon = true;
+
+				IconService.get({page: 1, pageSize: 10000})
+					.success(function(result){
+						$scope.icon.total = result.data.count;
+						$scope.icons = result.data.datas;
+
+						$timeout($scope.initOwnIcon, 100);
+					});
+			};
+
+			$scope.initConfig = function(){
+				if($scope.initMap.config){
+					return;
+				}
+
+				$scope.initMap.config = true;
+
+				CiCateService.get().success(function(result){
+					$scope.selectCates = result.data;
+					$scope._refresh();
+				});
+			};
+
+			$scope.configSearch = function(){
+				if($scope.config.cate){
+					$scope.isSearch = true;
+					$scope.tableParams.page(1);
+					$scope.tableParams.reload(true);
+				}
+			};
+
+			$scope.uploadIcon = function(files){
+				if(files && files.length){
+
+					var file = files[0];
+
+					$scope.showProgressbar = true;
+
+					if(self.progressPromise){
+						$timeout.cancel(self.progressPromise);
+					}
+
+					IconService.upload(file)
+						.progress(function(evt){
+							$scope.iconUploaProgressPercentage = parseInt(100.0 * evt.loaded / evt.total);
+						})
+						.success(function(){
+							$scope.reloadIcon(true);
+							$scope.hideProgressbar();
+						})
+						.error(function(){
+							$scope.hideProgressbar();
+						});
+				}
+			};
+
+			$scope.filter = function(arr){
+				var a = [];
+
+				if(Array.isArray(arr)){
+					if (arr[0].value !== '*') {
+						arr.unshift($scope.allOption);
+					}
+					$.each(arr, function(){
+						if(this.name[0] !== '_'){
+							a.push(this);
+						}
+					});
+				}
+				return a;
+			};
+
+			$scope.removeOwnIcon = function(iconUrl, e) {
+				Unit.confirm(graph.translate('DELETE_CONFIRM'), function(){
+					var iconName = iconUrl.substr(iconUrl.lastIndexOf('/') + 1);
+					IconService.delete(iconName).then(function() {
+						$(e.currentTarget).parent('.drag-box-item').remove();
+					});
+				});
+			};
+
+			$scope.hideProgressbar = function(){
+				self.progressPromise = $timeout(function(){
+					$scope.showProgressbar = false;
+				}, 3000);
+			};
+
+			$scope.preStatic = function(url){
+				return Unit.static(url);
+			};
+
+			$scope.$on('$viewContentLoaded', function() {
+
+				self.editor = new Editor(document.querySelector('#graph'), document.querySelector('#graph_outline'));
+				$scope.editorState = self.editor.state;
+				$scope.graphTableParams = new GraphTable(self.editor);
+				self.editor.keymap = new Keymap(self.editor);
+
+				new GraphContextMenu(self.editor, {
+					vertex: [
+						Const.MENU_CELL_COPY,
+						Const.MENU_CELL_CUT,
+						Const.MENU_CELL_DELETE,
+						'-',
+						Const.MENU_STYLE,
+						[
+							Const.MENU_FONT_STYLE,
+							Const.MENU_STROKE_WIDTH,
+							Const.MENU_OPACITY
+						],
+						'-',
+						Const.MENU_SHOW_CI_INFO,
+						Const.MENU_EXPAND_NODE,
+						Const.MENU_OPEN_URL,
+						Const.MENU_VIEW_RELATION,
+						[
+							Const.MENU_VIEW_RELATION_SET,
+							Const.MENU_VIEW_RELATION_OPEN,
+							Const.MENU_VIEW_RELATION_DELETE
+						]
+					],
+					edge: [
+						Const.MENU_CELL_COPY,
+						Const.MENU_CELL_CUT,
+						Const.MENU_CELL_DELETE,
+						'-',
+						Const.MENU_STYLE,
+						[
+							Const.MENU_FONT_STYLE,
+							Const.MENU_STROKE_WIDTH,
+							Const.MENU_OPACITY
+						]
+					],
+					canvas: [
+
+						Const.MENU_VIEW_NEW,
+						Const.MENU_VIEW_OPEN,
+						Const.MENU_VIEW_SAVE,
+						'-',
+						Const.MENU_EXPORT,
+						[
+							Const.MENU_EXPORT_PNG,
+							Const.MENU_EXPORT_PDF,
+							Const.MENU_EXPORT_SVG,
+							Const.MENU_EXPORT_XML
+						],
+						'-',
+						Const.MENU_GRAPH_CLEAR,
+						Const.MENU_CELL_PASTE,
+						'-',
+						Const.MENU_LAYOUT,
+						[
+							Const.MENU_LAYOUT_HORIZONTAL,
+							Const.MENU_LAYOUT_VERTICAL,
+							Const.MENU_LAYOUT_ORGANIC,
+							Const.MENU_LAYOUT_CIRCLE,
+							//Const.MENU_LAYOUT_PARALLEL,
+							Const.MENU_LAYOUT_STACK_HORIZONTAL,
+							Const.MENU_LAYOUT_STACK_VERTICAL
+						],
+						'-',
+						Const.MENU_ZOOM,
+						[
+							Const.MENU_ZOOM_IN,
+							Const.MENU_ZOOM_OUT,
+							Const.MENU_ZOOM_CENTER,
+							Const.MENU_ZOOM_ACTUAL
+						],
+						'-',
+						Const.MENU_VIEW_RELATION_BACK
+
+					],
+					libs: ContextLibs
+				});
+
+				$scope.toolbarParams = new GraphToolbar({
+					editor: self.editor
+				});
+
+				self.editor.toolbar = $scope.toolbarParams;
+
+				$timeout(function(){
+					self.sidebar = new Sidebar(self.editor, document.querySelector('#category_icon'));
+				});
+
+				$scope.infoParams = new GraphInfo(self.editor);
+				self.editor.infoParams = $scope.infoParams;
+
+				if($scope.$state.params.id){
+					ViewService.getView($scope.$state.params.id)
+						.success(function(result){
+							self.editor.action.openView(result.data);
+							$scope.$state.current.data.title = result.data.name;
+						});
+				}
+
+
+				//self.editor.action.searchNode();
+
+			});
+
+			$scope.tableParams = new NgTableParams({
+				page: 1,
+				count: 10
+			}, {
+				total: 0,
+				counts: [],
+				getData: function(params){
+					var selectParams = {}, like = {};
+
+					$scope.checkboxes.checked = false;
+
+					if($scope.config.cate){
+
+						if($scope.config.attr && $scope.config.attr.value !== '*'){
+							like[$scope.config.attr.name] = $scope.config.like ? '*' + $scope.config.like + '*' : '*';
+						}else{
+							like['*'] = $scope.config.like ? '*' + $scope.config.like + '*' : '*';
+						}
+
+						selectParams.categoryId = $scope.config.cate.id;
+						selectParams.page = params.page();
+						selectParams.pageSize = params.count();
+						selectParams.like = like;
+
+						return CiService.get(selectParams)
+							.then(function(result){
+								self.ciData = result.data.data.datas;
+								params.total(result.data.data.count);
+								$timeout(function(){
+									new DataDraw({
+										editor: self.editor,
+										$table: $('#config-table'),
+										ciData: self.ciData,
+										prefix: Const.CI_PREFIX
+									});
+								});
+								return self.ciData;
+							});
+					}else{
+						params.total(0);
+						return [];
+					}
+				}
+			});
+
+			$scope.tableParams.getPages = function(){
+				return Math.ceil($scope.tableParams.total() / $scope.tableParams.count());
+			};
+
+			$scope.$watch('checkboxes.checked', function(value){
+				angular.forEach(self.ciData, function(item){
+					if(angular.isDefined(item.id)){
+						$scope.checkboxes.items[item.id] = value;
+					}
+				});
+			});
+
+			$scope.showPopover = function($event){
+				var dom = $event.target;
+				if (dom.offsetWidth < dom.scrollWidth) {
+					$(dom).popover('show');
+				}
+			};
+
+			$scope.hidePopover = function($event) {
+				$($event.target).popover('hide');
+			};
+
+			$scope.openXml = function($files){
+				if($files.length){
+
+					var r = new FileReader();
+					r.readAsText($files[0]);
+
+					r.onload = function(e){
+						self.editor.action.create();
+						self.editor.action.openXml(e.target.result);
+					};
+				}
+			};
+
+			CiCateService.get().success(function(result){
+				Unit.formatCategoryData(result.data);
+				$scope.cates = self.format(result.data);
+				$scope._refresh();
+			});
+
+			$scope.allOption = {
+				name: graph.translate('ALL'),
+				value: '*'
+			};
+
+			$scope.$on(Event.CI_TABLE_UNCHECKED, function(){
+				$scope.checkboxes.checked = false;
+			});
+
+			$scope.$on(Event.VIEW_UPDATE_BEFORE, function(){
+				self.editor.action.update();
+			});
+
+			$scope.$on(Event.VIEW_PUBLIC_BEFORE, function(){
+				self.editor.action.publicView();
+			});
+
+			$scope.$on(Event.VIEW_UNPUBLIC_BEFORE, function(){
+				self.editor.action.unpublicView();
+			});
+
+			$scope.$on(Event.VIEW_SUBSCRIPTION_BEFORE, function(){
+				self.editor.action.subscription();
+			});
+
+			$scope.$on(Event.VIEW_UNSUBSCRIPTION_BEFORE, function(){
+				self.editor.action.unsubscription();
+			});
+		}]);
+
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page.edit'));
+
+

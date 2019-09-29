@@ -1,0 +1,101 @@
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, editor, GraphViewtree, ViewService, Unit, UserInfo){
+
+		$scope.view = {
+			name: editor.state.view.name,
+			description: editor.state.view.description,
+			categoryId: editor.state.view.categoryId,
+			pos: ''
+		};
+
+		$scope.title = graph.translate('RELEASE_VIEW');
+		$scope.$modal = $uibModalInstance;
+
+		$scope.cancel = function(){
+			$uibModalInstance.close();
+		};
+
+		$scope.ok = function(){
+			if($scope.view.categoryId && $scope.view.name){
+
+				var data = {
+					categoryId: $scope.view.categoryId,
+					name: $scope.view.name,
+					description: $scope.view.description,
+					cis: editor.action.getCisId(),
+					viewIds: editor.action.relationViewList(),
+					//points: JSON.stringify(json),
+					points: '',
+					svg: mxUtils.getXml(editor.graph.getSvg()),
+					xml: editor.action.getXml(),
+					id: editor.state.view.id
+				};
+
+				ViewService.update(data)
+					.success(function(){
+						$uibModalInstance.close();
+					});
+
+			}else{
+				Unit.alert(graph.translate('ERROR_MISSING_VIEW_NAMES_OR_VIEW_LOCATION'));
+			}
+
+		};
+
+		$scope.pos = function(node){
+
+			var list = [];
+
+			$.each(node.path, function(){
+				list.push(this.name);
+			});
+
+			// list.unshift(this.isPublic() ? graph.translate('RELEASE') : graph.translate('OWN'));
+
+			$scope.view.pos = list.join(' -> ');
+			$scope._refresh();
+		};
+
+		var userInfo = UserInfo.get();
+		var options = {
+			allowEdit: true,
+			maxHeight: 300,
+			allowShowPubview: userInfo ? userInfo.isManager : false,
+			dir: 'public',
+			hideView: true,
+			onload: function(scope){
+				$scope.pos(editor.state.view);
+				if(editor.state.view.path){
+					$.each(editor.state.view.path, function(){
+						var item = this;
+
+						var node = scope.getNodeById(item.id);
+						if(node){
+							scope.expandedNodes.push(node);
+
+							if(editor.state.view.path[editor.state.view.path.length - 1] === item){
+								scope.selected = node;
+							}
+						}
+					});
+				}
+			},
+			selectNode: function(node){
+				$scope.view.categoryId = node.id;
+				$scope.pos(node);
+			}
+		};
+
+		$scope.viewtreeParams = new GraphViewtree(options);
+	};
+
+	graph.app.controller('ModalViewPublishCtrl', ['$scope', '$uibModalInstance', 'editor', 'GraphViewtree', 'ViewService', 'Unit', 'UserInfo', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

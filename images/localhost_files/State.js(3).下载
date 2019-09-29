@@ -1,0 +1,75 @@
+
+(function(graph){
+
+	'use strict';
+
+	var url = graph.stateUrl;
+
+	graph.app.config(function($stateProvider) {
+
+		$stateProvider
+			.state('home.group', {
+				url: 'group',
+				templateUrl: url('/main/group/group.html'),
+				controller: 'MainGroupCtrl',
+				data: {
+					title: 'COMBINED_VIEW'
+				}
+			})
+
+			.state('home.group.create', {
+				url: '/create',
+				templateUrl: url('/main/group/create/create.html'),
+				controller: 'MainGroupCreateCtrl',
+				data: {
+					title: 'CREATE'
+				}
+			})
+
+			.state('home.group.edit', {
+				url: '/edit/:id',
+				templateUrl: url('/main/group/create/create.html'),
+				controller: 'MainGroupEditCtrl',
+				data: {
+					title: 'EDIT'
+				}
+			})
+
+			.state('home.group.listmine', {
+				url: '/listmine',
+				templateUrl: url('/main/group/list/list.html'),
+				controller: 'MainGroupList',
+				data: {
+					title: 'MY_SCENE'
+				}
+			})
+			.state('home.group.listpublic', {
+				url: '/listpublic',
+				templateUrl: url('/main/group/list/list.html'),
+				controller: 'MainGroupList',
+				data: {
+					title: 'SCENE_SQUARE'
+				}
+			})
+
+            .state('home.group.testsceneinfo', {
+                url: '/testsceneinfo',
+                templateUrl: url('/main/group/list/testsceneinfo.html'),
+                controller: 'TestSceneInfo',
+                data: {
+                    title: 'just a test'
+                }
+            })
+
+			.state('home.group.view', {
+				url: '/view/:id',
+				templateUrl: url('/main/group/view/view.html'),
+				controller: 'MainGroupViewCtrl',
+				data: {
+					title: 'DETAIL'
+				}
+			});
+	});
+
+
+})(nameSpace.reg('graph'));

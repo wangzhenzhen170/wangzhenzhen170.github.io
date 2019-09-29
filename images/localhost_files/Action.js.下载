@@ -1,0 +1,2404 @@
+/* global mxImage */
+/* global mxConstants */
+/* global mxUtils */
+/* global saveAs */
+/* global mxClipboard */
+/* global mxHierarchicalLayout */
+/* global mxCircleLayout */
+/* global mxFastOrganicLayout */
+/* global mxParallelEdgeLayout */
+/* global mxStackLayout */
+/* global mxCodec */
+
+
+(function (graph) {
+
+    'use strict';
+
+    var factory = function ($uibModal, Unit, $rootScope, Const, CiMonitorService, GraphMonitor, Event, ExportService,
+                            $window, ViewService, UserInfo, SearchService, CiService, $state, $templateCache, $timeout,
+                            GeoLayout, emxDataLabel, DiagramCIService, DiagramTagRuleService, DiagramImageService, DiagramDiagramService,uDialog) {
+
+        var $modal = $uibModal;
+
+        return function (editor, params) {
+
+            this.geoLayout = new GeoLayout(editor.graph, 80, 80);
+
+            this.syncMakerPos = function (chell) {
+                if (editor.markerCellMapping) {
+                    var maker = editor.markerCellMapping[chell.id];
+                    var cellGeo = chell.geometry;
+                    if (maker) {
+                        var mkGeo = maker.geometry.clone();
+                        var size = 10;
+
+                        mkGeo.x = cellGeo.x + ((cellGeo.width - size) / 2);
+                        mkGeo.y = cellGeo.y + ((cellGeo.height - size) / 2);
+                        editor.graph.model.setGeometry(maker, mkGeo);
+                    }
+                }
+            };
+
+            // cell被移动时同步背景位置
+            editor.graph.addListener(mxEvent.CELLS_MOVED, mxUtils.bind(this, function (sender, evt) {
+                var cells = evt.getProperty('cells');
+                this.syncMakerPos(cells[0]);
+            }));
+
+            // 新添加连线时为连线设置当前连线样式
+            editor.graph.addListener(mxEvent.ADD_CELLS, mxUtils.bind(this, function (sender, evt){
+                var cells = evt.getProperty('cells');
+                var edgeStyle = editor.graph.getCurStyle(mxConstants.STYLE_EDGE);
+                var edges = cells.filter(function(a){
+                    return a.isEdge();
+                });
+
+                if (edgeStyle && edges.length > 0) {
+                    this.edgeStyle(edgeStyle, edges);
+                }
+            }));
+
+            this.ciInfo = function (ciId) {
+                if (editor.infoParams) {
+                    CiService.getCi(ciId)
+                        .success(function (result) {
+                            editor.infoParams.update('ci', {config: result.data});
+                        });
+                } else {
+                    // TODO show info in modal
+                }
+            };
+
+            this.clearHight = function () {
+                editor.graph.removeLight();
+            };
+
+            this.hightLightCi = function () {
+                var ciIds = this.getCisId();
+
+                if (ciIds.length) {
+                    CiService.exists(ciIds)
+                        .success(function (result) {
+                            if (result.data.length < ciIds.length) {
+                                Unit.error('ERROR_NOT_FOUND_CI_DATA_IN_DB');
+                            }
+
+                            $.each(result.data, function () {
+                                var cell = editor.graph.getCellById(Const.CI_PREFIX + this);
+                                if (cell) {
+                                    editor.graph.addLight(cell);
+                                }
+                            });
+                        });
+                }
+            };
+
+            this.backgroundImage = function () {
+                $modal.open({
+                    size: 'lg',
+                    animation: true,
+                    templateUrl: 'app/modal/image/image.html',
+                    controller: 'ModalImageCtrl',
+                    resolve: {
+                        fn: function () {
+                            return function (image) {
+                                var url = Unit.static(image.url);
+                                var element = document.createElement('img');
+                                element.src = url;
+                                element.onload = function () {
+                                    var img = new mxImage(url, this.width, this.height);
+                                    editor.graph.setBackgroundImage(img);
+                                    editor.graph.view.validate();
+                                    $(element).remove();
+                                };
+                            };
+                        }
+                    }
+                });
+            };
+
+            this.clearBackgroundImage = function () {
+                editor.graph.setBackgroundImage(null);
+                editor.graph.view.validate();
+            };
+
+
+            // 设置画板
+            this.paintPanel = function () {
+//                editor.graph.uEnablePaintPanel();
+//                editor.graph.uCreatePaintPanel();
+
+                $modal.open({
+                    size: 'paintPanel',
+					windowClass: 'uDialog',
+                    animation: true,
+                    templateUrl: 'app/modal/paintPanel/paintPanel.html',
+                    controller: 'ModalPaintPanelCtrl',
+                    resolve: {
+                        editor: function () {
+                            return editor;
+                        }
+                    }
+                });
+            };
+
+            // 清除画板
+            this.clearPaintPanel = function () {
+                editor.graph.uClearPaintPanel();
+            };
+
+            this.save = function (fun) {
+                if (params.params.id) {
+                    if (typeof params.editFun === 'function') {
+                        params.editFun(fun);
+                    }
+                    return;
+                }
+                uDialog.dialog({
+                    class: 'md',
+                    templateUrl: 'app/modal/view/ljwSave.html',
+                    controller: 'LjwModalViewSaveCtrl',
+                    resolve: {
+                        editor: function () {
+                            return editor;
+                        },
+                        params: function () {
+                            return params.params;
+                        },
+                        configOptions: {
+                            as: false,
+                            clearCanvasFun: fun
+                        }
+                    }
+                })
+                // $modal.open({
+                //     // size: 'sm',
+                //     animation: true,
+                //     templateUrl: 'app/modal/view/ljwSave.html',
+                //     controller: 'LjwModalViewSaveCtrl',
+                //     resolve: {
+                //         editor: function () {
+                //             return editor;
+                //         },
+                //         params: function () {
+                //             return params.params;
+                //         },
+                //         configOptions: {
+                //             as: false,
+                //             clearCanvasFun: fun
+                //         }
+                //     }
+                // });
+            };
+
+            this.update = function () {
+                var userInfo = UserInfo.get();
+
+                if (editor.state && editor.state.view) {
+
+                    if (editor.state.view.userName === userInfo.loginName) {
+                        $modal.open({
+                            size: 'lg',
+                            animation: true,
+                            templateUrl: 'app/modal/view/save.html',
+                            controller: 'ModalViewUpdateCtrl',
+                            resolve: {
+                                editor: function () {
+                                    return editor;
+                                }
+                            }
+                        });
+
+                    } else {
+                        Unit.error('ERROR_NOT_PERMISSION');
+                    }
+
+                } else {
+                    Unit.error('ERROR_NO_OPEN_ANY_VIEW');
+                }
+            };
+
+            this.publish = function () {
+                var userInfo = UserInfo.get();
+
+                if (editor.state && editor.state.view) {
+
+                    if (editor.state.view.userName === userInfo.loginName) {
+                        $modal.open({
+                            size: 'lg',
+                            animation: true,
+                            templateUrl: 'app/modal/view/save.html',
+                            controller: 'ModalViewPublishCtrl',
+                            resolve: {
+                                editor: function () {
+                                    return editor;
+                                }
+                            }
+                        });
+
+                    } else {
+                        Unit.error('ERROR_NOT_PERMISSION');
+                    }
+
+                } else {
+                    Unit.error('ERROR_NO_OPEN_ANY_VIEW');
+                }
+            };
+
+
+            this.open = function () {
+                $modal.open({
+                    animation: true,
+                    templateUrl: 'app/modal/view/open.html',
+                    controller: 'ModalViewOpenCtrl',
+                    resolve: {
+                        fn: function () {
+                            return function (view) {
+                                $state.go('home.edit.id', {id: view.id});
+
+                                ViewService.getView(view.id)
+                                    .success(function (result) {
+                                        editor.action.openView(result.data);
+                                    });
+                            };
+                        }
+                    }
+                });
+            };
+
+            this.create = function () {
+                if (editor.graph.model.nextId > 2) {
+                    $modal.open({
+                        animation: true,
+                        templateUrl: 'app/modal/view/createNew.html',
+                        controller: 'ModalViewCreateNewCtrl',
+                        resolve: {
+                            editor: function () {
+                                return editor;
+                            }
+                        }
+                    });
+                }
+            };
+
+            this.createFile = function(){
+                uDialog.dialog({
+                    templateUrl: 'app/modal/view/createFile.html',
+                    controller: 'ModalViewCreateFileCtrl',
+                    resolve: {
+                        editor: function () {
+                            return editor;
+                        },
+                        params: function(){
+                            return params.params;
+                        }
+                    }
+                });
+                // $modal.open({
+                //     animation: true,
+                //     templateUrl: 'app/modal/view/createFile.html',
+                //     controller: 'ModalViewCreateFileCtrl',
+                //     resolve: {
+                //         editor: function () {
+                //             return editor;
+                //         },
+                //         params: function(){
+                //             return params.params;
+                //         }
+                //     }
+                // });
+            };
+
+            this.openFile = function(){
+                // $modal.open({
+                //     animation: true,
+                //     templateUrl: 'app/modal/view/openFile.html',
+                //     controller: 'ModalOpenFileCtrl',
+                //     resolve: {
+                //         editor: function () {
+                //             return editor;
+                //         },
+                //         params: function(){
+                //             return params.params;
+                //         }
+                //     }
+                // });
+                uDialog.dialog({
+                    class: 'md',
+                    templateUrl: 'app/modal/view/openFile.html',
+                    controller: 'ModalOpenFileCtrl',
+                    resolve: {
+                        editor: function () {
+                            return editor;
+                        },
+                        params: function(){
+                            return params.params;
+                        }
+                    }
+                });
+            };
+
+            this.offsetCell = function (keycode, ev) {
+
+                if(!angular.isObject(editor.graph.cellEditor.editingCell)){
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    var cells = editor.graph.getSelectionCells();
+                    var x,y;
+                    if(angular.isArray(cells)){
+                        editor.graph.model.beginUpdate();
+
+                        try {
+                            switch (keycode) {
+                                case 'left':
+                                    x = -1;
+                                    break;
+                                case 'right':
+                                    x = 1;
+                                    break;
+                                case 'top':
+                                    y = -1;
+                                    break;
+                                case 'bottom':
+                                    y = 1;
+                                    break;
+                            }
+
+                            angular.forEach(cells, function(item){
+                                if(item.isEdge()){
+                                    return;
+                                }
+                                if(angular.isNumber(x)){
+                                    item.geometry.x = item.geometry.x + x;
+                                }
+
+                                if(angular.isNumber(y)){
+                                    item.geometry.y = item.geometry.y + y;
+                                }
+                            });
+
+                        } finally {
+                            editor.graph.model.endUpdate();
+                        }
+                        editor.graph.view.refresh();
+                        editor.graph.setSelectionCells(cells);
+                    }
+
+                    return false;
+                }
+            };
+
+            this.offsetLeft = function (ev) {
+                this.offsetCell('left', ev);
+            };
+
+            this.offsetRight = function(ev){
+                this.offsetCell('right', ev);
+            };
+
+            this.offsetTop = function(ev){
+                this.offsetCell('top', ev);
+            };
+
+            this.offsetBottom = function(ev){
+                this.offsetCell('bottom', ev);
+            };
+
+            this.clear = function () {
+                editor.graph.model.clear();
+                editor.graph.fireEvent(new mxEventObject(Const.CANVAS_CIS_CHANGE));
+            };
+
+            this.zoomIn = function () {
+                editor.graph.zoomIn();
+                this.syncGrid();
+
+                if(editor.zoomChangeToCenter){
+                    editor.graph.center();
+                }
+            };
+
+            this.zoomOut = function () {
+                editor.graph.zoomOut();
+                this.syncGrid();
+
+                if(editor.zoomChangeToCenter){
+                    editor.graph.center();
+                }
+            };
+
+            this.zoomActual = function () {
+                editor.graph.zoomActual();
+            };
+
+            this.zoomCenter = function () {
+                editor.graph.zoomToCenter();
+                this.syncGrid();
+            };
+
+            this.syncGrid = function () {
+                var scale = editor.graph.getView().getScale();
+                var width = Const.GRAPH_GRID_WIDTH * scale + 'px';
+                var height = Const.GRAPH_GRID_HEIGHT * scale + 'px';
+                $(editor.graph.container).find('svg')[0].style.backgroundSize = width + ' ' + height;
+            };
+
+            this.assistLine = function () {
+                editor.graph.graphHandler.guidesEnabled = !editor.graph.graphHandler.guidesEnabled;
+                editor.state.isAssistLine = editor.graph.graphHandler.guidesEnabled;
+            };
+
+            this.orderDown = function () {
+                editor.graph.orderCells(true);
+            };
+
+            this.orderUp = function (cells) {
+                editor.graph.orderCells(false, cells);
+            };
+
+            this.alignCells = function (align) {
+                editor.graph.alignCells(align);
+            };
+
+            this.alignDistribute = function (direction) {
+                editor.graph.distributeCells(direction);
+            };
+
+            this.undo = function () {
+                editor.graph.stopEditing(false);
+                editor.undoManager.undo();
+            };
+
+            this.redo = function () {
+                editor.graph.stopEditing(false);
+                editor.undoManager.redo();
+            };
+
+            this.removeCells = function () {
+                var cells = editor.graph.getSelectionCells();
+                if(cells.length){
+                    var i, len = cells.length, check, parents = [];
+                    check = function(arr, cell){
+                        var ii, len1 = arr.length, res;
+                        for(ii = 0; ii < len1; ii++){
+                            if(arr[ii].getId() === cell.getId()){
+                                res = true;
+                                break;
+                            }
+                        }
+                    };
+                    for(i = 0; i < len; i++){
+                        if(cells[i] && cells[i].getParent() && !check(parents, cells[i].getParent())){
+                            parents.push(cells[i].getParent());
+                        }
+                    }
+
+                    $timeout(function(){
+                        var j, le = parents.length;
+                        for(j = 0; j < le; j++){
+                            var cis = editor.action.getCisIdByCiId(parents[j]);
+
+                            if(cis.length){
+                                if(parents[j].getGeometry()){
+                                    parents[j].setUtAttr('child-num', cis.length);
+                                    // editor.effects.script1.createEffect(parents[j], 'rgba(51, 161, 255, 1)', cis.length);
+                                }
+                            }else {
+                                parents[j].setUtAttr('child-num', 0)
+                                // editor.effects.script1.clear(parents[j]);
+                            }
+                        }
+                        editor.graph.refresh();
+                    });
+                }
+                editor.graph.removeCells(cells);
+            };
+
+            this.edgeStyle = function (style, edges) {
+                editor.graph.model.beginUpdate();
+                try {
+
+                    this.edgeClearStyle();
+
+                    if (style === 'elbowHorizontal') {
+                        style = 'elbowEdgeStyle';
+                        this.elbowStyle('horizontal');
+                    }
+
+                    if (style === 'elbowVertical') {
+                        style = 'elbowEdgeStyle';
+                        this.elbowStyle('vertical');
+                    }
+
+                    editor.graph.setCellStyles(mxConstants.STYLE_EDGE, style, edges);
+
+                } finally {
+                    editor.graph.model.endUpdate();
+                }
+            };
+
+            /**
+             * 设置连线样式并且记录为当前样式
+             */
+            this.edgeStyleAsCur = function (style) {
+                this.edgeStyle(style);
+                editor.graph.setCurStyle(mxConstants.STYLE_EDGE, style);
+            }
+
+            this.elbowStyle = function (style) {
+                editor.graph.setCellStyles(mxConstants.STYLE_ELBOW, style);
+            };
+
+            this.edgeClearStyle = function () {
+                var edges = editor.graph.getSelectionEdges();
+
+                $.each(edges, function () {
+                    this.geometry.points = [];
+                });
+
+                var attr = [
+                    mxConstants.STYLE_EDGE,
+                    mxConstants.STYLE_ELBOW,
+                    'noEdgeStyle',
+                    'orthogonal'
+                ];
+
+                $.each(attr, function () {
+                    editor.graph.setCellStyles(this, null, edges);
+                });
+            };
+
+            this.startArrow = function (style) {
+                editor.graph.setCellStyles(mxConstants.STYLE_STARTARROW, style);
+                editor.graph.setCellStyles('startFill', 0);
+            };
+
+            this.startArrowFill = function (style) {
+                editor.graph.setCellStyles(mxConstants.STYLE_STARTARROW, style);
+                editor.graph.setCellStyles('startFill', 1);
+            };
+
+            this.endArrow = function (style) {
+                editor.graph.setCellStyles(mxConstants.STYLE_ENDARROW, style);
+                editor.graph.setCellStyles('endFill', 0);
+            };
+
+            this.endArrowFill = function (style) {
+                editor.graph.setCellStyles(mxConstants.STYLE_ENDARROW, style);
+                editor.graph.setCellStyles('endFill', 1);
+            };
+
+            this.linkEdit = function () {
+                var cells, oriLink;
+
+                cells = editor.graph.getSelectionCells();
+                if (cells.length >= 1) {
+
+                    oriLink = editor.graph.getLinkForCell(cells[0], 'link');
+                    oriLink = oriLink ? oriLink : '';
+
+                    Unit.prompt(graph.translate('INPUT_URL'), function (result) {
+                        if (result !== null) {
+                            $.each(cells, function () {
+                                editor.graph.setLinkForCell(this, result);
+                            });
+                        }
+                    }, oriLink);
+                }
+            };
+
+            this.shadow = function () {
+                var cells, shadow;
+
+                cells = editor.graph.getSelectionCells();
+
+                if (cells.length >= 1) {
+                    var o = editor.graph.getCellStyle(cells[0]);
+                    shadow = o.shadow ? 'none' : '1';
+                    editor.graph.setCellStyles(mxConstants.STYLE_SHADOW, shadow, cells);
+                }
+            };
+
+            this.cellFillColor = function () {
+                var cells = editor.graph.getSelectionCells();
+
+                if (cells.length) {
+                    var o = editor.graph.getCellStyle(cells[0]);
+
+                    $modal.open({
+                        size: 'sm',
+                        templateUrl: 'app/modal/color/color.html',
+                        controller: 'ModalColorCtrl',
+                        resolve: {
+                            title: function () {
+                                return 'FILL_COLOR';
+                            },
+                            originalColor: function () {
+                                return o.fillColor;
+                            },
+                            fn: function () {
+                                return function (color) {
+                                    editor.graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, color, cells);
+                                };
+                            }
+                        }
+                    });
+                }
+            };
+
+            this.cellStrokeColor = function () {
+                var cells = editor.graph.getSelectionCells();
+
+                if (cells.length) {
+                    var o = editor.graph.getCellStyle(cells[0]);
+
+                    $modal.open({
+                        size: 'sm',
+                        templateUrl: 'app/modal/color/color.html',
+                        controller: 'ModalColorCtrl',
+                        resolve: {
+                            title: function () {
+                                return 'STROKE_COLOR';
+                            },
+                            originalColor: function () {
+                                return o.strokeColor;
+                            },
+                            fn: function () {
+                                return function (color) {
+                                    editor.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, color, cells);
+                                };
+                            }
+                        }
+                    });
+                }
+
+            };
+
+            this.font = function () {
+                $modal.open({
+                    templateUrl: 'app/modal/font/font.html',
+                    controller: 'ModalFontCtrl',
+                    resolve: {
+                        editor: function () {
+                            return editor;
+                        }
+                    }
+                });
+            };
+
+            this.grid = function () {
+                var container = $(editor.graph.container).find('svg')[0];
+
+                if (editor.state.isShowGrid) {
+                    container.style.backgroundImage = '';
+                    editor.state.isShowGrid = false;
+                } else {
+                    container.style.backgroundImage = 'url(assets/plugins/mxGraph/images/grid_bg.png)';
+                    editor.state.isShowGrid = true;
+                    this.syncGrid();
+                }
+            };
+
+            this.getCisId = function () {
+                var cells, ids = [];
+
+                cells = editor.graph.getDepCells();
+                $.each(cells, function () {
+                    if (Unit.isCiCell(this)) {
+                        ids.push(Unit.getCiIdByCell(this));
+                    }
+                });
+
+                return ids;
+            };
+
+            this.getCisIdByCiId = function (parent) {
+                var cells, ids = [];
+
+                cells = editor.graph.getDepCells(parent);
+                $.each(cells, function () {
+                    if (Unit.isCiCellByDataId(this)) {
+                        ids.push(Unit.getCiDataIdByCell(this));
+                    }
+                });
+
+                return ids;
+            };
+
+            this.getTagsId = function (parent) {
+                var cells, ids = [];
+
+                cells = editor.graph.getDepCells(parent);
+                $.each(cells, function () {
+                    if (Unit.isTagsCellByDataId(this)) {
+                        ids.push(Unit.getTagsDataIdByCell(this));
+                    }
+                });
+
+                return ids;
+            };
+
+            this.getCis = function () {
+                var cells, cis = [];
+
+                cells = editor.graph.getDepCells();
+                $.each(cells, function () {
+                    if (Unit.isCiCell(this)) {
+                        cis.push(this);
+                    }
+                });
+
+                return cis;
+            };
+
+
+            this.getXml = function () {
+                var xml,
+                    img,
+                    panel,
+                    uvAttrShow;
+
+                xml = editor.getGraphXml();
+                img = editor.graph.getBackgroundImage();
+
+                panel = editor.graph.uGetPaintPanel();
+
+                try {
+                    uvAttrShow = JSON.stringify(editor.uvAttrShow);
+                } catch (e){
+
+                }
+
+
+
+                xml.setAttribute('update-history-view', 1);
+                xml.setAttribute('uv-attr-show', uvAttrShow);
+                xml.setAttribute('uv-auto-layout', editor.autoLayoutState ? 1: 0);
+
+                if (img) {
+                    xml.setAttribute('background-url', img.src);
+                    xml.setAttribute('background-width', img.width);
+                    xml.setAttribute('background-height', img.height);
+                }
+
+                // 设置面板属性
+                if (panel) {
+                    xml.setAttribute('upanel-width', panel.width);
+                    xml.setAttribute('upanel-height', panel.height);
+                    xml.setAttribute('upanel-enabled', panel.enabled ? '1' : '0');
+                }
+
+                return mxUtils.getXml(xml);
+            };
+
+            this.updateHistoryView = function(){
+                angular.forEach(editor.graph.model.cells, function(cell){
+                    var id,dataId = editor.graph.getCellAttr(cell, 'data-id');
+                    if(dataId && dataId.indexOf('_') !== -1){
+                        id = editor.graph.getCellAttr(cell, 'data-id');
+                    }else if(cell.id.indexOf('_') !== -1){
+                        id = cell.id;
+                    }
+
+                    if(id){
+                        cell.setUtAttr('data-id', id);
+                        editor.graph.setCellAttr(cell, 'data-id', id);
+                    }else  if(!cell.isEdge()){
+                        cell.setUtAttr('image_node', 'true');
+                        editor.graph.setCellAttr(cell, 'image_node', 'true');
+                    }
+
+                    if(editor.graph.getCellAttr(cell, 'code')){
+                        cell.setUtAttr('code', editor.graph.getCellAttr(cell, 'code'));
+                    }
+                });
+            };
+
+            this.initImageColor = function(){
+                angular.forEach(editor.graph.model.cells, function(cell){
+
+                    var filterValue = cell.getUtAttr('filter-value');
+                    if(filterValue){
+                        var state = editor.graph.getView().getState(cell);
+                        if(state.shape && state.shape.node){
+                            state.shape.node.setAttribute('filter', 'url(#' + filterValue + ')');
+                        }
+                    }
+
+
+                    // var id,dataId = editor.graph.getCellAttr(cell, 'data-id');
+                    // if(dataId && dataId.indexOf('_') !== -1){
+                    //     id = editor.graph.getCellAttr(cell, 'data-id');
+                    // }else if(cell.id.indexOf('_') !== -1){
+                    //     id = cell.id;
+                    // }
+                    //
+                    // if(id){
+                    //     cell.setUtAttr('data-id', id);
+                    //     editor.graph.setCellAttr(cell, 'data-id', id);
+                    // }else  if(!cell.isEdge()){
+                    //     cell.setUtAttr('image_node', 'true');
+                    //     editor.graph.setCellAttr(cell, 'image_node', 'true');
+                    // }
+                    //
+                    // if(editor.graph.getCellAttr(cell, 'code')){
+                    //     cell.setUtAttr('code', editor.graph.getCellAttr(cell, 'code'));
+                    // }
+                });
+            };
+
+            this.imageColor = function(cell, color){
+                editor.effects.imageColor.createEffect(cell, color);
+            };
+
+            /**
+             * 打开XML
+             * @param xml xml
+             * @param refresh 是否根据code更新信息
+             * @param updateHistoryView 为true时不做兼容处理
+             */
+            this.openXml = function (xml, refresh, updateHistoryView) {
+                var _this = this;
+                var doc,
+                    url = '',
+                    width = 0,
+                    height = 0,
+                    img = null,
+                    codec,
+					backgroundColor,
+                    element = null,
+                    panel, panelEnabled;
+
+                doc = mxUtils.parseXml(xml);
+
+                var initOpenXml = function(){
+                    if (doc.documentElement.nodeName === 'parsererror') {
+                        Unit.alert('ERROR_CAN_NOT_PARSE_XML_FILE_CONTENT');
+                        throw new Error('parsererror');
+                    } else {
+                        codec = new mxCodec(doc);
+                        editor.graph.setBackgroundImage(null);
+                        element = doc.documentElement;
+                        editor.graph.model.clear();
+                        _this.clearPaintPanel();
+                        // editor.graph.view.rendering = true;
+
+                        codec.decode(doc.documentElement, editor.graph.model);
+                        //editor.setGraphXml(element);
+
+                        editor.graph.zoomActual();
+                        editor.graph.view.setTranslate(0, 0);
+                        // editor.graph.view.rendering = false;
+
+                        editor.graph.zoomToCenter();
+
+                        url = element.getAttribute('background-url');
+                        width = element.getAttribute('background-width');
+                        height = element.getAttribute('background-height');
+						backgroundColor = element.getAttribute('background');
+                        if(backgroundColor){
+							editor.graph.background = backgroundColor;
+							editor.graph.container.style.backgroundColor = backgroundColor;
+							editor.graph.view.validateBackground();
+						} else {
+                            editor.graph.container.style.backgroundColor = 'initial';
+                        }
+                        if (url && width && height) {
+                            // img = new mxImage(url, width, height);
+							img = new mxImage(url, 0, 0);
+                            editor.graph.setBackgroundImage(img);
+                            editor.graph.view.validate();
+							// 设置画布容器的背景
+							$(editor.graph.container).css({'background-image':'url('+url+')','background-repeat':'no-repeat','background-size':'cover'});
+                        } else {
+                            if (editor.state.isShowGrid) {
+                                var defaultUrl = 'assets/plugins/mxGraph/images/grid_bg.png';
+                                $(editor.graph.container).css({ 'background-image': 'url(' + defaultUrl + ')', 'background-repeat': 'initial', 'background-size': 'initial' });
+                            } else {
+                                $(editor.graph.container).css({ 'background-image': 'none'});
+                            }
+                        }
+
+                        // 清除原画板
+                        editor.graph.uClearPaintPanel();
+                        // 初始化背景面板
+                        panel = editor.graph.uGetPaintPanel();
+                        panelEnabled = element.getAttribute('upanel-enabled') === '1';
+                        panel.width = +element.getAttribute('upanel-width');
+                        panel.height = +element.getAttribute('upanel-height');
+
+                        if (panelEnabled) {
+                            editor.graph.uEnablePaintPanel();
+                        }
+
+                        _this.initImageColor();
+
+                        try {
+                            editor.uvAttrShow = JSON.parse(element.getAttribute('uv-attr-show'));
+                        }catch (e){
+                            editor.uvAttrShow = {};
+                        }
+
+                        editor.autoLayoutState = Number(element.getAttribute('uv-auto-layout')) === 1;
+
+                        if(!updateHistoryView && Number(element.getAttribute('update-history-view')) < 1){
+                            _this.updateHistoryView();
+                        }
+
+                        editor.graph.fireEvent(new mxEventObject(Const.CANVAS_CIS_CHANGE));
+                        editor.graph.fireEvent(new mxEventObject(Const.CANVAS_TAGS_CHANGE));
+
+                        $timeout(function(){
+                            var check  = function(arr, id){
+                                var i, len = arr.length, res;
+                                for(i = 0; i < len; i++){
+                                    if(arr[i].ci.id === id){
+                                        res = true;
+                                        break;
+                                    }
+                                }
+                                return res;
+                            };
+                            if(editor.cisel){
+                                var ids = editor.action.getCisIdByCiId();
+                                if (!ids.length) return;
+                                DiagramCIService.queryList({
+                                    cdt: {
+                                        // ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+                                        ids: ids
+                                    }
+                                }).success(function(result){
+                                    if(!result.data){
+                                        result.data = [];
+                                    }
+
+                                    var i, len = ids.length;
+                                    for(i = 0; i < len; i++){
+                                        if(!check(result.data, Number(ids[i]))){
+                                            var cell = editor.graph.getCellByDataId(Const.CI_PREFIX + ids[i]);
+                                            editor.effects.deleteci.createEffect(cell);
+                                            // editor.effects.imageColor.createEffect(cell);
+                                        }
+                                    }
+                                });
+                            }
+                        }, 100);
+                    }
+                };
+
+                if(refresh){
+                    var ci = {
+                        ids: [],
+                        codes: []
+                    };
+
+                    var tags = {
+                        ids: [],
+                        codes: []
+                    };
+                    angular.forEach(doc.querySelectorAll('[code]'), function(item){
+                        var id = item.getAttribute('data-id');
+
+                        if(typeof id === 'string' && id.indexOf(Const.CI_PREFIX) === 0){
+                            ci.ids.push(id.split('_').pop());
+                            ci.codes.push(item.getAttribute('code'));
+                        }
+
+                        if(typeof id === 'string' && id.indexOf(Const.TAGS_PREFIX) === 0){
+                            tags.ids.push(id.split('_').pop());
+                            tags.codes.push(item.getAttribute('code'));
+                        }
+                    });
+
+                    var loadImageRefresh = function(){
+                        DiagramImageService.queryImagePage({
+                            cdt: {imgName: '', imgGroups: 1},
+                            pageNum: 1,
+                            pageSize: 10000
+                        }).success(function (result) {
+                            var imgList = result.data.data;
+                            var getByCode = function(code){
+                                var i,len = imgList.length, res;
+                                for(i = 0; i < len; i++){
+                                    if(imgList[i].imgName === code){
+                                        res = imgList[i];
+                                        break;
+                                    }
+                                }
+                                return res;
+                            };
+                            angular.forEach(doc.querySelectorAll('[imgCode]'), function(itemDom){
+                                var imgCode = itemDom.getAttribute('imgCode'), imgObj;
+                                if(imgCode){
+                                    imgObj = getByCode(imgCode);
+                                    if(angular.isObject(imgObj) && imgObj.imgPath){
+                                        angular.forEach(itemDom.querySelectorAll('[style]'), function(imgDom){
+                                            var style = imgDom.getAttribute('style').split(';');
+                                            angular.forEach(style, function(itemStyle, styleIndex){
+                                                if(itemStyle.indexOf('image=') !== -1){
+                                                    style[styleIndex] =  'image=' + imgObj.imgPath;
+                                                }
+                                            });
+                                            imgDom.setAttribute('style', style.join(';'));
+                                        });
+                                    }
+                                }
+                            });
+                            initOpenXml();
+
+                        }).error(function () {
+                            initOpenXml();
+                        });
+                    };
+
+                    var loadTagsRefresh = function(){
+                        DiagramTagRuleService.queryDefList({cdt: {ciCodes: tags.codes}}).success(function(result){
+                            if(angular.isArray(result.data)){
+                                var id;
+                                angular.forEach(result.data, function(item){
+                                    angular.forEach(doc.querySelectorAll('[code="' + item.tagName + '"]'), function(itemDom){
+                                        id = itemDom.getAttribute('data-id');
+                                        if(typeof id === 'string' && id.indexOf(Const.TAGS_PREFIX) === 0){
+                                            itemDom.setAttribute('data-id', Const.TAGS_PREFIX + item.id);
+                                        }
+                                    });
+                                });
+                            }
+                            loadImageRefresh();
+                        }).error(function(){
+                            loadImageRefresh();
+                        });
+                    };
+
+                    if(ci.codes.length){
+                        DiagramCIService.queryPageByIndex({pageNum: 1, pageSize: 1, cdt: {like: '', queryClass: 1}}).success(function(result){
+                            var ciClassList = result.data.classInfos;
+
+                            if(!angular.isArray(ciClassList)){
+                                ciClassList = [];
+                            }
+
+                            var getClassByClassId = function(id){
+                                var i,len = ciClassList.length,res;
+                                for(i = 0; i < len; i++){
+                                    if(ciClassList[i].ciClass.id === id){
+                                        res = ciClassList[i];
+                                        break;
+                                    }
+                                }
+
+                                return res;
+                            };
+
+                            DiagramCIService.queryList({cdt: {ciCodes: ci.codes}}).success(function(result){
+                                if(angular.isArray(result.data)){
+                                    var id;
+                                    angular.forEach(result.data,  function(item){
+                                        var classItem = getClassByClassId(item.ci.classId);
+                                        angular.forEach(doc.querySelectorAll('[code=' + item.ci.ciCode + ']'), function(itemDom){
+                                            id = itemDom.getAttribute('data-id');
+                                            if(typeof id === 'string' && id.indexOf(Const.CI_PREFIX) === 0){
+                                                itemDom.setAttribute('data-id', Const.CI_PREFIX + item.ci.id);
+                                                angular.forEach(itemDom.querySelectorAll('[style]'), function(imgDom){
+                                                    var style = imgDom.getAttribute('style').split(';');
+                                                    if(classItem && classItem.ciClass && classItem.ciClass.icon){
+                                                        angular.forEach(style, function(itemStyle, styleIndex){
+                                                            if(itemStyle.indexOf('image=') !== -1){
+                                                                style[styleIndex] =  'image=' + classItem.ciClass.icon;
+                                                            }
+                                                        });
+
+                                                    }
+                                                    imgDom.setAttribute('style', style.join(';'));
+                                                });
+                                            }
+                                        });
+                                    });
+                                }
+                                loadTagsRefresh();
+                            }).error(function(){
+                                loadTagsRefresh();
+                            });
+                        }).error(function(){
+                            loadTagsRefresh();
+                        });
+                    }else if(tags.codes.length){
+                        loadTagsRefresh();
+                    }else {
+                        loadImageRefresh();
+                    }
+                }else {
+                    initOpenXml();
+                }
+            };
+
+            this.openView = function (view) {
+                if (view.xml) {
+                    this.openXml(view.xml);
+                    editor.state.setView(view);
+
+                    this.geoLayout.initOriGeo();
+                    this.geoLayout.syncGeoState();
+                }
+            };
+
+            this.disabled = function () {
+                editor.graph.setCellsMovable(false);
+                editor.graph.setCellsCloneable(false);
+                editor.graph.setCellsEditable(false);
+                editor.graph.setCellsDisconnectable(false);
+                editor.graph.setCellsResizable(false);
+                editor.graph.setCellsSelectable(false);
+                editor.graph.setCellsMovable(false);
+                //editor.graph.setExtendParents(false);
+                editor.graph.setConnectable(false);
+
+                editor.state.disabled = true;
+            };
+
+            this.enabled = function () {
+                editor.graph.setCellsMovable(true);
+                editor.graph.setCellsCloneable(true);
+                editor.graph.setCellsEditable(true);
+                editor.graph.setCellsDisconnectable(true);
+                editor.graph.setCellsResizable(true);
+                editor.graph.setExtendParents(true);
+                editor.graph.setConnectable(true);
+                editor.state.disabled = false;
+            };
+
+
+            this.monitor = function () {
+                if (editor.monitor) {
+                    return;
+                }
+
+                editor.monitor = new GraphMonitor({editor: editor});
+            };
+
+
+            this.toggleAutoLayout = function () {
+                editor.state.isAutoLayout = !editor.state.isAutoLayout;
+                editor.toolbar.refresh();
+                var text = editor.state.isAutoLayout ? graph.translate('AUTOLAYOUT_ENABLED') : graph.translate('AUTOLAYOUT_DISABLED');
+                Unit.warning(text);
+            };
+
+            this.toggleAutoLine = function () {
+                editor.state.isAutoLine = !editor.state.isAutoLine;
+                editor.toolbar.refresh();
+                var text = editor.state.isAutoLine ? graph.translate('AUTO_CREATE_RELATION_ENABLED') : graph.translate('AUTO_CREATE_RELATION_DISABLED');
+                Unit.warning(text);
+            };
+
+            this.showCiTable = function () {
+                editor.table.show();
+            };
+
+            this.hideCiTable = function () {
+                editor.table.hide();
+            };
+
+            this.expandNode = function () {
+                $modal.open({
+                    size: 'lg',
+                    templateUrl: 'app/modal/expand/expand.html',
+                    controller: 'ModalExpandCtrl',
+                    resolve: {
+                        editor: function () {
+                            return editor;
+                        }
+                    }
+                });
+            };
+
+            this.exportPng = function () {
+                var name = editor.state.view ? editor.state.view.name : 'untitle';
+                var fileName = 'view_' + name + '.png';
+                ExportService.exportPng(this.getSvg(), fileName)
+                    .success(function (result) {
+                        Unit.download(result.data.url);
+                    });
+            };
+
+            this.exportPdf = function () {
+                var name = editor.state.view ? editor.state.view.name : 'untitle';
+                var fileName = 'view_' + name + '.pdf';
+                ExportService.exportPdf(this.getSvg(), fileName)
+                    .success(function (result) {
+                        Unit.download(result.data.url);
+                    });
+            };
+
+            this.exportXml = function () {
+                var name = editor.state.view ? editor.state.view.name : 'untitle';
+                var fileName = 'view_' + name + '.xml';
+                var xml = this.getXml();
+                if (typeof Blob === 'function') {
+                    saveAs(
+                        new Blob([xml], {type: 'text/plain;charset=utf-8'}),
+                        fileName
+                    );
+                } else {
+                    Unit.alert('SYSTEM_ERROR');
+                }
+            };
+
+            this.exportSvg = function () {
+                var name = editor.state.view ? editor.state.view.name : 'untitle';
+                var fileName = 'view_' + name + '.svg';
+                var svg = this.getSvg();
+
+                if (typeof Blob === 'function') {
+                    saveAs(
+                        new Blob([svg], {type: 'text/plain;charset=utf-8'}),
+                        fileName
+                    );
+                } else {
+                    Unit.alert('SYSTEM_ERROR');
+                }
+            };
+
+            this.exportJson = function () {
+                var name = editor.state.view ? editor.state.view.name : 'untitle';
+                var fileName = 'view_' + name + '.json';
+                var json;
+                try {
+                    json = JSON.stringify(editor.graph.getJson());
+                } catch (e) {
+                    json = JSON.stringify({});
+                }
+
+                if (typeof Blob === 'function') {
+                    saveAs(
+                        new Blob([json], {type: 'text/plain;charset=utf-8'}),
+                        fileName
+                    );
+                } else {
+                    Unit.alert('SYSTEM_ERROR');
+                }
+            };
+
+            this.getSvg = function () {
+                return mxUtils.getXml(editor.graph.getSvg());
+            };
+
+            // this.winCopy = function(){
+            //     if(window.getSelection().toString()){
+            //         var value = window.getSelection().toString();
+            //         var cpt = document.createElement('input');
+            //         cpt.style.position = 'fixed';
+            //         document.body.append(cpt);
+            //         $(cpt).val(value);
+            //         $(cpt).focus();
+            //         $(cpt).select();
+            //         try{
+            //             document.execCommand('Copy', false, null);
+            //         } catch(err){}
+            //
+            //         $(cpt).remove();
+            //     }
+            // };
+            //
+            // this.winPaste = function(){
+            //     document.execCommand('paste');
+            //     var cell = editor.graph.getSelectionCell();
+            //
+            //     if(angular.isObject(cell) && cell.value){
+            //         var value = cell.getValue();
+            //         var cpt = document.createElement('input');
+            //         cpt.style.position = 'fixed';
+            //         document.body.append(cpt);
+            //         $(cpt).val(value);
+            //         $(cpt).focus();
+            //         $(cpt).select();
+            //         try{
+            //             document.execCommand('paste', false, null);
+            //         } catch(err){}
+            //
+            //         $(cpt).remove();
+            //     }
+            // };
+
+            this.copy = function (ev) {
+                var check = function(arr){
+                    if(!angular.isArray(arr)){
+                        arr = [];
+                    }
+                    var i,len = arr.length, res;
+                    for(i = 0; i < len; i++){
+                        if(Unit.isCiCellByDataId(arr[i]) || Unit.isTagsCellByDataId(arr[i])){
+                            res = true;
+                            break;
+                        }
+                    }
+                    return res;
+                };
+
+                // console.log(editor.graph.getSelectionCells());
+
+                if(!window.getSelection().toString()){
+                    if(!check(editor.graph.getSelectionCells())){
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        mxClipboard.copy(editor.graph);
+                        return false;
+                    }else {
+                        Unit.error('不能复制ci或标签');
+                    }
+                }
+            };
+
+            this.cut = function () {
+                mxClipboard.cut(editor.graph);
+            };
+
+            this.paste = function (ev) {
+                if(!angular.isObject(editor.graph.cellEditor.editingCell)){
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    mxClipboard.paste(editor.graph);
+                    return false;
+                }
+            };
+
+            this.layout = function(isAnimate, layoutType, parent){
+                Unit.layout(
+                    editor.graph,
+                    layoutType,
+                    isAnimate,
+                    parent
+                );
+            };
+
+            this.layoutHorizontal = function (isAnimate, parent) {
+
+                // Unit.layout(
+                //     editor.graph,
+                //     new mxHierarchicalLayout(editor.graph, mxConstants.DIRECTION_NORTH),
+                //     isAnimate
+                // );
+                this.layout(isAnimate, new mxHierarchicalLayout(editor.graph, mxConstants.DIRECTION_NORTH), parent);
+            };
+
+            this.layoutVertical = function (isAnimate,  parent) {
+
+                // Unit.layout(
+                //     editor.graph,
+                //     new mxHierarchicalLayout(editor.graph, mxConstants.DIRECTION_WEST),
+                //     isAnimate
+                // );
+
+                this.layout(isAnimate, new mxHierarchicalLayout(editor.graph, mxConstants.DIRECTION_WEST), parent);
+            };
+
+
+            this.layoutCircle = function (isAnimate, parent) {
+                // Unit.layout(
+                //     editor.graph,
+                //     new mxCircleLayout(editor.graph),
+                //     isAnimate
+                // );
+                this.layout(isAnimate, new mxCircleLayout(editor.graph), parent);
+            };
+
+
+            this.layoutOrganic = function (isAnimate, parent) {
+                // Unit.layout(
+                //     editor.graph,
+                //     new mxFastOrganicLayout(editor.graph),
+                //     isAnimate
+                // );
+                this.layout(isAnimate, new mxFastOrganicLayout(editor.graph), parent);
+            };
+
+            this.layoutParallel = function (isAnimate, parent) {
+                // Unit.layout(
+                //     editor.graph,
+                //     new mxParallelEdgeLayout(editor.graph),
+                //     isAnimate
+                // );
+                this.layout(isAnimate, new mxParallelEdgeLayout(editor.graph), parent);
+            };
+
+            this.layoutStackVertical = function (isAnimate, parent) {
+                // Unit.layout(
+                //     editor.graph,
+                //     new mxStackLayout(editor.graph, false),
+                //     isAnimate
+                // );
+                this.layout(isAnimate, new mxStackLayout(editor.graph, false), parent);
+            };
+
+            this.layoutStackHorizontal = function (isAnimate, parent) {
+                // Unit.layout(
+                //     editor.graph,
+                //     new mxStackLayout(editor.graph, true),
+                //     isAnimate
+                // );
+                this.layout(isAnimate, new mxStackLayout(editor.graph, true), parent);
+            };
+
+            this.tag = function () {
+                var cells = editor.graph.getDepCells();
+                $.each(cells, function () {
+                    if (this.vertex && !Unit.isCiIn(this)) {
+                        editor.graph.setOriStyle(this, this.getStyle());
+                        this.setStyle('whiteSpace=wrap;');
+                        editor.graph.refresh(this);
+                    }
+                });
+            };
+
+            this.original = function () {
+                var cells = editor.graph.getDepCells();
+                $.each(cells, function () {
+                    if (this.vertex && !Unit.isCiIn(this)) {
+                        this.setStyle(editor.graph.getOriStyle(this));
+                        editor.graph.refresh(this);
+                    }
+                });
+            };
+
+            this.cellStrokeSize = function () {
+
+                var cells = editor.graph.getSelectionCells();
+
+                if (cells.length) {
+                    var o = editor.graph.getCellStyle(cells[0]);
+
+                    $modal.open({
+                        templateUrl: 'app/modal/number/number.html',
+                        controller: 'ModalNumberCtrl',
+                        resolve: {
+                            title: function () {
+                                return 'STROKE_WIDTH';
+                            },
+                            defaultValue: function () {
+                                return o.strokeWidth ? o.strokeWidth : 1;
+                            },
+                            maxValue: function () {
+                                return 12;
+                            },
+                            minValue: function () {
+                                return 1;
+                            },
+                            fn: function () {
+                                return function (number) {
+                                    editor.graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, number);
+                                };
+                            }
+                        }
+                    });
+                }
+
+            };
+
+            //设置图标大小
+            /*this.setIconSize = function(){
+                var cells = editor.graph.getSelectionCells();
+                var _this = this;
+
+                if (cells.length) {
+                    var o = editor.graph.getCellStyle(cells[0]);
+
+                    $modal.open({
+                        templateUrl: 'app/modal/iconSize/iconSize.html',
+                        controller: 'ModalIconSizeCtrl',
+                        resolve: {
+                            title: function () {
+                                return '图标大小';
+                            },
+                            defaultValue: function () {
+                                return o.strokeWidth ? o.strokeWidth : 1;
+                            },
+                            maxValue: function () {
+                                return 12;
+                            },
+                            minValue: function () {
+                                return 1;
+                            },
+                            fn: function () {
+                                return function (sizeType) {
+                                    _this.setCellSize(sizeType);
+                                };
+                            }
+                        }
+                    });
+                }
+            };*/
+
+            //设置选择关系
+            this.chooseRelation = function(cell){
+                if(!cell.target){
+                    Unit.error('未连接成功，请重试！')
+                }else{
+                    if(Unit.isCiCellByDataId(cell.source)&&Unit.isCiCellByDataId(cell.target)){
+                        $modal.open({
+                            templateUrl: 'app/modal/chooseRelation/chooseRelation.html',
+                            controller: 'ModalChooseRelationCtrl',
+                            resolve: {
+                                title: function () {
+                                    return '创建关系';
+                                },
+                                cell:cell,
+                                editor: function(){
+                                    return editor;
+                                }
+                            }
+                        });
+                    }else{
+                        Unit.error('图标不能创建关系！')
+                    }
+                }
+            };
+
+            this.setAttrShow = function(){
+                var cells = editor.graph.getSelectionCells(), ciid, selectLength;
+                angular.forEach(cells, function(cell){
+                    if(Unit.isCiCellByDataId(cell)){
+                        if(ciid || angular.isNumber(ciid)){
+                            selectLength = true;
+                        }else {
+                            ciid = Number(Unit.getCiDataIdByCell(cell));
+                        }
+                    }
+                });
+
+                if(selectLength){
+                    ciid = undefined;
+                }
+
+                $modal.open({
+                    backdrop: false,
+                    windowClass: 'sidebar-model',
+                    appendTo: $(".toolbar").find(".toolbar-sidebar").eq(0),
+                    animation: false,
+                    templateUrl: 'app/modal/setAttrShow/setAttrShow.html',
+                    controller: 'ModalSetAttrShowCtrl',
+                    resolve: {
+                        title: function () {
+                            return '创建关系';
+                        },
+                        editor: function(){
+                            return editor;
+                        },
+                        selectciId: function(){
+                            return ciid;
+                        }
+                    }
+                });
+            };
+
+            //图标尺寸
+            this.setCellSize = function(sizeType){
+                var cells = editor.graph.getSelectionCells();
+                editor.graph.model.beginUpdate();
+
+                try {
+                    angular.forEach(cells, function(item){
+                        var sizeStr = editor.graph.getCellAttr(item, 'size-' + sizeType);
+                        var sizeArr;
+                        if(angular.isString(sizeStr)){
+                            sizeArr = sizeStr.split(',');
+                            item.geometry.width = Number(sizeArr[0]);
+                            item.geometry.height = Number(sizeArr[1]);
+                        }
+                    });
+                } finally {
+                    editor.graph.model.endUpdate();
+                }
+
+                editor.graph.view.refresh();
+                editor.graph.setSelectionCells(cells);
+            };
+
+            //透明度
+            var number;
+            this.cellOpacity = function (sizeType) {
+
+                var cells = editor.graph.getSelectionCells();
+                if (cells.length) {
+                    var o = editor.graph.getCellStyle(cells[0]);
+
+                    switch(sizeType){
+                        case 'xs' :
+                            number = 25;
+                            break;
+                        case 's' :
+                            number = 50;
+                            break;
+                        case 'm' :
+                            number = 75;
+                            break;
+                        case 'l' :
+                            number = 100;
+                        default:
+                            break;
+                    }
+                    editor.graph.setCellStyles(mxConstants.STYLE_OPACITY, number);
+                    /*$modal.open({
+                        size:'sm',
+                        templateUrl: 'app/modal/number/number.html',
+                        controller: 'ModalNumberCtrl',
+                        resolve: {
+                            title: function () {
+                                return 'OPACITY';
+                            },
+                            defaultValue: function () {
+                                return typeof(o.opacity) === 'number' ? Number(o.opacity) : 100;
+                            },
+                            maxValue: function () {
+                                return 100;
+                            },
+                            minValue: function () {
+                                return 0;
+                            },
+                            fn: function () {
+                                return function (number) {
+                                    editor.graph.setCellStyles(mxConstants.STYLE_OPACITY, number);
+                                };
+                            }
+                        }
+                    });*/
+                }
+            };
+
+            this.relationViewList = function () {
+                var viewIds = [];
+
+                $.each(editor.graph.getDepCells(), function () {
+                    var cell = this;
+
+                    var viewId = editor.graph.getCellAttr(cell, 'view');
+
+                    if (viewId && viewIds.indexOf(viewId) === -1) {
+                        viewIds.push(viewId);
+                    }
+                });
+
+                return viewIds;
+            };
+
+            /**
+             * 设置管理视图
+             * @param   {[[Type]]} cell [[Description]]
+             * @returns {[[Type]]} [[Description]]
+             */
+            this.relationViewSet = function (cell) {
+//                Unit.isCiCellByDataId(cell.source)
+                if (editor.graph.getSelectionCell()) {
+                    $modal.open({
+                        size: 'lg',
+                        templateUrl: 'app/modal/rltView/set.html',
+                        controller: 'ModalViewRltViewSetCtrl',
+                        resolve: {
+                            editor: function () {
+                                return editor;
+                            }
+                        }
+                    });
+                }
+            };
+
+            this.createTags = function(cell){
+                $modal.open({
+                    size: 'lg',
+                    templateUrl: 'app/modal/createTags/createTags.html',
+                    controller: 'ModalViewCreateTagsCtrl',
+                    // windowClass: 'my-lg-width',
+                    backdrop: 'static',
+                    resolve: {
+                        editor: function () {
+                            return editor;
+                        },
+                        cell: function(){return cell;}
+                    }
+                });
+            }
+
+            this.relationViewDelete = function () {
+                var cell = editor.graph.getSelectionCell();
+                if (cell) {
+                    cell.setUtAttr('view', null);
+                    editor.graph.setCellAttr(cell, 'view', null);
+                }
+            };
+
+            this.relationViewOpen = function (cell) {
+
+                var viewid = editor.graph.getCellAttr(cell, 'view');
+                viewid = viewid ? viewid : cell.relationViewId;
+
+                if (viewid) {
+
+                    DiagramDiagramService.queryDiagramInfoById(viewid).success(function(result){
+                        if (!editor.state.view) {
+                            editor.state.uvHistoryView = angular.copy(editor.state.view);
+                            editor.state.view = {
+                                name: '',
+                                xml: editor.action.getXml()
+                            };
+                        }
+
+                        editor.state.view.__view = angular.copy(editor.state.view);
+                        editor.history.push(editor.state.view);
+                        editor.action.openView(result.data);
+                    });
+
+                    // ViewService.getView(viewid)
+                    //     .success(function (result) {
+                    //         if (!editor.state.view) {
+                    //             editor.state.view = {
+                    //                 name: graph.translate('UNTITLED'),
+                    //                 xml: editor.action.getXml()
+                    //             };
+                    //         }
+                    //         editor.history.push(editor.state.view);
+                    //         editor.action.openView(result.data);
+                    //     });
+                }
+
+                // if(editor.graph.getSelectionCell()){
+                // 	$modal.open({
+                // 		size: 'lg',
+                // 		templateUrl: 'app/modal/relationView/open.html',
+                // 		controller: 'ModalRelationViewOpenCtrl',
+                // 		resolve: {
+                // 			editor: function(){ return editor; }
+                // 		}
+                // 	});
+                // }
+            };
+
+
+            this.historyBack = function () {
+                editor.history.back();
+            };
+
+            this.openUrl = function () {
+                var cell = editor.graph.getSelectionCell();
+
+                if (cell) {
+                    var link = editor.graph.getCellAttr(cell, 'link');
+                    if (link) {
+                        $window.open(link);
+                    }
+                }
+            };
+
+            this.toolbarRefresh = function () {
+                if (editor.toolbar) {
+                    editor.toolbar.refresh();
+                }
+            };
+
+            this.publicView = function () {
+                if (editor.state && editor.state.view) {
+                    ViewService.setPublic(editor.state.view.id)
+                        .success(function () {
+                            editor.state.view.open = true;
+                            $rootScope.$broadcast(Event.VIEW_SET_PUBLIC);
+                        });
+
+                } else {
+                    Unit.error('ERROR_NO_OPEN_ANY_VIEW');
+                }
+            };
+
+            this.unpublicView = function () {
+                if (editor.state && editor.state.view) {
+                    ViewService.setUnpublic(editor.state.view.id)
+                        .success(function () {
+                            editor.state.view.open = false;
+                            $rootScope.$broadcast(Event.VIEW_SET_UNPUBLIC);
+                        });
+                } else {
+                    Unit.error('ERROR_NO_OPEN_ANY_VIEW');
+                }
+            };
+
+            this.subscription = function () {
+                if (editor.state && editor.state.view) {
+                    ViewService.subscription(editor.state.view.id)
+                        .success(function () {
+                            editor.state.view.isSubscription = true;
+                            $rootScope.$broadcast(Event.VIEW_SUBSCRIPTION_AFTER);
+                        });
+                } else {
+                    Unit.error('ERROR_NO_OPEN_ANY_VIEW');
+                }
+            };
+
+            this.unsubscription = function () {
+                if (editor.state && editor.state.view) {
+                    ViewService.unsubscription(editor.state.view.id)
+                        .success(function () {
+                            editor.state.view.isSubscription = false;
+                            $rootScope.$broadcast(Event.VIEW_UNSUBSCRIPTION_AFTER);
+                        });
+                } else {
+                    Unit.error('ERROR_NO_OPEN_ANY_VIEW');
+                }
+            };
+
+            this.selectAll = function () {
+                editor.graph.selectAll();
+            };
+
+            this.threshold = function () {
+                if (editor.state.view) {
+
+                    $modal.open({
+                        size: 'lg',
+                        animation: true,
+                        backdrop: 'static',
+                        templateUrl: 'app/modal/threshold/threshold.html',
+                        controller: 'ModalThresholdCtrl',
+                        windowClass: 'myModal',
+                        resolve: {
+                            view: function () {
+                                return editor.state.view ? editor.state.view : null;
+                            },
+                            editor: function () {
+                                return editor;
+                            },
+                            openWhich: function () {
+                                return 'monitor'; // value: monitor | event | threshold | ci
+                            }
+                        }
+                    });
+                } else {
+                    Unit.error('ERROR_NO_OPEN_ANY_VIEW');
+                }
+            };
+
+
+            this.searchNode = function () {
+
+                if (editor.infoParams) {
+                    editor.infoParams.update('searchNode', {});
+                } else {
+                    $modal.open({
+                        animation: true,
+                        templateUrl: 'app/modal/search/searchNode.html',
+                        controller: 'ModalSearchNodeCtrl',
+                        resolve: {
+                            editor: function () {
+                                return editor;
+                            }
+                        }
+                    });
+                }
+            };
+
+            this.searchPath = function () {
+
+            };
+
+            this.ciTable = function (id, index) {
+                $modal.open({
+                    animation: true,
+                    size: 'lg',
+                    templateUrl: 'app/modal/ciTable/ciTable.html',
+                    controller: 'ModalCiTableCtrl',
+                    resolve: {
+                        editor: function () {
+                            return editor;
+                        },
+                        ciId: function () {
+                            return id;
+                        },
+                        index: function () {
+                            return index;
+                        }
+                    }
+                });
+            };
+
+            this.kpiUnusual = function (id) {
+
+
+                if (editor.state.view) {
+                    editor.state.view.viewId = editor.state.view.viewid;
+                    editor.state.view.sceneId = 'ITA_DEFAULT_SCENE_NAME';
+                }
+
+                $modal.open({
+                    animation: true,
+                    size: 'lg',
+                    templateUrl: 'app/modal/kpiUnusual/kpiUnusual.html',
+                    controller: 'ModalKpiUnusualTableCtrl',
+                    resolve: {
+                        editor: function () {
+                            return editor;
+                        },
+                        ciId: function () {
+                            return id;
+                        }
+                    }
+                });
+            };
+
+            this.searchCell = function (keyword, fn) {
+                if (keyword) {
+                    var results = {
+                        node: [],
+                        ci: [],
+                        count: 0,
+                        keyword: keyword
+                    };
+
+                    editor.graph.removeLight();
+                    var cells = editor.graph.getDepCells();
+                    var resultCount = 0;
+                    var ids = [];
+
+                    if (cells && cells.length) {
+                        $.each(cells, function () {
+                            var item = this;
+                            if (angular.isString(item.value) && item.value.indexOf(keyword) >= 0 && !Unit.isCiCell(item)) {
+                                results.node.push({
+                                    highlight: editor.graph.addLight(item),
+                                    name: item.value,
+                                    id: item.id
+                                });
+
+                                resultCount++;
+                            }
+
+                            if (Unit.isCiCell(item)) {
+                                ids.push(Unit.getCiIdByCell(item));
+                            }
+                        });
+                    }
+
+                    SearchService.ciInIds(keyword, ids)
+                        .success(function (result) {
+                            results.count = resultCount;
+
+                            $.each(result.data, function () {
+                                var cell = editor.graph.getCellById(Const.CI_PREFIX + this.id);
+
+                                if (cell) {
+                                    results.count++;
+                                    results.ci.push({
+                                        highlight: editor.graph.addLight(cell),
+                                        name: this.name,
+                                        id: this.id,
+                                        icon: Unit.static(this.icon),
+                                        match: this.matchField,
+                                        cell: cell
+                                    });
+                                }
+                            });
+
+                            if (typeof fn === 'function') {
+                                fn(results);
+                            }
+                        });
+                }
+            };
+
+            this.switchTable = function (cell) {
+
+                var handle = function (cell) {
+                    var cellStyle = editor.graph.getCellStyle(cell),
+                        image = cellStyle && cellStyle.image,
+                        style = 'uDataLabel;';
+                    // cell.isTableMode = true;
+                    // cell.template = Handlebars.compile(Unit.trimCellHtml($templateCache.get('cell/table')));
+                    // cell.setValue(cell.template(cell));
+                    // cell.setStyle('text;html=1;fillColor=none;rounded=1;strokeWidth=0;strokeColor=none;align=left;verticalAlign=top;overflow=fill;');
+                    // editor.graph.refresh(cell);
+                    // var element = document.querySelector('#' + cell.id);
+                    // $(element).addClass('cell_to_max');
+                    // cell.geometry.width = element.clientWidth;
+                    // cell.geometry.height = element.clientHeight;
+                    //
+                    // $timeout(function(){
+                    // 	cell.tipCell.geometry.x = element.clientWidth - cell.tipCell.geometry.width / 2;
+                    // 	editor.graph.refresh(cell.tipCell);
+                    // }, 500);
+
+// **********************
+//					cell.template = Handlebars.compile(Unit.trimCellHtml($templateCache.get('cell/table')));
+//					cell.setStyle('text;html=1;fillColor=none;rounded=1;strokeWidth=0;strokeColor=none;align=left;verticalAlign=top;overflow=fill;');
+                    if (image) {
+                        style += 'image=' + image;
+                    }
+                    cell.setStyle(style);
+//					cell.setValue(cell.template({
+//						name: cell.name,
+//						id: cell.id,
+//						tableData: cell.tableData,
+////						width: cell.geometry.width,
+////						height: cell.geometry.height
+//					}));
+//
+//					editor.graph.refresh(cell);
+//
+//					var $element = $('#' + cell.id);
+//					$element.css('height', 'auto');
+//					var height = $element.height();
+// *********************
+//					$element.css('height', cell.geometry.height + 'px')
+//                        .css('width', cell.geometry.width + 'px');
+
+//					$element.animate({
+//						width: 140,
+//						height: height
+//					}, function(){
+//						cell.isTableMode = true;
+//						cell.geometry.width = this.clientWidth;
+//						cell.geometry.height = this.clientHeight;
+//						cell.tipCell.geometry.x = this.clientWidth - cell.tipCell.geometry.width / 2;
+//						editor.graph.refresh(cell.tipCell);
+//					});
+
+
+                    cell.isTableMode = true;
+//                    $element.css({width: '100%', height: '100%', position: 'relative'});
+                    editor.graph.refresh(cell);
+
+                    // 节点宽度
+                    var cellGeo = cell.geometry.clone();
+                    var count = cell.uDataLabel && cell.uDataLabel.transData.length || 2;
+                    cellGeo.width = 185;
+//                    cellGeo.height = height;
+                    cellGeo.height = emxDataLabel.prototype.titleHeight +
+                        Math.min(2, Math.ceil(count / 2)) * emxDataLabel.prototype.tileHeight;
+
+                    // tipCell宽高位置
+//                    var tipGeo = cell.tipCell.geometry.clone();
+//                    tipGeo.x = 140 - tipGeo.width / 2;
+
+
+                    editor.graph.model.setGeometry(cell, cellGeo);
+//                    editor.graph.model.setGeometry(cell.tipCell, tipGeo);
+
+
+                };
+
+                editor.graph.model.beginUpdate();
+                try {
+                    var changeCells = [];
+                    if (cell) {
+                        if (!cell.isTableMode && !cell.assistItem) {
+                            handle(cell);
+                            changeCells.push(cell);
+                        }
+                    } else {
+
+                        editor.graph.getCiCells().forEach(function (cell) {
+                            if (!cell.isTableMode && !cell.assistItem) {
+                                handle(cell);
+                                changeCells.push(cell);
+                            }
+                        });
+                    }
+
+                    // 重新布局
+                    if (changeCells.length > 0) {
+                        this.geoLayout.layout(changeCells);
+
+                        editor.graph.cellsOrdered(changeCells);
+
+                    }
+                }
+                finally {
+                    editor.graph.model.endUpdate();
+                }
+
+            };
+
+            this.createCi = function(cell){
+                $modal.open({
+                    // size: 'lg',
+                    animation: true,
+                    templateUrl: 'app/modal/createCi/createCi.html',
+                    controller: 'ModalViewCreateCiCtrl',
+                    resolve: {
+                        fn: function () {
+                            return function (ciInfo, name, nameAttr, valObj, valObjs) {
+                                if(editor.uvAttrShow && editor.uvAttrShow[ciInfo.ci.classId] && editor.uvAttrShow[ciInfo.ci.classId].length){
+                                    var i, len = editor.uvAttrShow[ciInfo.ci.classId].length;
+                                    var uvattrs = editor.uvAttrShow[ciInfo.ci.classId];
+                                    nameAttr = uvattrs;
+                                    name = [];
+                                    for(i = 0; i < len; i++){
+                                        name.push(ciInfo.attrs[uvattrs[i]]);
+                                    }
+
+                                    // name = name.join(Const.CI_NAME_LOGO);
+                                }
+
+                                // if(name){
+                                //     // name = name.split(Const.CI_NAME_LOGO);
+                                // }
+
+                                if(angular.isFunction(cell.getValue().setAttribute)){
+                                    cell.getValue().setAttribute('label', name.join(Const.CI_NAME_JOIN));
+                                }else {
+                                    cell.setValue(name.join(Const.CI_NAME_JOIN));
+                                }
+
+                                cell.setUtAttr('data-values', name);
+                                cell.setUtAttr('data-label-list', nameAttr);
+                                cell.setUtAttr('data-label-val', valObj);
+                                cell.setUtAttr('data-label-val-obj', valObjs);
+                                cell.setUtAttr('data-id', Const.CI_PREFIX + ciInfo.ci.id);
+                                editor.graph.setCellAttr(cell, 'data-id', Const.CI_PREFIX + ciInfo.ci.id);
+                            };
+                        }
+                    }
+                });
+            };
+
+            this.ciEach = function(cell){
+                if(Unit.isCiCellByDataId(cell)){
+                    DiagramCIService.queryPageByIndex({pageNum: 1, pageSize: 1, cdt: {like: '', queryClass: 1}}).success(function(result){
+                        var ciClassList = result.data.classInfos;
+
+                        if(!angular.isArray(ciClassList)){
+                            ciClassList = [];
+                        }
+
+                        var getClassByClassId = function(id){
+                            var i,len = ciClassList.length,res;
+                            for(i = 0; i < len; i++){
+                                if(ciClassList[i].ciClass.id === id){
+                                    res = ciClassList[i];
+                                    break;
+                                }
+                            }
+
+                            return res;
+                        };
+
+                        $modal.open({
+                            // size: 'lg',
+                            animation: true,
+                            templateUrl: 'app/modal/ciEach/ciEach.html',
+                            controller: 'ModalViewCiEachCtrl',
+                            resolve: {
+                                paramsInfo: function(){
+                                    var obj = {};
+                                    obj.cell = cell;
+                                    obj.ciId = Unit.getCiDataIdByCell(cell);
+                                    obj.getClassByClassId = getClassByClassId;
+                                    return obj;
+                                },
+                                editor: function(){
+                                    return editor;
+                                },
+                                fn: function () {
+                                    return function (ciInfo, name) {
+                                        console.log(ciInfo);
+                                        console.log(name);
+
+                                        if(angular.isFunction(cell.getValue().setAttribute)){
+                                            cell.getValue().setAttribute('label', name);
+                                        }else {
+                                            cell.setValue(name);
+                                        }
+
+                                        editor.graph.setCellAttr(cell, 'data-id', Const.CI_PREFIX + ciInfo.ci.id);
+                                    };
+                                }
+                            }
+                        });
+                    });
+
+                }
+            };
+
+            this.switchClassic = function (cell) {
+                var that = this;
+
+                var handle = function (cell) {
+
+                    // $('#' + cell.id).css({
+                    // 	height: cell.originSize.h + 'px',
+                    // 	width: cell.originSize.w + 'px'
+                    // }).addClass('cell_to_min');
+                    // $('#' + cell.id).removeClass('cell_to_max');
+                    //
+                    // $timeout(function(){
+                    // 	cell.isTableMode = false;
+                    // 	cell.tipCell.geometry.x = cell.originSize.w - cell.tipCell.geometry.width;
+                    // 	cell.setValue(cell.name);
+                    // 	cell.setStyle(cell.originStyle);
+                    // 	cell.geometry.width = cell.originSize.w;
+                    // 	cell.geometry.height = cell.originSize.h;
+                    // 	editor.graph.refresh(cell);
+                    // 	editor.graph.refresh(cell.tipCell);
+                    // }, 500);
+
+//					$('#' + cell.id).animate({
+//						width: cell.originSize.w,
+//						height: cell.originSize.h
+//					}, function(){
+//						cell.isTableMode = false;
+//						cell.tipCell.geometry.x = cell.originSize.w - cell.tipCell.geometry.width;
+//						cell.setValue(cell.name);
+//						cell.setStyle(cell.originStyle);
+//						cell.geometry.width = cell.originSize.w;
+//						cell.geometry.height = cell.originSize.h;
+//						editor.graph.refresh(cell);
+//						editor.graph.refresh(cell.tipCell);
+//					});
+
+                    cell.isTableMode = false;
+                    var cellGeo = that.geoLayout.getOriGeo(cell).clone();
+//                    var cellGeo = cell.geometry.clone();
+//                    cellGeo.width = cell.originSize.w;
+//                    cellGeo.height = cell.originSize.h;
+//                    cellGeo.x = cell.originSize.x;
+//                    cellGeo.y = cell.originSize.y;
+
+//                    var tipGeo = cell.tipCell.geometry.clone();
+//                    tipGeo.x = cellGeo.width - tipGeo.width / 2;
+
+                    editor.graph.model.setGeometry(cell, cellGeo);
+//                    editor.graph.model.setGeometry(cell.tipCell, tipGeo);
+
+                    cell.setValue(cell.name);
+                    cell.setStyle(cell.originStyle);
+                    editor.graph.refresh(cell);
+//                    editor.graph.refresh(cell.tipCell);
+
+                };
+
+                editor.graph.model.beginUpdate();
+                try {
+                    var changeCells = [];
+                    if (cell) {
+                        if (cell.isTableMode && !cell.assistItem) {
+                            handle(cell);
+                            changeCells.push(cell);
+                        }
+                    } else {
+                        editor.graph.getCiCells().forEach(function (cell) {
+                            if (cell.isTableMode && !cell.assistItem) {
+                                handle(cell);
+                                changeCells.push(cell);
+                            }
+                        });
+                    }
+
+                    // 重新布局
+                    if (changeCells.length > 0) {
+                        this.geoLayout.layout(changeCells);
+
+                        // maker位置
+                        changeCells.forEach(function (chell) {
+                            that.syncMakerPos(chell);
+                        });
+                    }
+                }
+                finally {
+                    editor.graph.model.endUpdate();
+                }
+
+            };
+
+            this.labelPosition = function(positionSelect){
+                var vals = Const.LSET[positionSelect];
+
+                if (vals && vals !== null) {
+                    editor.graph.setCellStyles(mxConstants.STYLE_LABEL_POSITION, vals[0], editor.graph.getSelectionCells());
+                    editor.graph.setCellStyles(mxConstants.STYLE_VERTICAL_LABEL_POSITION, vals[1], editor.graph.getSelectionCells());
+                    editor.graph.setCellStyles(mxConstants.STYLE_ALIGN, vals[2], editor.graph.getSelectionCells());
+                    editor.graph.setCellStyles(mxConstants.STYLE_VERTICAL_ALIGN, vals[3], editor.graph.getSelectionCells());
+                }
+            };
+
+            /**
+             * 将选中的元素放到新的容器中
+             */
+            this.selectToContainer = function() {
+                var mxg = editor.graph,
+                    cells = mxg.getSelectionCells(),
+                    edges = [],
+                    oneSideEdges = [],
+                    pos = {left: null, right: null, top: null, bottom: null},
+                    padding = 20,
+                    container;
+
+                // 只处理节点
+                cells = cells.filter(function(cell){
+                    return cell.isVertex();
+                });
+
+                // 如果没有选中节点则什么都不做
+                if (cells.length <= 0) return;
+
+                // 计算容器位置，将其放至所有所选节点的中心
+                cells.reduce(function(p, n){
+                    var geo = n.geometry;
+
+                    p.left = (p.left === null || geo.x < p.left) ? geo.x : p.left;
+                    p.right = (p.right === null || (geo.x + geo.width) > p.right) ? geo.x + geo.width : p.right;
+                    p.top = (p.top === null || geo.y < p.top) ? geo.y : p.top;
+                    p.bottom = (p.bottom === null || (geo.y + geo.height) > p.bottom) ? geo.y + geo.height : p.bottom;
+
+                    return p;
+                }, pos);
+                pos.width = pos.right - pos.left + 2 * padding
+                pos.height = pos.bottom - pos.top + 3 * padding;
+//                pos.x = (pos.left + pos.right) / 2;
+//                pos.y = (pos.top + pos.bottom) / 2;
+
+                // 获取相关的连线
+                cells.forEach(function(cell) {
+                    var es = mxg.getEdges(cell);
+
+                    es.forEach(function(edge) {
+                        if (cells.indexOf(edge.source) >= 0 && cells.indexOf(edge.target) >=0) {
+                            edges.indexOf(edge) < 0 && edges.push(edge);
+                        } else {
+                            oneSideEdges.indexOf(edge) < 0 && oneSideEdges.push(edge);
+                        }
+                    });
+                });
+
+                mxg.model.beginUpdate();
+                try{
+                    container = mxg.insertVertex(mxg.getDefaultParent(), null, 'Container', pos.left, pos.top, pos.width, pos.height, 'swimlane');
+                    // 60与34是根据默认图片class_big.png计算得出
+                    container.geometry.alternateBounds = new mxRectangle(container.geometry.x, container.geometry.y, 60, 34);
+                    mxg.setCellSizer(container, 60, 34, 1, 0.75, 0.5);
+
+                    container.setUtAttr('minstyle', 'shape=image;image=assets/images/class_big.png;verticalLabelPosition=bottom;verticalAlign=top;');
+                    mxg.setCellAttr(container, 'minstyle', 'shape=image;image=assets/images/class_big.png;verticalLabelPosition=bottom;verticalAlign=top;');
+
+                    cells.forEach(function(cell){
+                        container.insert(cell);
+                        cell.geometry.x = cell.geometry.x - pos.left + padding;
+                        cell.geometry.y = cell.geometry.y - pos.top + 2 * padding;  // 容器的头部高度大约为20
+                    });
+                    edges.forEach(function(edge) {
+                        container.insert(edge);
+                    });
+
+                    // 把连线放到容器上层
+                    mxg.orderCells(false, [container].concat(oneSideEdges).concat(edges));
+                    mxg.foldCells(true, false, [container]);
+                    mxg.setSelectionCell(container);
+                } catch(e) {
+                    console.error(e);
+                } finally {
+                    mxg.model.endUpdate();
+                }
+                // 进入编辑状态
+                mxg.startEditing(container);
+            };
+        };
+    };
+
+    graph.app.factory('GraphAction', ['$uibModal', 'Unit', '$rootScope', 'Const', 'CiMonitorService', 'GraphMonitor', 'Event', 'ExportService',
+        '$window', 'ViewService', 'UserInfo', 'SearchService', 'CiService', '$state', '$templateCache', '$timeout', 'GeoLayout', 'emxDataLabel','DiagramCIService','DiagramTagRuleService','DiagramImageService','DiagramDiagramService','uDialog', factory]);
+
+})(nameSpace.reg('graph'));

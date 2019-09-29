@@ -1,0 +1,91 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('CiService', ['$http', 'Unit', '$q', function($http, Unit, $q){
+
+		var o = {};
+
+		o.get = function(params){
+			params.all = true;
+			return $http.post(Unit.api('/ci'), params);
+		};
+
+		o.save = function(params){
+			return $http.post(Unit.api('/ci'), params);
+		};
+
+		o.getCi = function(id){
+			return $http.get(Unit.api('/ci/' + id));
+		};
+
+		o.ids = function(ids){
+			return $http.post(Unit.api('/ci'), {ids: ids});
+		};
+
+		o.expand = function(params){
+			return $http.post(Unit.api('/cirel/query'), params);
+		};
+
+		o.getMyCi = function(data) {
+			var deferred = $q.defer();
+			var $promise = $http.post(Unit.api('/ci/getmyci'), data, {timeout: deferred.promise});
+			$promise.cancel = function() {
+				deferred.resolve('cancelled!');
+			};
+			return $promise;
+		};
+
+		o.getAll = function() {
+			return $http.get(Unit.api('/ci'));
+		};
+
+		o.getMonitorEvent = function(id, page, pageSize){
+			return $http.post(Unit.api('/monitor'), {id: id, page: page, pageSize: pageSize});
+		};
+
+		o.getEventTicket = function(id, page, pageSize){
+			return $http.post(Unit.api('/incident'), {id: id, page: page, pageSize: pageSize});
+		};
+
+		o.getChangeTicket = function(id, page, pageSize){
+			return $http.post(Unit.api('/change'), {id: id, page: page, pageSize: pageSize});
+		};
+
+		o.getKpiUnusual = function(id, sceneId, viewId, startTime, endTime, page, pageSize){
+			return $http.post(Unit.api('/view/geteventinfo'), {
+				id: id,
+				page: page,
+				pageSize: pageSize,
+				viewId: viewId,
+				sceneId: sceneId,
+				startTime: startTime,
+				endTime: endTime
+			});
+		};
+
+		o.exists = function(ciIds){
+			return $http.post(Unit.api('/ci/exists'), {ids: ciIds});
+		};
+
+		o.treeInit = function(id, type){
+			return $http.post(Unit.api('/topo'), {id: id, operation: 'init', type: type});
+		};
+
+		o.treeDown = function(id, type){
+			return $http.post(Unit.api('/topo'), {id: id, operation: 'down', type: type});
+		};
+
+		o.treeUp = function(id, type){
+			return $http.post(Unit.api('/topo'), {id: id, operation: 'up', type: type});
+		};
+
+		o.getKpi = function(id){
+			return $http.get(Unit.api('/kpici/' + id));
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,35 @@
+
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('UserInfo', function($rootScope, Event){
+
+		var info = {};
+
+		try {
+			info = JSON.parse(window.localStorage.getItem('userInfo'));
+		}finally {
+		}
+
+		return {
+
+			get: function(){
+				return info;
+			},
+
+			set: function(userInfo){
+				if(!userInfo.iconLastUpdate){
+					userInfo.iconLastUpdate = new Date().getTime();
+				}
+				info = userInfo;
+				$rootScope.$broadcast(Event.USERINFO_UPDATE, userInfo);
+			}
+
+		};
+
+
+	});
+
+})(nameSpace.reg('graph'));

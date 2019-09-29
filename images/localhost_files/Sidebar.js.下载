@@ -1,0 +1,697 @@
+
+(function(self){
+
+var Sidebar,
+	heightLightCell = null,
+	randstr = null,
+	lastTargetCell = null;
+
+
+randstr = function(length){
+	var key = {
+
+		str : [
+			'a','b','c','d','e','f','g','h','i','j','k','l','m',
+			'o','p','q','r','s','t','x','u','v','y','z','w','n',
+			'0','1','2','3','4','5','6','7','8','9'
+		],
+
+		randint : function(n,m){
+			var c = m-n+1;
+			var num = Math.random() * c + n;
+			return	Math.floor(num);
+		},
+
+		randStr : function(){
+			var _this = this;
+			var leng = _this.str.length - 1;
+			var randkey = _this.randint(0, leng);
+			return _this.str[randkey];
+		},
+
+		create : function(len){
+			var _this = this;
+			var l = len || 10;
+			var str = '';
+
+			for(var i = 0 ; i<l ; i++){
+				str += _this.randStr();
+			}
+
+			return str;
+		}
+
+	};
+
+	length = length ? length : 10;
+
+	return key.create(length);
+};
+
+Sidebar = function(editor, container) {
+	this.editor = editor;
+	this.container = container;
+
+	this.graph = new Graph(document.createElement('div'), null, null, this.editor.graph.getStylesheet());
+	//this.graph = mmdb.createGraph(document.createElement('div'), null, null,this.editor.graph.getStylesheet());
+
+	this.showTooltips = true;
+	if (!mxClient.IS_TOUCH) {
+		mxEvent.addListener(document, 'mouseup', mxUtils.bind(this, function() {
+			this.showTooltips = true;
+		}));
+
+		// Enables tooltips after scroll
+		mxEvent.addListener(container, 'scroll', mxUtils.bind(this, function() {
+			this.showTooltips = true;
+		}));
+
+		mxEvent.addListener(document, 'mousedown', mxUtils.bind(this, function() {
+			this.showTooltips = false;
+			this.hideTooltip();
+		}));
+
+		mxEvent.addListener(document, 'mousemove', mxUtils.bind(this, function(evt) {
+			var src = mxEvent.getSource(evt);
+
+			while (src != null) {
+				if (src == this.currentElt) {
+					return;
+				}
+
+				src = src.parentNode;
+			}
+
+			this.hideTooltip();
+		}));
+
+		// Handles mouse leaving the window
+		mxEvent.addListener(document, 'mouseout', mxUtils.bind(this, function(evt) {
+			if (evt.toElement == null && evt.relatedTarget == null) {
+				this.hideTooltip();
+			}
+		}));
+	}
+};
+
+/**
+ * Specifies if tooltips should be visible. Default is true.
+ */
+Sidebar.prototype.enableTooltips = true;
+
+/**
+ * Specifies the delay for the tooltip. Default is 16 px.
+ */
+Sidebar.prototype.tooltipBorder = 16;
+
+/**
+ * Specifies the delay for the tooltip. Default is 300 ms.
+ */
+Sidebar.prototype.tooltipDelay = 300;
+
+/**
+ * Specifies if edges should be used as templates if clicked. Default is true.
+ */
+Sidebar.prototype.installEdges = true;
+
+/**
+ * Specifies the URL of the gear image.
+ */
+Sidebar.prototype.gearImage = STENCIL_PATH + '/clipart/Gear_128x128.png';
+
+/**
+ * Specifies the width of the thumbnails.
+ */
+Sidebar.prototype.thumbWidth = 50;
+
+/**
+ * Specifies the height of the thumbnails.
+ */
+Sidebar.prototype.thumbHeight = 50;
+
+/**
+ * Specifies the padding for the thumbnails. Default is 3.
+ */
+Sidebar.prototype.thumbPadding = (document.documentMode >= 5) ? 0 : 1;
+
+/**
+ * Specifies the delay for the tooltip. Default is 3 px.
+ */
+Sidebar.prototype.thumbBorder = 2;
+
+/**
+ * Specifies the size of the sidebar titles.
+ */
+Sidebar.prototype.sidebarTitleSize = 9;
+
+/**
+ * Specifies if titles in the sidebar should be enabled.
+ */
+Sidebar.prototype.sidebarTitles = false;
+
+/**
+ * Specifies if titles in the tooltips should be enabled.
+ */
+Sidebar.prototype.tooltipTitles = true;
+
+/**
+ * Specifies if titles in the tooltips should be enabled.
+ */
+Sidebar.prototype.maxTooltipWidth = 400;
+
+/**
+ * Specifies if titles in the tooltips should be enabled.
+ */
+Sidebar.prototype.maxTooltipHeight = 400;
+
+Sidebar.prototype.createEdgeTemplate = function(content, style, width, height, value) {
+	var cells = [new mxCell((value != null) ? value : '', new mxGeometry(0, 0, width, height), style)];
+	cells[0].geometry.setTerminalPoint(new mxPoint(0, height), true);
+	cells[0].geometry.setTerminalPoint(new mxPoint(width, 0), false);
+	cells[0].edge = true;
+	content.appendChild(this.createEdgeTemplateFromCells(cells, width, height));
+};
+Sidebar.prototype.addGeneralPalette = function(content, style, w, h, name) {
+	w = w ? w : 80;
+	h = h ? h : 80;
+	content.appendChild(this.createVertexTemplate(style, w, h, name));
+};
+Sidebar.prototype.addImagePalette = function(content, name, url, width, height, icoWidth, icoHeight) {
+	content.appendChild(this.createVertexTemplate('image;image=' + url, width, height, name, icoWidth, icoHeight));
+};
+Sidebar.prototype.createVertexTemplate = function(style, width, height, value, icoWidth, icoHeight) {
+
+	var cells = [new mxCell((value != null) ? value : '', new mxGeometry(0, 0, width, height), style)];
+
+	cells[0].vertex = true;
+	return this.createVertexTemplateFromCells(cells, width, height, icoWidth, icoHeight);
+};
+Sidebar.prototype.createEdgeTemplateFromCells = function(cells, width, height) {
+	var elt = this.createItem(cells);
+	this.createDragSource(elt, this.createDropHandler(cells, false), this.createDragPreview(width, height));
+
+	// Installs the default edge
+	var graph = this.editor.graph;
+	mxEvent.addListener(elt, 'click', mxUtils.bind(this, function(evt) {
+		if (this.installEdges) {
+			// Uses edge template for connect preview
+			graph.connectionHandler.createEdgeState = function(me) {
+				return graph.view.createState(cells[0]);
+			};
+
+			// Creates new connections from edge template
+			graph.connectionHandler.factoryMethod = function() {
+				return graph.cloneCells([cells[0]])[0];
+			};
+		}
+
+		// Highlights the entry for 200ms
+		elt.style.backgroundColor = '#ffffff';
+
+		window.setTimeout(function() {
+			elt.style.backgroundColor = '';
+		}, 200);
+
+		mxEvent.consume(evt);
+	}));
+
+	// Shows a tooltip with the rendered cell
+	if (!touchStyle) {
+		mxEvent.addListener(elt, 'mousemove', mxUtils.bind(this, function(evt) {
+			this.showTooltip(elt, cells);
+		}));
+	}
+
+	return elt;
+};
+
+Sidebar.prototype.shiftThumbs = mxClient.IS_SVG || document.documentMode == 8;
+
+	Sidebar.prototype.createItem = function(cells, width, height, title, showLabel, showTitle)
+	{
+		var elt = document.createElement('a');
+		elt.setAttribute('href', 'javascript:void(0);');
+		elt.className = 'geItem';
+		elt.style.overflow = 'hidden';
+		var border = (mxClient.IS_QUIRKS) ? 8 + 2 * this.thumbPadding : 2 * this.thumbBorder;
+		elt.style.width = (this.thumbWidth + border) + 'px';
+		elt.style.height = (this.thumbHeight + border) + 'px';
+		// elt.style.padding = this.thumbPadding + 'px';
+
+		// Blocks default click action
+		mxEvent.addListener(elt, 'click', function(evt)
+		{
+			mxEvent.consume(evt);
+		});
+
+		if(cells[0].value === 'Text'){
+			showLabel = true;
+			showTitle = true;
+			title = 'Text'
+		}
+		var bounds = this.createThumb(cells, this.thumbWidth, this.thumbHeight, elt, title, showLabel, showTitle);
+
+		var dx = 0;
+		var dy = 0;
+
+		if (cells.length > 1 || cells[0].vertex)
+		{
+			dx = (bounds.width - width - 1) / 2;
+			dy = (bounds.height - height - 1) / 2;
+
+			var ds = this.createDragSource(elt, this.createDropHandler(cells, true, dx, dy),
+				this.createDragPreview(bounds.width - 1, bounds.height - 1));
+			this.addClickHandler(elt, ds, cells);
+
+			// Uses guides for vertices only if enabled in graph
+			ds.isGuidesEnabled = mxUtils.bind(this, function()
+			{
+				return this.editor.graph.graphHandler.guidesEnabled;
+			});
+		}
+		else if (cells[0] != null && cells[0].edge)
+		{
+			this.createDragSource(elt, this.createDropHandler(cells, false, dx, dy),
+				this.createDragPreview(width, height));
+
+			// Installs the default edge
+			var graph = this.editor.graph;
+			mxEvent.addListener(elt, 'click', mxUtils.bind(this, function(evt)
+			{
+				if (this.installEdges)
+				{
+					graph.setDefaultEdge(cells[0]);
+				}
+
+				// Highlights the entry for 200ms
+				elt.style.backgroundColor = '#f5f5f5';
+
+				window.setTimeout(function()
+				{
+					elt.style.backgroundColor = '';
+				}, 300);
+
+				mxEvent.consume(evt);
+			}));
+		}
+
+		// Shows a tooltip with the rendered cell
+		if (!mxClient.IS_IOS)
+		{
+			mxEvent.addGestureListeners(elt, null, mxUtils.bind(this, function(evt)
+			{
+				if (mxEvent.isMouseEvent(evt))
+				{
+					this.showTooltip(elt, cells, bounds.width, bounds.height, title, showLabel, dx, dy);
+				}
+			}));
+		}
+
+		return elt;
+	};
+
+
+	Sidebar.prototype.createThumb = function(cells, width, height, parent, title, showLabel, showTitle)
+	{
+		var cloneCells = mxUtils.clone(cells);
+
+		if(cloneCells[0].value !== 'Text'){
+			cloneCells[0].setValue("");
+		}
+
+		this.graph.labelsVisible = (showLabel == null || showLabel);
+		this.graph.view.scaleAndTranslate(1, 0, 0);
+		this.graph.addCells(cloneCells);
+		var bounds = this.graph.getGraphBounds();
+		var s = Math.floor(Math.min((width - 2 * this.thumbBorder) / bounds.width, (height - 2 * this.thumbBorder)
+			/ bounds.height) * 100) / 100;
+		this.graph.view.scaleAndTranslate(s, Math.floor((width - bounds.width * s) / 2 / s - bounds.x),
+			Math.floor((height - bounds.height * s) / 2 / s - bounds.y));
+		var node = null;
+
+		// For supporting HTML labels in IE9 standards mode the container is cloned instead
+		if (this.graph.dialect == mxConstants.DIALECT_SVG && !mxClient.NO_FO)
+		{
+			node = this.graph.view.getCanvas().ownerSVGElement.cloneNode(true);
+		}
+		// LATER: Check if deep clone can be used for quirks if container in DOM
+		else
+		{
+			node = this.graph.container.cloneNode(false);
+			node.innerHTML = this.graph.container.innerHTML;
+		}
+
+		this.graph.getModel().clear();
+
+		// Catch-all event handling
+		if (mxClient.IS_IE6)
+		{
+			parent.style.backgroundImage = 'url(' + this.editor.transparentImage + ')';
+		}
+
+		node.style.position = 'relative';
+		node.style.overflow = 'hidden';
+        //图标手势 改移动；
+		node.style.cursor = 'move';
+		//node.style.left = this.thumbBorder + 'px';
+		//node.style.top = this.thumbBorder + 'px';
+		node.style.width = width + 'px';
+		node.style.height = height + 'px';
+		node.style.visibility = '';
+		node.style.minWidth = '';
+		node.style.minHeight = '';
+
+		parent.appendChild(node);
+
+		// Adds title for sidebar entries
+		if (this.sidebarTitles && title != null && showTitle != false)
+		{
+			var border = (mxClient.IS_QUIRKS) ? 2 * this.thumbPadding + 2: 0;
+			parent.style.height = (this.thumbHeight + border + this.sidebarTitleSize + 8) + 'px';
+
+			var div = document.createElement('div');
+			div.style.fontSize = this.sidebarTitleSize + 'px';
+			div.style.color = '#303030';
+			div.style.textAlign = 'center';
+			div.style.whiteSpace = 'nowrap';
+
+			if (mxClient.IS_IE)
+			{
+				div.style.height = (this.sidebarTitleSize + 12) + 'px';
+			}
+
+			div.style.paddingTop = '4px';
+			mxUtils.write(div, title);
+			parent.appendChild(div);
+		}
+
+		return bounds;
+	};
+
+
+/**
+ * Creates and returns the given title element.
+ */
+Sidebar.prototype.createTitle = function(label)
+{
+	var elt = document.createElement('a');
+	elt.setAttribute('href', 'javascript:void(0);');
+	elt.setAttribute('title', label);
+	elt.className = 'geTitle';
+	mxUtils.write(elt, label);
+
+	return elt;
+};
+
+Sidebar.prototype.createVertexTemplateFromCells = function(cells, width, height, icoWidth, icoHeight) {
+	var elt = this.createItem(cells, icoWidth, icoHeight);
+//	var ds = this.createDragSource(elt, this.createDropHandler(cells, true), this.createDragPreview(width, height));
+//
+//	this.addClickHandler(elt, ds);
+//
+//	// Uses guides for vertices only if enabled in graph
+//	ds.isGuidesEnabled = mxUtils.bind(this, function() {
+//		return this.editor.graph.graphHandler.guidesEnabled;
+//	});
+
+	// Shows a tooltip with the rendered cell
+	if (!touchStyle) {
+		mxEvent.addListener(elt, 'mousemove', mxUtils.bind(this, function(evt) {
+			this.showTooltip(elt, cells);
+		}));
+	}
+
+	return elt;
+};
+
+Sidebar.prototype.enableTooltips = !mxClient.IS_TOUCH;
+Sidebar.prototype.tooltipBorder = 16;
+Sidebar.prototype.splitSize = (mxClient.IS_TOUCH) ? 16 : 8;
+
+
+Sidebar.prototype.showTooltip = function(elt, cells) {
+	if (this.enableTooltips && this.showTooltips) {
+		if (this.currentElt != elt) {
+			if (this.thread != null) {
+				window.clearTimeout(this.thread);
+				this.thread = null;
+			}
+
+			var show = mxUtils.bind(this, function() {
+				// Workaround for off-screen text rendering in
+				// IE
+				var old = mxText.prototype.getTableSize;
+
+				if (this.graph.dialect != mxConstants.DIALECT_SVG) {
+					mxText.prototype.getTableSize = function(table) {
+						var oldParent = table.parentNode;
+
+						document.body.appendChild(table);
+						var size = new mxRectangle(0, 0, table.offsetWidth, table.offsetHeight);
+						oldParent.appendChild(table);
+
+						return size;
+					};
+				}
+
+				// Lazy creation of the DOM nodes and graph
+				// instance
+				if (this.tooltip == null) {
+					this.tooltip = document.createElement('div');
+					this.tooltip.className = 'geSidebarTooltip';
+					document.body.appendChild(this.tooltip);
+
+					this.graph2 = new Graph(this.tooltip, null, null, this.editor.graph.getStylesheet());
+					//this.graph2 = mmdb.createGraph(this.tooltip, null,null, this.editor.graph.getStylesheet());
+
+					this.graph2.view.setTranslate(this.tooltipBorder, this.tooltipBorder);
+					this.graph2.resetViewOnRootChange = false;
+					this.graph2.foldingEnabled = false;
+					this.graph2.autoScroll = false;
+					this.graph2.setTooltips(false);
+					this.graph2.setConnectable(false);
+					this.graph2.setEnabled(false);
+
+					this.tooltipImage = mxUtils.createImage(IMAGE_PATH + '/tooltip.png');
+					this.tooltipImage.style.position = 'absolute';
+					this.tooltipImage.style.width = '14px';
+					this.tooltipImage.style.height = '27px';
+
+					document.body.appendChild(this.tooltipImage);
+				}
+
+				this.tooltip.style.display = 'block';
+				this.graph2.model.clear();
+				this.graph2.addCells(cells);
+
+				var bounds = this.graph2.getGraphBounds();
+				var width = bounds.x + bounds.width + this.tooltipBorder;
+				var height = bounds.y + bounds.height + this.tooltipBorder;
+
+				if (mxClient.IS_QUIRKS) {
+					width += 4;
+					height += 4;
+				}
+
+				this.tooltip.style.overflow = 'visible';
+				this.tooltipImage.style.visibility = 'visible';
+				this.tooltip.style.width = width + 'px';
+				this.tooltip.style.height = height + 'px';
+
+				var left = 390;
+				var top = $(elt).offset().top;
+
+				// Workaround for ignored position CSS style in
+				// IE9
+				// (changes to relative without the following
+				// line)
+				this.tooltip.style.position = 'fixed';
+				this.tooltip.style.left = left + 'px';
+				this.tooltip.style.top = (top - height/2 + 13) + 'px';
+				this.tooltipImage.style.left = (left - 13) + 'px';
+				this.tooltipImage.style.top = top + 'px';
+
+				mxText.prototype.getTableSize = old;
+			});
+
+			if (this.tooltip != null && this.tooltip.style.display != 'none') {
+				show();
+			} else {
+				this.thread = window.setTimeout(show, this.tooltipDelay);
+			}
+
+			this.currentElt = elt;
+		}
+	}
+};
+
+Sidebar.prototype.hideTooltip = function() {
+	if (this.thread != null) {
+		window.clearTimeout(this.thread);
+		this.thread = null;
+	}
+
+	if (this.tooltip != null) {
+		this.tooltip.style.display = 'none';
+		this.tooltipImage.style.visibility = 'hidden';
+		this.currentElt = null;
+	}
+};
+Sidebar.prototype.createDragSource = function(elt, dropHandler, preview) {
+	var g = null,
+		dragSource;
+
+	g = this.editor.graph;
+	dragSource = mxUtils.makeDraggable(elt, g, dropHandler, preview, 0, 0, this.editor.graph.autoscroll, true, true);
+	// Allows drop into cell only if target is a valid root
+	dragSource.getDropTarget = function(graph, x, y) {
+		var target,
+			upTarget,
+			edgeStyle,
+			loop;
+
+		edgeStyle =  "strokeColor=#0066FF;strokeWidth=4;fillColor=none;";
+		upTarget = mxDragSource.prototype.getDropTarget.apply(this, arguments);
+
+		loop = function(parent){
+			var vertex;
+
+			vertex = g.getCellAt(x, y, parent, true, false);
+
+			if(vertex && vertex.children
+					&& vertex.children.length>=1 ){
+				vertex = loop(vertex);
+			}
+
+			return vertex;
+		};
+
+		target = loop(g.getDefaultParent());
+		target = target ? target : upTarget;
+
+		if((target && !heightLightCell)
+				|| (target && heightLightCell.geometry.x != target.geometry.x)
+				|| (target && heightLightCell.geometry.y != target.geometry.y)){
+			g.removeCells([heightLightCell]);
+			lastTargetCell = target;
+			heightLightCell = g.insertVertex(
+				target.getParent(),
+				"light_" + randstr(),
+				"",
+				target.geometry.x,
+				target.geometry.y,
+				target.geometry.width,
+				target.geometry.height,
+				edgeStyle
+			);
+
+		}else if(!target && heightLightCell){
+			g.removeCells([heightLightCell]);
+			heightLightCell = null;
+			lastTargetCell = null;
+		}
+
+		if (!g.isValidRoot(target)) {
+			target = null;
+		}
+
+		return target;
+	};
+
+	return dragSource;
+};
+Sidebar.prototype.createDropHandler = function(cells, allowSplit) {
+	return function(graph, evt, target, x, y) {
+		var cell = cells[0];
+
+		if(heightLightCell){
+			graph.removeCells([heightLightCell]);
+			heightLightCell = null;
+		}
+
+		if(lastTargetCell && cell && !lastTargetCell.collapsed &&
+				(!lastTargetCell.style || lastTargetCell.style.indexOf('swimlane') === -1)) {
+
+			lastTargetCell.setStyle(cell.getStyle());
+			graph.refresh(lastTargetCell);
+			lastTargetCell = null;
+
+		}else if(lastTargetCell && cell && lastTargetCell.collapsed){
+			if(cell.style && cell.style.indexOf("image=") >= 0){
+				var arr = cell.style.split("image=");
+				graph.setSwimlaneMinStyle("image", arr[1].split(";")[0], [lastTargetCell]);
+				graph.refresh();
+				lastTargetCell = null;
+			}
+		}else{
+			cells = graph.getImportableCells(cells);
+
+			if (cells.length > 0) {
+				var validDropTarget = (target != null) ? graph.isValidDropTarget(target, cells, evt) : false;
+				var select = null;
+
+				if (target != null && !validDropTarget) {
+					target = null;
+				}
+
+				// Splits the target edge or inserts into target group
+				if (allowSplit && graph.isSplitEnabled() && graph.isSplitTarget(target, cells, evt)) {
+					graph.splitEdge(target, cells, null, x, y);
+					select = cells;
+				} else if (cells.length > 0) {
+					select = graph.importCells(cells, x, y, target);
+
+					// default swimlane collspace size
+					if(cells[0].style && cells[0].style.indexOf("swimlane") >= 0){
+						cells[0].first = true;
+						cells[0].geometry.alternateBounds = new mxRectangle(cells[0].geometry.x, cells[0].geometry.y, 80, 80);
+						graph.setCellAttr(cells[0], 'minstyle', 'shape=image;image=assets/images/default.png;verticalLabelPosition=bottom;verticalAlign=top;');
+					}
+				}
+
+				if (select != null && select.length > 0) {
+					graph.scrollCellToVisible(select[0]);
+					graph.setSelectionCells(select);
+				}
+			}
+		}
+	};
+};
+Sidebar.prototype.createDragPreview = function(width, height) {
+	var elt = document.createElement('div');
+	elt.style.border = '1px dashed black';
+	elt.style.width = width + 'px';
+	elt.style.height = height + 'px';
+
+	return elt;
+};
+Sidebar.prototype.addClickHandler = function(elt, ds) {
+	var graph = this.editor.graph;
+	var first = null;
+
+	var md = (mxClient.IS_TOUCH) ? 'touchstart' : 'mousedown';
+	mxEvent.addListener(elt, md, function(evt) {
+		first = new mxPoint(mxEvent.getClientX(evt), mxEvent.getClientY(evt));
+	});
+	var oldMouseUp = ds.mouseUp;
+	ds.mouseUp = function(evt) {
+		if (!mxEvent.isPopupTrigger(evt) && this.currentGraph == null && first != null) {
+			var tol = graph.tolerance;
+
+			if (Math.abs(first.x - mxEvent.getClientX(evt)) <= tol && Math.abs(first.y - mxEvent.getClientY(evt)) <= tol) {
+				var gs = graph.getGridSize();
+				ds.drop(graph, evt, null, gs, gs);
+			}
+		}
+
+		oldMouseUp.apply(this, arguments);
+		first = null;
+	};
+};
+
+
+self.Sidebar = Sidebar;
+
+})(this);
+
+

@@ -1,0 +1,20 @@
+
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('alarmWallCtrl', ['$scope', '$cookies', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $cookies, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        var param;
+        var code = '0417';
+        $scope.myURL;
+        try {
+            param = encodeURIComponent(JSON.stringify({ type: 'wall', date: 2 }));
+            $scope.myURL = '/monitor-web/dmv/integration/page/jumpout/' + code + '?token=' + $cookies.get('token') + '&param=option=' + param;
+        } catch (e) {
+            console.log(e.message);
+        }
+    }]);
+
+
+
+})(nameSpace.reg('graph'));

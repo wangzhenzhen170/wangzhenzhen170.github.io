@@ -1,0 +1,87 @@
+(function(graph) {
+
+	'use strict';
+
+	var url = graph.stateUrl;
+
+	graph.app.config(function($stateProvider) {
+
+		$stateProvider
+			.state('tarsier.scenes', {
+				url: '/scenes',
+				templateUrl: url('/tarsier/scenes/scenes.html'),
+				controller: 'sceneCtrl',
+			})
+			.state('tarsier.scenes.myDiagram', {
+				url: '/myDiagram',
+				templateUrl: url('/tarsier/scenes/sceneManage/myDiagram.html'),
+				controller: 'myDiagramCtrl',
+				data: {
+					title: '我的视图'
+				}
+			})
+			.state('tarsier.scenes.myScene', {
+				url: '/myScene',
+				templateUrl: url('/tarsier/scenes/sceneManage/myScene.html'),
+				controller: 'mySceneCtrl',
+				data: {
+					title: '我的故障'
+				}
+			})
+			.state('tarsier.scenes.create', {
+				url: '/create/:teamid',
+				templateUrl: url('/tarsier/scenes/sceneManage/create.html'),
+				controller: 'editSceneCtrl',
+				data: {
+					title: '组合视图 | DMV'
+				}
+			})
+			.state('tarsier.scenes.edit', {
+				url: '/edit/:id',
+				templateUrl: url('/tarsier/scenes/sceneManage/create.html'),
+				controller: 'editSceneCtrl',
+				data: {
+					title: '编辑组合视图 | DMV'
+				}
+			})
+			.state('tarsier.scenes.detail', {
+				url: '/detail/:id/:serial',
+				data: {
+					title: '组合视图详情 | DMV'
+				},
+				views: {
+					'': {
+						templateUrl: url('/tarsier/scenes/sceneManage/detail.html'),
+						controller: 'detailSceneCtrl',
+					},
+					'chatroom@tarsier.scenes.detail': {
+						templateUrl: url('/tarsier/scenes/sceneManage/chat.html'),
+						controller: 'chatRoomCtrl'
+					}
+				}
+			})
+			.state('tarsier.scenes.diagramDetail', {
+				url: '/diagramDetail/:id/:ciid',
+				data: {
+					title: '视图详情 | DMV'
+				},
+				views: {
+					'': {
+						templateUrl: url('/tarsier/scenes/sceneManage/detail.html'),
+						controller: 'detailSceneCtrl',
+					},
+					'chatroom@tarsier.scenes.diagramDetail': {
+						templateUrl: url('/tarsier/scenes/sceneManage/chat.html'),
+						controller: 'chatRoomCtrl'
+					}
+				}
+			})
+			// .state('tarsier.scenes.scenesshow', {
+			// 	url: '/scenesshow',
+			// 	templateUrl: url('/tarsier/scenes/scenesshow/scenesshow.html'),
+			//              controller:'ScenesShowCtrl'
+			// })
+	});
+
+
+})(nameSpace.reg('graph'));

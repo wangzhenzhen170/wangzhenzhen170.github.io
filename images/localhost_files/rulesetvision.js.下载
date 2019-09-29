@@ -1,0 +1,619 @@
+(function (graph) {
+
+    'use strict';
+    graph.app.controller('rulesetvisionCtrl', ['$uibModal', '$scope', '$uibModalInstance', 'MonitoringService', 'Unit', '$timeout', 'sourceId', function ($uibModal, $scope, $uibModalInstance, MonitoringService, Unit, $timeout, sourceId) {
+        console.log(sourceId)
+        $scope.sourceId = sourceId;
+
+        $timeout(function () {
+            $scope.$broadcast('sourceId', $scope.sourceId)
+
+        }, 2)
+        $scope.dutyPersonShow = function () {
+
+
+            $timeout(function () {
+                $scope.$broadcast('pActive', true)
+
+            }, 4)
+
+        }
+        $scope.cancel = function () {
+            $uibModalInstance.close({ ok: false });
+        };
+        $scope.actionList = [];
+        $scope.ruleObj = {};
+        //选择可设定规则数组
+        $scope.rulechoiceArry = [{ type: 1, identify: L.get('EMV_STANDARDIZATION') }, { type: 2, identify: L.get('COMMON_FILTER') },
+        { type: 3, identify: L.get('EMV_COMPRESSION') }, { type: 4, identify: L.get('EMV_UPGRADE') }, { type: 5, identify: L.get('EMV_CLEAN_UP') }, { type: 6, identify: L.get('EMV_NOTIFICATION') }, { type: 7, identify: L.get('EMV_ORDER') }, { type: 12, identify: L.get('EMV_RICH') }
+        ];
+
+
+        //选择规则方法
+        $scope.ruleTYpeArry = []
+        $scope.isChecked = function (item) {
+            return $scope.ruleTYpeArry.indexOf((Number(item.type))) >= 0;
+        };
+        $scope.isRuleChekFun = function (item) {
+            return $scope.ruleTYpeArry.indexOf((Number(item))) >= 0;
+
+        }
+
+        //获取左侧长度
+        $scope.arryLineLongFun = function () {
+            $timeout(function () {
+                $.each($scope.ruleTYpeArry, function (index, item) {
+                    var height = angular.element('.line' + item).height();
+                    angular.element('.' + item).height(height);
+                    console.log(item)
+                    console.log(angular.element('.' + item).height(height))
+
+                })
+            }, 1)
+            $scope.lineLong()
+        }
+
+        $scope.checkedRuleFun = function (item, $index) {
+
+
+            if (!$scope.isChecked(item)) {
+                $scope.ruleTYpeArry.push(Number(item.type))
+
+            } else {
+
+                var index = $scope.ruleTYpeArry.indexOf(Number(item.type));
+                $scope.ruleTYpeArry.splice(index, 1)
+            }
+            if ($scope.ruleTYpeArry.length <= 0) {
+                $scope.lineShow = false;
+                $scope.lineShow1 = false;
+            } else if (2 > $scope.ruleTYpeArry.length > 0) {
+                $scope.lineShow = true;
+                $scope.lineShow1 = false;
+            } else {
+                $scope.lineShow = true;
+                $scope.lineShow1 = true;
+            }
+
+            //$scope.$apply();
+            // console.log($scope.ruleTYpeArry)
+            // if($scope.ruleTYpeArry.indexOf((Number(2)))>=0){
+            // 	$scope.filter=true;
+            // }else{
+            // 	$scope.filter=false;
+            // }
+            function compare(value1, value2) {
+                if (value1 < value2) {
+                    return -1;
+                } else if (value1 > value2) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+
+
+            if ($scope.ruleTYpeArry.length > 1) {
+                $scope.ruleTYpeArry = $scope.ruleTYpeArry.sort(compare);
+                $timeout(function () {
+                    $scope.arryLineLongFun();
+                }, 10)
+
+            }
+
+            console.log($scope.ruleTYpeArry.indexOf((Number(2))) >= 0)
+
+
+
+        };
+        // 自定义下拉框
+        $timeout(function (event) {
+            $('.content').on('click', '.select-wrap', function (event) {
+                event.stopPropagation();
+                $(this).find('.drop-menu').stop().slideToggle(150);
+
+            });
+
+        }, 3);
+        if ($('[name="filter"]')[0]) {
+            $('[name="filter"]')[0].checked = true;
+        } else {
+            $timeout(function () {
+                $('[name="filter"]')[0].checked = true;
+            }, 2);
+        }
+        $(document).on('click', function () {
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+            $scope.$broadcast('slShow', false);
+        });
+
+        //$scope.ruleType=data.id;
+        //接收规则描述
+        $scope.$on('ruleDetail', function (event, data) {
+            $scope.ruleDetail = data;
+        });
+        //接收事件筛选
+        $scope.$on('rules', function (event, data) {
+            $scope.rules = data;
+        });
+        //接受事件源
+        $scope.$on('sourceId', function (event, data) {
+            $scope.sourceId = data;
+        });
+
+        //接收丰富规则数据
+        $scope.$on('enrichStrategyArr', function (event, data) {
+            $scope.enrichStrategyArr = data;
+            //console.log(data)
+
+        });
+        //接收压缩规则的事件压缩标识,接收压缩规则的更新字段信息
+        $scope.$on('event$flag', function (event, data) {
+            $scope.compressEventflag = data;
+        });
+        $scope.$on('overUpdateword', function (event, data) {
+            $scope.compressOverUpdateword = data;
+        });
+
+
+        //接受自动派单值
+        $scope.$on('automaticInfluence', function (event, data) {
+            $scope.automaticInfluence = data;
+            //console.log($scope.automaticInfluence)
+        });
+        $scope.$on('automaticSeverityClass', function (event, data) {
+            $scope.automaticSeverityClass = data;
+            //console.log($scope.automaticSeverityClass)
+        });
+        $scope.$on('automaticDescrible', function (event, data) {
+            $scope.automaticDescrible = data;
+            //console.log($scope.automaticDescrible)
+        });
+        $scope.$on('automaticperson', function (event, data) {
+            $scope.automaticperson = data;
+            //console.log($scope.automaticperson)
+        });
+        $scope.$on('automatictitle', function (event, data) {
+            $scope.automatictitle = data;
+            //console.log($scope.automatictitle)
+        });
+        //接收标准化规则的值
+        $scope.$on('standalevelVal', function (event, data) {
+            $scope.standalevelVal = data;
+            //console.log($scope.standalevelVal)
+        });
+        $scope.$on('standadefineTimeVal', function (event, data) {
+            $scope.standadefineTimeVal = data;
+            //console.log($scope.standadefineTimeVal)
+        });
+        $scope.$on('standaMailContentString', function (event, data) {
+            $scope.standaMailContentString = data;
+            //console.log($scope.standaMailContentString)
+        });
+        $scope.$on('standaTitleContentString', function (event, data) {
+            $scope.standaTitleContentString = data;
+            //console.log($scope.standaTitleContentString)
+        });
+
+        //邮件通知规则（收件人数组，邮件内容）
+        $scope.$on('noticePersonCheckedArray', function (event, data) {
+            $scope.noticePersonCheckedArray = data;
+            //console.log($scope.noticePersonCheckedArray)
+        });
+        $scope.$on('noticeTeamCheckedArray', function (event, data) {
+            $scope.noticeTeamCheckedArray = data;
+            //console.log($scope.noticePersonCheckedArray)
+        });
+        $scope.$on('noticedutyPersonArray', function (event, data) {
+            $scope.noticedutyPersonArray = data;
+            //console.log($scope.noticePersonCheckedArray)
+        });
+        $scope.$on('notifies', function (event, data) {
+            $scope.noticenotifies = data;
+            console.log($scope.noticenotifies)
+        });
+
+        //定时清理规则清理时间
+        $scope.$on('timeCleanDuration', function (event, data) {
+            $scope.timeCleanDuration = data;
+            //console.log($scope.timeCleanDuration)
+        });
+        //超时升级规则
+        $scope.$on('timeoutPersonCheckedArray', function (event, data) {
+            $scope.timeoutPersonCheckedArray = data;
+            console.log($scope.timeoutPersonCheckedArray)
+        });
+        $scope.$on('timeoutTeamCheckedArray', function (event, data) {
+            $scope.timeoutTeamCheckedArray = data;
+            console.log($scope.timeoutTeamCheckedArray)
+        });
+        $scope.$on('timeoutdutyPersonArray', function (event, data) {
+            $scope.timeoutdutyPersonArray = data;
+            console.log($scope.timeoutdutyPersonArray)
+        });
+        $scope.$on('timeoutMailContentString', function (event, data) {
+            $scope.timeoutMailContentString = data;
+            //console.log($scope.timeoutMailContentString)
+        });
+        $scope.$on('timeOutTime', function (event, data) {
+            $scope.timeOutTime = data;
+            //console.log($scope.timeOutTime)
+        });
+        $scope.$on('timeOutSeverity', function (event, data) {
+            $scope.timeOutSeverity = data;
+            //console.log($scope.timeOutSeverity)
+        });
+        $scope.$on('timeOutNoticeWay', function (event, data) {
+            $scope.timeOutNoticeWay = data;
+            //console.log($scope.timeOutNoticeWay)
+        });
+        //维护期规则
+        $scope.$on('maintenCrossday', function (event, data) {
+            $scope.maintenCrossday = data;
+            //console.log($scope.maintenCrossday)
+        });
+        $scope.$on('maintenDateStartCom', function (event, data) {
+            $scope.maintenDateStartCom = data;
+            //console.log($scope.maintenDateStartCom)
+        });
+        $scope.$on('maintenStartTime', function (event, data) {
+            $scope.maintenStartTime = data;
+            //console.log($scope.maintenStartTime)
+        });
+        $scope.$on('maintenDateEndCom', function (event, data) {
+            $scope.maintenDateEndCom = data;
+            //console.log($scope.maintenDateEndCom)
+        });
+        $scope.$on('maintenEndTime', function (event, data) {
+            $scope.maintenEndTime = data;
+            //console.log($scope.maintenEndTime)
+        });
+        $scope.$on('maintendays', function (event, data) {
+            $scope.maintendays = data;
+            //console.log($scope.maintendays)
+        });
+        $scope.$on('maintencheckBoxcheck', function (event, data) {
+            $scope.maintencheckBoxcheck = data;
+            //console.log($scope.maintencheckBoxcheck)
+        });
+        $scope.$on('maintenstartTimeHH', function (event, data) {
+            $scope.maintenstartTimeHH = data;
+            //console.log($scope.maintenstartTimeHH)
+        });
+        $scope.$on('maintenstartTimeMM', function (event, data) {
+            $scope.maintenstartTimeMM = data;
+            //console.log($scope.maintenstartTimeMM)
+        });
+        $scope.$on('maintenendTimeHH', function (event, data) {
+            $scope.maintenendTimeHH = data;
+            //console.log($scope.maintenendTimeHH)
+        });
+        $scope.$on('maintenendTimeMM', function (event, data) {
+            $scope.maintenendTimeMM = data;
+            //console.log($scope.maintenendTimeMM)
+        });
+        $scope.$on('maintenFormstartTimeHH', function (event, data) {
+            $scope.maintenFormstartTimeHH = data;
+            //console.log($scope.maintenFormstartTimeHH)
+        });
+        $scope.$on('maintenFormstartTimeMM', function (event, data) {
+            $scope.maintenFormstartTimeMM = data;
+            //console.log($scope.maintenFormstartTimeMM)
+        });
+        $scope.$on('maintenFormendTimeHH', function (event, data) {
+            $scope.maintenFormendTimeHH = data;
+            //console.log($scope.maintenFormendTimeHH)
+        });
+        $scope.$on('maintenFormendTimeMM', function (event, data) {
+            $scope.maintenFormendTimeMM = data;
+            //console.log($scope.maintenFormendTimeMM)
+        });
+
+        //设置左侧顺序线的长度
+        $scope.lineLong = function () {
+            $timeout(function () {
+                var height1 = angular.element('.content-following5').height();
+                angular.element('.step-line1').height(height1);
+                var height2 = angular.element('.content-following1').height();
+                angular.element('.step-line2').height(height2);
+
+
+            }, 20);
+        };
+        $scope.lineLong();
+        //校验
+        $scope.checkFun = function () {
+            $scope.actionList = [];
+            if (!$scope.ruleObj.ruleName) {
+                Unit.error(L.get('COMMON_RULE_NAME_CANNOT_BE_EMPTY'));
+                return false;
+            }
+            if ($scope.sourceId === null) {
+                Unit.error(L.get('EMV_THE_SOURCE_OF_THE_EVENT_CANNOT_BE_UNSELECTED'));
+                return false;
+            }
+            if ($scope.ruleTYpeArry.length === 0) {
+                Unit.error(L.get('EMV_PLEASE_SELECT_A_PROCESSING_RULE'));
+                return false;
+            }
+            //console.log($scope.ruleTYpeArry);
+            //标准化规则
+            if ($scope.ruleTYpeArry.indexOf(1) >= 0) {
+                var standaObj = {};
+
+                if ($scope.standaTitleContentString.length === 0) {
+                    Unit.error(L.get('EMV_EVENT_TITLE_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+                if ($scope.standaMailContentString.length === 0) {
+                    Unit.error(L.get('EMV_EVENT_CONTENT_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+                standaObj.ruleType = 1;
+                standaObj.duration = $scope.standadefineTimeVal;
+                standaObj.eventTitle = $scope.standaTitleContentString;
+                standaObj.summary = $scope.standaMailContentString;
+                standaObj.severity = $scope.standalevelVal;
+                standaObj.priority = 1;
+                $scope.actionList.push(standaObj);
+
+            }
+            //过滤规则
+            if ($scope.ruleTYpeArry.indexOf(2) >= 0) {
+                var filterObj = {};
+                if ($('input[name="filter"]:checked').length === 0) {
+                    Unit.error(L.get('EMV_PLEASE_SET_A_FILTERING_POLICY'));
+                    return false;
+                }
+                filterObj.ruleType = 2;
+                filterObj.filterType = $('input[name="filter"]:checked').val();
+                filterObj.priority = 1;
+                $scope.actionList.push(filterObj);
+
+            }
+            //压缩规则
+            if ($scope.ruleTYpeArry.indexOf(3) >= 0) {
+                var compressObj = {};
+                if ($scope.compressEventflag.length === 0) {
+                    Unit.error(L.get('EMV_EVENT_COMPRESSION_ID_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+                if ($scope.compressOverUpdateword.length === 0) {
+                    Unit.error(L.get('EMV_SELECTED_UPDATE_FIELD_INFORMATION_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+                compressObj.ruleType = 3;
+                compressObj.priority = 1;
+                compressObj.identifier = $scope.compressEventflag.join('_');
+                compressObj.properties = $scope.compressOverUpdateword;
+                $scope.actionList.push(compressObj);
+
+            }
+            //超时升级规则
+            if ($scope.ruleTYpeArry.indexOf(4) >= 0) {
+                var timeOutTimeObj = {};
+                if ($scope.timeOutTime === undefined) {
+                    Unit.error(L.get('EMV_TIMEOUT_UPGRADE_TIME_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+
+                if ($scope.timeoutMailContentString.length === 0 && $scope.timeOutNoticeWay === 1) {
+                  Unit.error(L.get('EMV_EMAIL_NOTIFICATION_CONTENT_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+
+                // if ($scope.timeoutPersonCheckedArray.length === 0 && $scope.timeOutNoticeWay === 1 && $scope.timeoutTeamCheckedArray.length === 0 ) {
+                //     Unit.error('通知对象不能为空');
+                //     return false;
+                // }
+
+                timeOutTimeObj.ruleType = 4;
+                timeOutTimeObj.priority = 1;
+                timeOutTimeObj.duration = $scope.timeOutTime;
+                timeOutTimeObj.severity = $scope.timeOutSeverity;
+                timeOutTimeObj.userCodes = $scope.timeoutPersonCheckedArray;
+                timeOutTimeObj.groupIds = $scope.timeoutTeamCheckedArray;
+                timeOutTimeObj.duties = $scope.timeoutdutyPersonArray;
+                timeOutTimeObj.notifies = [
+                    {
+                        'type': $scope.timeOutNoticeWay,
+                        'title': L.get('EMV_ALARM_TIMEOUT_UPGRADE_NOTIFICATION'),
+                        'content': $scope.timeoutMailContentString
+                    }
+                ];
+                $scope.actionList.push(timeOutTimeObj);
+
+            }
+            //定时清理规则
+            if ($scope.ruleTYpeArry.indexOf(5) >= 0) {
+                var timeCleanDurationObj = {};
+                if ($scope.timeCleanDuration === '') {
+                    Unit.error(L.get('EMV_TIMING_CLEANUP_TIME_CANNOT_BE_EMPTY'))
+                    return false;
+                }
+                timeCleanDurationObj.ruleType = 5;
+                timeCleanDurationObj.priority = 1;
+                timeCleanDurationObj.duration = $scope.timeCleanDuration;
+                $scope.actionList.push(timeCleanDurationObj);
+
+            }
+            //通知规则
+            if ($scope.ruleTYpeArry.indexOf(6) >= 0) {
+                var noticeObj = {};
+                if ($scope.noticePersonCheckedArray.length === 0 && $scope.noticeTeamCheckedArray.length === 0 && $scope.noticedutyPersonArray.length === 0) {
+                    Unit.error(L.get('EMV_NOTIFICATION_OBJECT_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+
+                noticeObj.ruleType = 6;
+                noticeObj.priority = 1;
+                noticeObj.userCodes = $scope.noticePersonCheckedArray;
+                noticeObj.groupIds = $scope.noticeTeamCheckedArray;
+                noticeObj.duties = $scope.noticedutyPersonArray;
+                noticeObj.notifies = $scope.noticenotifies;
+                $scope.actionList.push(noticeObj);
+
+
+            }
+            //丰富规则
+            if ($scope.ruleTYpeArry.indexOf(12) >= 0) {
+                var enrichObj = {};
+                if (!$scope.enrichStrategyArr[0].eventAttr) {
+                    Unit.error(L.get('EMV_RICH_FIELDS_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+                if (!$scope.enrichStrategyArr[0].ciShow && !$scope.enrichStrategyArr[0].defindeShow) {
+                    Unit.error(L.get('EMV_PLEASE_CHOOSE_A_RICH_WAY'));
+                    return false;
+                }
+                if ($scope.enrichStrategyArr[0].ciShow && !$scope.enrichStrategyArr[0].ciClassId) {
+                    Unit.error(L.get('EMV_PLEASE_SELECT_CI_CLASSIFICATION_METHOD'));
+                    return false;
+                }
+                if ($scope.enrichStrategyArr[0].ciShow && !$scope.enrichStrategyArr[0].ciAttr) {
+                    Unit.error(L.get('EMV_PLEASE_SELECT_CI_ATTRIBUTE'));
+                    return false;
+                }
+                $.each($scope.enrichStrategyArr, function (index, item) {
+
+                    if (item.ciShow) {
+                        item.matchType = 1;
+                    } else if (item.defindeShow) {
+                        item.matchType = 2;
+                        delete item.ciClassId;
+                        delete item.ciAttr;
+                    }
+
+                });
+                enrichObj.ruleType = 12;
+                enrichObj.priority = 1;
+                enrichObj.ciMatches = $scope.enrichStrategyArr;
+
+                $scope.actionList.push(enrichObj);
+
+
+            }
+            //工单规则
+            if ($scope.ruleTYpeArry.indexOf(7) >= 0) {
+                var automaticObj = {};
+                if ($scope.automaticDescrible.length === 0) {
+                    Unit.error(L.get('EMV_WORK_ORDER_DESCRIPTION_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+
+                automaticObj.ruleType = 7;
+                automaticObj.priority = 1;
+                automaticObj.influenceScope = $scope.automaticInfluence;
+                automaticObj.ticketSeverity = $scope.automaticSeverityClass;
+                automaticObj.ticketSummary = $scope.automaticDescrible;
+                automaticObj.ticketTitle = $scope.automatictitle;
+                automaticObj.userCodes = $scope.automaticperson;
+                $scope.actionList.push(automaticObj);
+
+            }
+            $scope.saveFun();
+            //维护期规则
+            // if($scope.ruleType==7){
+
+            // 	if($scope.maintenDateStartCom > $scope.maintenDateEndCom){
+            // 		Unit.error('开始时间不能大于结束时间')
+            // 		return false;
+            // 	}
+            // 	console.log($scope.days)
+            // 	if( $scope.maintencheckBoxcheck!=0 && $scope.maintencheckBoxcheck!=1 && $scope.maintendays.length==0){
+            // 		Unit.error('循环日期不能为空')
+            // 		return false;
+            // 	}
+            // 	if( $scope.maintencheckBoxcheck!=0 && ($scope.maintenFormstartTimeHH=='' || $scope.maintenFormstartTimeMM=='' || $scope.maintenFormendTimeHH==''  || $scope.maintenFormendTimeMM=='')){
+            // 		Unit.error('循环时间不能为空')
+            // 		return false;
+            // 	}
+            // 	$scope.ckeckLoopTime();
+            // 	$scope.maintenSaveFun();
+            // }
+
+
+        };
+        //维护期保存
+        // $scope.maintenSaveFun=function(){
+        // 	MonitoringService.checkMaPeriodName( {
+        // 			'name': $scope.ruleObj.ruleName,
+        // 		}).success(function(result){
+        // 			if(result.success==true){
+        // 				var selectorList = [];
+        // 				$.each($scope.rules, function () {
+        // 					var json = {};
+        // 					json.selectors = this;
+        // 					selectorList.push(json);
+        // 				});
+        // 				MonitoringService.saveMaPeriod( {
+        // 					'name': $scope.ruleObj.ruleName,
+        // 					'selectorList': selectorList,
+        // 					'description': $scope.ruleDetail,
+        // 					'timeframe': {
+        // 						'loopType': $scope.maintencheckBoxcheck,
+        // 						'startTime': $scope.maintenStartTime,
+        // 						'endTime': $scope.maintenEndTime,
+        // 						'isCross':$scope.maintenCrossday,
+        // 						'startLoopTime': $scope.maintenFormstartTimeHH+':'+$scope.maintenFormstartTimeMM,
+        // 						'endLoopTime': $scope.maintenFormendTimeHH+':'+$scope.maintenFormendTimeMM,
+        // 						'days':$scope.maintendays
+        // 					}
+        // 				}).success(function(result){
+        // 					if(result.success){
+        // 						Unit.success('保存成功！');
+        // 						fn(true,data,$scope.ruleDetail);
+        // 						$scope.cancel();
+        // 					}else{
+        // 						Unit.error('保存失败！');
+        // 					}
+
+
+        // 				})
+        // 			}else{
+        // 				 Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+        // 			}
+        // 		})
+        // }
+        //保存
+        $scope.saveFun = function () {
+            console.log($scope.enrichStrategyArr)
+            MonitoringService.checkBatchRuleName({
+                'name': $scope.ruleObj.ruleName,
+                'ruleTypes': $scope.ruleTYpeArry
+            }).success(function (result) {
+                if (result.success == true) {
+                    var selectorList = [];
+                    $.each($scope.rules, function () {
+                        var json = {};
+                        json.selectors = this;
+                        selectorList.push(json);
+                    });
+                    MonitoringService.addBatchRules({
+                        'name': $scope.ruleObj.ruleName,
+                        'ruleType': $scope.ruleType,
+                        'active': 1,
+                        'description': $scope.ruleDetail,
+                        'selectorList': selectorList,
+                        'sourceIdList': $scope.sourceId,
+                        'actionList': $scope.actionList,//压缩规则,标准化规则
+
+                    }).success(function (result) {
+                        if (result.success == true) {
+                            Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'));
+                            //fn(true,data,$scope.ruleDetail);
+                            $scope.cancel();
+                        } else {
+                            Unit.error(L.get('COMMON_SAVE_FAILED'));
+                        }
+
+
+                    })
+                } else {
+                  Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+                }
+            })
+        }
+
+    }])
+})(nameSpace.reg('graph'));

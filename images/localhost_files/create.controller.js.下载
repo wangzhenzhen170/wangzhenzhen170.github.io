@@ -1,0 +1,68 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('MainGroupCreateCtrl',['$scope','ViewService',function($scope,ViewService){
+
+		var i,j;
+
+		$scope.$parent.groupItemArray = [];
+		$scope.$parent.groupImgBox=[];
+		$scope.$parent.setNum={};
+		$scope.$parent.colorBox = {};
+		$scope.$parent.group={};
+		$scope.$parent.group.content={};
+		$scope.$parent.group.content.viewDescription ='';
+		$scope.$parent.group.content.d2setting ={};
+		$scope.$parent.group.content.d3setting={};
+		$scope.$parent.group.content.d2setting.views=[];
+		$scope.$parent.group.content.d3setting.rows = 3;
+		$scope.$parent.group.content.d3setting.cols = 3;
+		$scope.$parent.group.content.d3setting.layerMargin = 200;
+		$scope.$parent.group.content.d3setting.layerItemMargin = 10;
+		$scope.$parent.group.content.d2setting.toolbarSize = 130;
+		$scope.$parent.group.content.d2setting.outLineSize = 90;
+		$scope.$parent.group.content.d2setting.layout = 'top';
+		$scope.$parent.group.content.d2setting.maxCount = 4;
+		$scope.$parent.group.content.d2setting.toolbarBgColor = '#C0C0C0';
+		$scope.$parent.group.content.d2setting.btnColor = '#616161';
+		$scope.$parent.nowd3Layer = null;
+		$scope.$parent.nowEv = null;
+
+
+		$scope.$parent.indexNow3d = null;
+		$scope.$parent.colNow3d = null;
+
+		$scope.$parent.index = null;
+		$scope.$parent.col = null;
+
+
+		$scope.$parent.group.content.d3setting.layers = [];
+		$scope.$parent.group.content.d2setting.views = [];
+
+		for (i = 0; i < 3; i++) {
+
+			var temp = [];
+
+			for (j = 0; j < 3; j++) {
+
+				temp[j] = null;
+
+			}
+			$scope.$parent.group.content.d3setting.layers.push(temp);
+		}
+
+
+		ViewService.publicForRelation()
+			.success(function(result){
+				$scope.views =  result.data;
+			});
+
+
+	}]);
+
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));
+
+

@@ -1,0 +1,30 @@
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, title, originalColor, fn){
+
+		console.log(fn);
+		$scope.ok = function(){
+			$uibModalInstance.close();
+			if(fn){
+				fn($scope.color);
+			}
+		};''
+
+		$scope.$modal = $uibModalInstance;
+		$scope.title = title;
+		$scope.color = originalColor ? originalColor : '#FFFFFF';
+		$scope.change = function(ev){
+			console.log(ev);
+		};
+
+	};
+
+	graph.app.controller('ModalColorCtrl',  ['$scope', '$uibModalInstance', 'title', 'originalColor', 'fn', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

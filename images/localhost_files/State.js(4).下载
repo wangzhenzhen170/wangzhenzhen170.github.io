@@ -1,0 +1,35 @@
+
+(function(graph){
+
+	'use strict';
+
+	var url = graph.stateUrl;
+
+	graph.app.config(function($stateProvider) {
+
+		$stateProvider
+
+			.state('home.edit', {
+				url: 'edit',
+				templateUrl: url('/main/edit/edit.html'),
+				controller: 'MainEditCtrl',
+				data: {
+					title: 'DRAW'
+				}
+			})
+
+			.state('home.edit.id', {
+				url: '/:id',
+				templateUrl: url('/main/edit/edit.html'),
+				controller: 'MainEditCtrl',
+				data: {
+					title: 'DRAW'
+				}
+			});
+
+	});
+
+
+})(nameSpace.reg('graph'));
+
+

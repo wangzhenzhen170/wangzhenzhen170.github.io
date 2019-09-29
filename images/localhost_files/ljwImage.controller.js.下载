@@ -1,0 +1,90 @@
+(function(graph) {
+
+    'use strict';
+
+    graph.app.controller('LjwModalImageCtrl', ['$scope', '$uibModalInstance', 'DiagramImageService', 'Unit', 'fn', function($scope, $uibModalInstance, DiagramImageService, Unit, fn) {
+
+        $scope.ok = function() {
+            if (!$scope.selectItem) {
+                Unit.error('请选择或上传一张图片');
+                return;
+            } else {
+                if (fn) {
+                    fn($scope.selectItem);
+                }
+            }
+            $uibModalInstance.close();
+        };
+
+        $scope.selectItem = null;
+        $scope.$modal = $uibModalInstance;
+
+        $scope.image = '';
+        $scope.file = null;
+
+        $scope.selectFile = function($files) {
+            if ($files.length >= 1) {
+
+                $scope.file = $files[0];
+                $scope.upload();
+
+                // var r = new FileReader();
+                // r.readAsDataURL($files[0]);
+
+                // r.onload = function(){
+                // 	$scope.image = this.result;
+                // 	$scope._refresh();
+                // };
+
+            }
+        };
+
+        $scope.upload = function() {
+            if ($scope.file) {
+                DiagramImageService.addImage([$scope.file])
+                    .success(function(data) {
+                        $scope.image = null;
+                        $scope.startUpload = false;
+                        $scope.refresh();
+                    });
+            } else {
+                $scope.startUpload = true;
+            }
+        };
+
+        $scope.page = 1;
+        $scope.pageSize = 20;
+        $scope.total = 0;
+        $scope.staticUrl = Unit.static;
+
+        $scope.click = function(item) {
+            $scope.selectItem = item;
+        };
+
+        $scope.remove = function(item) {
+            DiagramImageService.removeImageById(item.id)
+                .success(function(result) {
+                    if ($scope.selectItem) {
+                        if (item.imgPath === $scope.selectItem.imgPath) {
+                            $scope.selectItem = null;
+                        }
+                    }
+                    $scope.refresh();
+
+                });
+        };
+
+        $scope.refresh = function() {
+            DiagramImageService.queryImagePage({ cdt: { imgGroup: 2, imgName: '', imgGroups: 2 }, pageNum: $scope.page, pageSize: $scope.pageSize }).success(function(result) {
+            	if(result.data){
+					$scope.total = result.data.totalRows;
+					$scope.images = result.data.data;
+				}
+            });
+        };
+
+        $scope.refresh();
+    }]);
+
+
+})(nameSpace.reg('graph'));

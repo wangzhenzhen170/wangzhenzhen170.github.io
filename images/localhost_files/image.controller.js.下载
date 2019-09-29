@@ -1,0 +1,85 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalImageCtrl', ['$scope', '$uibModalInstance', 'ImageService', 'Unit', 'fn', function($scope, $uibModalInstance, ImageService, Unit, fn){
+
+		$scope.ok = function(){
+			$uibModalInstance.close();
+			if(fn){
+				fn($scope.selectItem);
+			}
+		};
+
+		$scope.selectItem = null;
+		$scope.$modal = $uibModalInstance;
+
+		$scope.image = '';
+		$scope.file = null;
+
+		$scope.selectFile = function($files){
+			if($files.length >= 1){
+
+				$scope.file = $files[0];
+
+				var r = new FileReader();
+				r.readAsDataURL($files[0]);
+
+				r.onload = function(){
+					$scope.image = this.result;
+					$scope._refresh();
+				};
+
+			}
+		};
+
+		$scope.upload = function(){
+			if($scope.file){
+				ImageService.uploadBackground($scope.file)
+					.success(function(){
+						$scope.image = null;
+						$scope.startUpload = false;
+						$scope.refresh();
+					});
+			}else{
+				$scope.startUpload = true;
+			}
+		};
+
+		$scope.page = 1;
+		$scope.pageSize = 10;
+		$scope.total = 0;
+		$scope.staticUrl = Unit.static;
+
+		$scope.click = function(item){
+			$scope.selectItem = item;
+		};
+
+		$scope.remove = function(item){
+			ImageService.removeBackground(Unit.basename(item.url))
+				.success(function(result){
+					console.log(result);
+					$scope.refresh();
+
+					if(item.url === $scope.selectItem.url){
+						$scope.selectItem = null;
+					}
+				});
+		};
+
+		$scope.refresh = function(){
+			ImageService.getBackgound({page: $scope.page, pageSize: $scope.pageSize})
+				.success(function(result){
+					$scope.total = result.data.count;
+					$scope.images = result.data.datas;
+				});
+		};
+
+		$scope.refresh();
+	}]);
+
+
+})(nameSpace.reg('graph'));
+
+

@@ -1,0 +1,10 @@
+(function(){
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxEffectObject', [
+                               function(){
+
+        return {};
+
+    }]);
+})();

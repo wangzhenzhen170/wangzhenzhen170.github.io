@@ -1,0 +1,26 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('DiagramCiRltClassService', ['$http', 'Unit','$q', function($http, Unit, $q){
+        var o = {};
+
+        o.queryList = function(params){
+            var deferred = $q.defer();
+
+            var $promise = $http.post(Unit.diagramApi('/ciRltClass/queryList'), params, {timeout: deferred.promise});
+
+            $promise.cancel = function(){
+                deferred.resolve();
+            };
+            return $promise;
+        };
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

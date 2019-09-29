@@ -1,0 +1,42 @@
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('createTimeOutRule', function() {
+		return {
+			restrict : 'AE',
+			replace : true,
+            scope: {
+				ruleType : '@ruleType',
+			},
+			templateUrl: 'app/directive/creatRule/timeOutCreat.html',
+			controller: ['$scope', '$timeout', '$state','Unit','uDialog','DefinedEventsService','MonitoringService','$uibModal',function($scope, $timeout,$state,Unit,uDialog,DefinedEventsService,MonitoringService,$uibModal){
+				$scope.L = L;
+				$scope.objs = {};
+				$scope.severity = 1;
+				$scope.level = [1,2,3,4];
+				$scope.objs.timeOutlevel = 1;
+				$scope.selectLevel = function(le) {
+					$scope.objs.timeOutlevel=le;
+					$scope.severity=le;
+					$scope.$emit('timeOutSeverity',$scope.severity)
+                }
+                $scope.$emit('timeOutSeverity',$scope.severity)
+				$(document).on('click', function() {
+					$('.public-select-time').find('.select-time').hide();
+				});
+                $scope.$on('duration',function(event,data){
+					$scope.objs.timeOutTime=data;
+					$scope.$emit('timeOutTime',$scope.objs.timeOutTime)
+					
+				})
+	
+		
+		
+
+				
+			}]
+		};
+	});
+
+})(nameSpace.reg('graph'));

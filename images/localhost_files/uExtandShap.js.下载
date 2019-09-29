@@ -1,0 +1,181 @@
+(function() {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxExtandShape', ['emxContainerControl',
+        'uContainer',
+        'emxDataLabel',
+        function(uContainerControl, uContainer, emxDataLabel) {
+
+
+            /***********************************************/
+
+
+            var ugvBasePath = '.';
+            var ugvMediaPath = ugvBasePath + '/assets';
+            var ugvImagePath = ugvMediaPath + '/images';
+
+            /**
+             * 扩展mxGraph的形状内容
+             * 这里主要是定义自己扩展的形状的样式以及事件触发控制
+             */
+
+            function uExtandShape(mxg, defaultEdgeStyle) {
+                this.mxg = mxg;
+                this.states = new mxDictionary;
+
+                this.defineStyle(defaultEdgeStyle);
+
+                this.overwriteFunc();
+                this.bindEvent(mxg);
+
+                this.createControls();
+            }
+
+            uExtandShape.prototype = new mxEventSource;
+            uExtandShape.prototype.constructor = uExtandShape;
+
+
+            /**
+             * 定义扩展的形状的默认样式
+             */
+            uExtandShape.prototype.defineStyle = function(defaultEdgeStyle) {
+                // 定义样式
+                var style = new Object(),
+                    mxg = this.mxg;
+
+                style = mxg.getStylesheet().getDefaultVertexStyle();
+                // 容器控制器的背景颜色
+                style['uContainerControlBgColor'] = '#4551CD';
+
+                style = mxUtils.clone(style);
+                // uBaseShape 张雨绮版基本形状状态
+                style[mxConstants.STYLE_SHAPE] = 'uBaseShape';
+                style[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_MIDDLE;
+                // 标题部分
+                style['titleColor'] = '#ffffff';
+                style['titleStartColor'] = '#4551CD';
+                style['titleEndColor'] = '#242F7A';
+                style['titleHeight'] = 35;
+                // 是否隐藏标题上的图标
+                style['hideCellIcon'] = false;
+                // 阴影颜色
+                style['shadowColor'] = 'rgba(96, 76, 168, 0.25)'; //'#604CA8';
+                style['backColor'] = '#FFFFFF';
+                // 圆角
+                style['radiusX'] = 4;
+                style['radiusY'] = 4;
+
+                // 标题文字
+                style[mxConstants.STYLE_FONTCOLOR] = '#FFFFFF';
+                // HYQiHei-DES 字体文件较大 暂用微软雅黑代替
+                style[mxConstants.STYLE_FONTFAMILY] = 'Roboto-Regular, "Microsoft YaHei"';
+                style[mxConstants.STYLE_FONTSIZE] = '16';
+
+
+                ////////////////////////////////////////////////////////////////////////////////////
+                // 开始定义具体形状的样式
+                var shapeStyle;
+
+                // uContainer 容器样式
+                shapeStyle = mxUtils.clone(style);
+                shapeStyle[mxConstants.STYLE_SHAPE] = 'uContainer';
+                shapeStyle['collapsedImage'] = ugvImagePath + '/CI.svg';
+                shapeStyle['collapsedHeight'] = 115;
+                shapeStyle['collapsedFontColor'] = 'black';
+                shapeStyle[mxConstants.STYLE_STARTSIZE] = 80;
+                //    mxg.getStylesheet().putCellStyle('uContainer', shapeStyle);
+                mxg.getStylesheet().putCellStyle('swimlane', shapeStyle); // 覆盖原swimlane样式
+
+                //    mxg.expandedImage = null;
+
+
+                ////////////////////////////////////////////////////////////////////////////////////
+                // EdgeStyle
+
+                if (defaultEdgeStyle) {
+                    // 把默认的线的样式改成张雨绮版
+                    var edgeStyle = mxg.getStylesheet().getDefaultEdgeStyle();
+                    edgeStyle[mxConstants.STYLE_STROKECOLOR] = "#C4C4C4"; // "rgba(0, 0, 0, 0.2)";
+                    edgeStyle[mxConstants.STYLE_STROKEWIDTH] = "2";
+                }
+            };
+
+            /**
+             *
+             */
+            uExtandShape.prototype.overwriteFunc = function() {
+                var mxg = this.mxg;
+                // 合并展开容器
+                mxg.cellsFolded = function(cells, collapsed, res, check) {
+                    var model = this.model,
+                        style, geo;
+
+                    model.beginUpdate();
+                    try {
+
+                        for (var i = 0; i < cells.length; i++) {
+                            if (!cells[i].oriStyle || check && !this.isCellFoldable(cells[i])) continue;
+
+                            style = this.getCellStyle(cells[i]);
+                            if (!collapsed) {
+
+                                // 如果当前是指标模式，则先换回原样式
+                                //                    if (style.shape === 'uDataLabel') {
+                                //                        model.setStyle(cells[i], cells[i].oriStyle);
+                                ////                        delete cells[i].preDataLabelGeo;
+                                //                    }
+                                model.setStyle(cells[i], 'swimlane');
+                            }
+
+                            if (style.shape === 'uDataLabel' && cells[i].preDataLabelGeo) {
+                                geo = mxUtils.clone(this.getCellGeometry(cells[i]));
+                                geo.width = cells[i].preDataLabelGeo.width;
+                                geo.height = cells[i].preDataLabelGeo.height;
+                                //                    model.setGeometry(cells[i], cells[i].preDataLabelGeo);
+                                model.setGeometry(cells[i], geo);
+                                cells[i].preDataLabelGeo = null;
+                            }
+                        }
+
+
+                        mxGraph.prototype.cellsFolded.apply(this, arguments);
+                    } catch (e) {
+                        console.error(e);
+                    } finally {
+                        model.endUpdate();
+                    }
+                };
+            };
+
+            /**
+             * 绑定事件
+             */
+            uExtandShape.prototype.bindEvent = function(mxg) {
+                var shapes = mxCellRenderer.prototype.defaultShapes,
+                    shape;
+
+                for (var s in shapes) {
+                    shape = shapes[s];
+                    // 调用形状的绑定事件方法
+                    if (typeof shape.uBindEvent === 'function') {
+                        shape.uBindEvent(mxg);
+                    }
+                }
+            };
+
+            /**
+             * 创建控制
+             */
+            uExtandShape.prototype.createControls = function() {
+                var ctrls = uExtandShape.controls = {};
+
+                // 容器控制
+                ctrls.container = new uContainerControl(this.mxg);
+                console.log('uExtandShape: createControls');
+            };
+
+
+            return uExtandShape;
+        }
+    ]);
+})();

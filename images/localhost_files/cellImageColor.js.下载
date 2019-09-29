@@ -1,0 +1,100 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    //背景特效
+    emx.factory('emxImageColorEffect', ['_emxBaseSvg', function (_emxBaseSvg) {
+
+        var valuesObj = {
+            // red:  '0.6 0.2 0.2 0 0 ' +
+            // '0 1 0 0 0 ' +
+            // '0 0 1 0 0 ' +
+            // '0 0 0 1 0',
+            red:  '0.6 0.6 0.6 0 0 ' +
+            '0.2 0.2 0.2 0 0 ' +
+            '0.2 0.2 0.2 0 0 ' +
+            '0 0 0 1 0',
+            green: '0.2 0.2 0.2 0 0 ' +
+            '0.6 0.6 0.6 0 0 ' +
+            '0.2 0.2 0.2 0 0 ' +
+            '0 0 0 1 0',
+            blue:  '0.1 0.1 0.1 0 0 ' +
+            '0.1 0.1 0.1 0 0 ' +
+            '1 1 1 0 0 ' +
+            '0 0 0 1 0',
+            gray: '0.5 0.5 0.5 0 0 ' +
+            '0.5 0.5 0.5 0 0 ' +
+            '0.5 0.5 0.5 0 0 ' +
+            '0 0 0 1 0'
+        };
+
+        /**
+         *
+         */
+
+        return _emxBaseSvg.extend({
+            init: function (mxg) {
+                this._super(mxg);
+
+                for(var i in valuesObj){
+                    this['_' + i] = this._setImageColor(i, valuesObj[i]);
+                }
+                // 定义一个高斯模糊
+                // this._imgColor = this._setImageColor(3);
+                // this._blur2 = this._defGaussianBlur(2);
+                //        this._regEventListener();
+            },
+
+            /**
+             * 生成效果
+             * @param {mxCell|String|Array<mxCell|String>} cells - mxCell列表
+             * @param {String} color - 默认为绿色green
+             * @param {Number} padding - 超出cell的内边距
+             * @param {Number} r - 圆角半径,默认为0
+             *
+             * @return {SVGElement} 返回用于展示效果的svg元素
+             */
+            createEffect: function (cells, color, padding, r) {
+                cells = cells instanceof Array ? cells : [cells];
+                var cell, state;
+                var _this = this;
+                for (var i in cells) {
+                    cell = this.getCell(cells[i]);
+                    state = this.getCellState(cell);
+
+                    if(state.shape && state.shape.node){
+                        this.attr(state.shape.node, {
+                            filter: 'url(#' + _this['_' + color] + ')'
+                        });
+                    }
+
+                    if (cell) {
+                        cell.setUtAttr('filter-value', _this['_' + color]);
+                        this.syncEffect(cell);
+
+                        this.pushToCell(cell);
+                    }
+                    // this._createEffect(cells[i], color, padding, r);
+                    // //给此节点的父节点添加svg特效
+                    // if (cells[i].parent.id > 1) {
+                    //     this._createEffect(cells[i].parent, color, padding, r);
+                    // }
+                }
+            },
+
+            /**
+             * 当cell改变时，同步改变效果
+             */
+            syncEffect: function (cell) {
+                cell = this.getCell(cell);
+                var state = this.getCellState(cell);
+                if (cell && state) {
+                    if(state.shape && state.shape.node){
+                        this.attr(state.shape.node, {
+                            filter: 'url(#' + cell.getUtAttr('filter-value') + ')'
+                        });
+                    }
+                }
+            }
+        });
+    }]);
+})();

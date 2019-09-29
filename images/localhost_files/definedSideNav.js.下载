@@ -1,0 +1,15 @@
+(function(graph){
+
+    'use strict';
+
+    graph.app.filter('definedSideNav', function(){
+        return function(arr, _item){
+            console.log(_item)
+            if(arr == 'defined-events'){
+
+            }else{
+                return arr
+            }
+        }
+    });
+})(nameSpace.reg('graph'));

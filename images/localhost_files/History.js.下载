@@ -1,0 +1,46 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('GraphHisotry', function(){
+
+		return function(editor){
+
+			this.history = [];
+
+			this.push = function(view){
+				this.history.push(view);
+			};
+
+			this.back = function(){
+				if(this.history.length){
+					var view = this.history.pop();
+					editor.action.openView(view);
+					this.refreshNavigation();
+				}
+			};
+
+			//TODO 显示导航条
+			this.showNavigation = function(){
+
+			};
+
+			//TODO 隐藏导航条
+			this.hideNavigation = function(){
+
+			};
+
+			//TODO 刷新导航条
+			this.refreshNavigation = function(){
+
+			};
+
+			this.count = function(){
+				return this.history.length;
+			};
+
+		};
+
+	});
+
+})(nameSpace.reg('graph'));

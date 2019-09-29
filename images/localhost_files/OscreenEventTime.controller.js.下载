@@ -1,0 +1,17 @@
+(function(graph){
+
+	'use strict';
+	graph.app.controller('OscreenEventTime', ['$uibModal','$scope','eventType', '$uibModalInstance','ciApplication', 'MonitoringService','Unit','time',function($uibModal,$scope,eventType, $uibModalInstance,ciApplication,MonitoringService,Unit,time) {
+		$scope.ciApplication=ciApplication;
+		/*$scope.isQueryTimeLine=isQueryTimeLine;*/
+		$scope.startTime=time.startTime;
+		$scope.endTime=time.endTime;
+		//console.log($scope.isQueryTimeLine)
+		$scope.eventType=eventType;
+		$scope.$broadcast('mylineTimeFlag',false);
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+			/*fn();*/
+		};
+	}])
+})(nameSpace.reg('graph'));

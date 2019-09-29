@@ -1,0 +1,210 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('Const', [function(){
+        var ms,mx,ml;
+        ms = 0.5;
+        mx = 0.75;
+        ml = 1;
+		return {
+			CI_PREFIX: 'ci_',
+			IN_PREFIX: 'in_',
+			TAGS_PREFIX: 'tags_',
+			RELATION_PREFIX: 'relation_',
+			LIGHT_PREFIX: 'relation_',
+
+            GRAPH_DRAG_MS: ms,
+            GRAPH_DRAG_MX: mx,
+            GRAPH_DRAG_ML: ml,
+
+			GRAPH_DRAG_WIDTH: 80 * mx,
+			GRAPH_DRAG_HEIGHT: 80 * mx,
+
+			GRAPH_GRID_WIDTH: 81,
+			GRAPH_GRID_HEIGHT: 80,
+
+			MENU_SHOW_CI_INFO : '显示配置信息',
+
+			MENU_ADD_CI: '创建CI',
+
+            MENU_CI_EACH: 'CI遍历',
+
+			MENU_LABEL_POSITION: 'Label位置',
+
+			MENU_OPEN_URL : '打开 URL',
+			MENU_EDIT_URL : '编辑 URL',
+
+			MENU_FONT_STYLE: '字体样式',
+			MENU_STROKE_WIDTH : '边线宽度',
+			MENU_OPACITY : '透明度',
+            MENU_OPACITY_XS : '25%',
+            MENU_OPACITY_S : '50%',
+            MENU_OPACITY_M : '75%',
+            MENU_OPACITY_L : '100%',
+//            MENU_ICON_SIZE : '图标大小',
+
+            MENU_SIZE: '图标尺寸',
+            MENU_SIZE_MS: '小',
+            MENU_SIZE_MX: '中',
+            MENU_SIZE_ML: '大',
+			MENU_IMAGE_COLOR: '图标颜色',
+
+			MENU_IMAGE_COLOR_RED: '红',
+			MENU_IMAGE_COLOR_GREEN: '绿',
+            MENU_IMAGE_COLOR_BLUE: '蓝',
+            MENU_IMAGE_COLOR_GRAY: '灰',
+
+			MENU_UP: '上',
+			MENU_DOWN: '下',
+            MENU_CENTER: '居中',
+			MENU_LEFT: '左',
+			MENU_RIGHT: '右',
+
+			MENU_ZOOM : '缩放',
+			MENU_ZOOM_IN : '放大',
+			MENU_ZOOM_OUT : '缩小',
+			MENU_ZOOM_CENTER : '适合',
+			MENU_ZOOM_ACTUAL : '实际',
+
+			MENU_STYLE : '样式',
+            MENU_CHOOSE_RELATION:'创建关系',
+			MENU_REMOVE_RELATION: '删除关系',
+			MENU_VIEW_REMOVE_LINE: '删除连线',
+
+			MENU_VIEW : 'VIEW',
+			MENU_VIEW_SAVE : '保存视图',
+			MENU_VIEW_UPDATE : 'UPDATE_VIEW',
+			MENU_VIEW_OPEN : 'OPEN_VIEW',
+			MENU_VIEW_NEW: 'NEW_VIEW',
+
+			MENU_NODE_SWITCH_TABLE: 'TABLE_MODEL',
+			MENU_NODE_SWITCH_CLASSIC: 'ICON_MODEL',
+
+			MENU_VIEW_URL : 'VIEW_URL',
+			MENU_VIEW_NEW_WINDOW : 'OPEN_THIS_VIEW_ON_NEW_TAB',
+
+			MENU_VIEW_RELATION : '关联视图',
+			MENU_VIEW_RELATION_SET : '添加关联视图',
+			MENU_VIEW_RELATION_OPEN : '打开关联视图',
+			MENU_VIEW_RELATION_DELETE : '删除关系视图',
+
+			MENU_LAYOUT : '布局',
+			MENU_LAYOUT_HORIZONTAL : '水平布局',
+			MENU_LAYOUT_VERTICAL : '垂直布局',
+			MENU_LAYOUT_CIRCLE : '环形布局',
+			MENU_LAYOUT_ORGANIC : '有机布局',
+			MENU_LAYOUT_PARALLEL : '平行布局',
+			MENU_LAYOUT_STACK_VERTICAL : '堆叠垂直布局',
+			MENU_LAYOUT_STACK_HORIZONTAL : '堆叠水平布局',
+
+			MENU_EXPORT : '导出',
+			MENU_EXPORT_PNG : '导出PNG',
+			MENU_EXPORT_PDF : '导出PDF',
+			MENU_EXPORT_XML : '导出XML',
+			MENU_EXPORT_SVG : '导出SVG',
+            MENU_EXPORT_JSON: '导出JSON',
+
+			MENU_EXPAND_NODE : '展开CI',
+
+			MENU_EDIT : '编辑',
+			MENU_CELL_DELETE : '删除',
+			MENU_CELL_COPY : '复制',
+			MENU_CELL_CUT : '剪切',
+			MENU_CELL_PASTE : '粘贴',
+
+			MENU_CREATE_TAGS: '创建动态节点',
+
+
+			MENU_GRAPH_CLEAR : '清除',
+			MENU_RELATION_CREATE : 'CREATE_RELATION',
+
+			MENU_MODULE : 'MODEL',
+			MENU_MODULE_ORI : 'ORIGINAL_MODEL',
+			MENU_MODULE_TAG : 'TAG_MODEL',
+
+			MENU_VIEW_RELATION_BACK: '返回',
+
+            MENU_CELL_PUTTOCONTAINER: '放入容器',
+
+			WEBGL_FONT: 'lisu',								// 加载的字体
+			WEBGL_RESOURCE_DIR: '../resource/3d/',          // 线条的颜色
+			WEBGL_DEFAULT_MESH_NAME:  'LV',                  // 如果资源不存在默认使用此替补模型
+			WEBGL_LAYER_MARGIN: 360,                        // 两个图层之间的距离
+			WEBGL_LAYER_WIDTH : 1500,                        // 图层的宽度
+			WEBGL_LAYER_HEIGHT : 900,                        // 图层的高度
+			WEBGL_LAYER_FONT_COLOR : 0x3273A4,               // 图层字体颜色
+			WEBGL_LAYER_FONT_SIDE_COLOR : 0xAAAAAA,			// 图层字体侧边颜色
+			WEBGL_LAYER_OPACITY : 0.8,						// 图层透明度
+			WEBGL_LAYER_COLOR : 0xDDDDDD,					// 图层颜色
+			WEBGL_LAYER_NAME_PREFIX : '图层',				// 图层名称前缀
+			WEBGL_LAYER_FONT_FAMILY : 'lisu',                // 图层字体
+			WEBGL_LAYER_FONT_SIZE : 30,                      // 图层文本大小
+			WEBGL_LAYER_FONT_HEIGHT : 4,                     // 图层字体厚度
+			WEBGL_NODE_DEPTH : 8,                            // 节点高度
+			WEBGL_NODE_FONT_SIDE_COLOR : 0xAAAAAA,           // 节点文本侧边颜色
+			WEBGL_NODE_FONT_COLOR : 0x348EF0,                // 节点颜色
+			WEBGL_NODE_FONT_SIZE : 8,                        // 节点文本大小
+			WEBGL_NODE_FONT_FAMILY : 'lisu',                 // 节点字体
+			WEBGL_CAMERA_POSITION_X : -300,                  // 默认摄像机X位置
+			WEBGL_CAMERA_POSITION_Y : 600,                   // 默认摄像机Y位置
+			WEBGL_CAMERA_NEAR : 100,                         // 相机视锥近平面值
+			WEBGL_CAMERA_FAR : 100000,                       // 相机视锥远平面值
+			WEBGL_LINE_COLOR : 0x666666,                     // 线条的颜色
+			WEBGL_LIGHT_POSITION : 3500,                     // 光的位置
+			WEBGL_LIGHT_COLOR : 0xffffff,                    // 光颜色
+			WEBGL_LAYER_LINE_COLOR : 0x999999,                    // 默认颜色
+			WEBGL_LAYER_LINE_COLOR_SELECTION : 0x0000FF,              // 选中颜色
+
+			WEBGL_CONTAINER_COLOR : [
+				0xEFEFEF,
+				0xDFDFDF,
+				0xCFCFCF,
+				0xBBBBFF
+			],
+
+			TIME_AVERAGE: 60 * 5,
+
+			GRAPH_CELL_COLLAPSED_ICON: 'assets/plugins/mxGraph/images/collapsed.gif',
+			GRAPH_CELL_COLLAPSED_LOADING_ICON: 'assets/images/loader.gif',
+			GRAPH_CELL_COLLAPSED_SIZE: 14,
+			MONITOR_TIMEOUT: 1000 * 60,
+
+			GRAPH_MONITOR_VERTEX_TITLE_COUNT_OVERFLOW: 16,
+			GRAPH_MONITOR_VERTEX_STYLE: 'text;html=1;fillColor=#CCCCCC;rounded=1;strokeColor=none;align=left;verticalAlign=top;overflow=fill;',
+			GRAPH_MONITOR_EDGE_STYLE:  'html=1;strokeColor=#636a72;opacity=60;strokeWidth=2;',
+			GRAPH_MONITOR_TIPS_STYLE: 'ellipse;strokeColor=none;strokeWidth=0;fillColor=green;fontColor=white;',
+
+			/**
+			 * classic 经典
+			 * table   表格
+			 */
+			MONITOR_THEME: 'classic',
+
+			CANVAS_CIS_CHANGE: 'ucanvasCisChange',
+            CANVAS_TAGS_CHANGE: 'ucanvasTagsChange',
+			LSET: {'topLeft': [mxConstants.ALIGN_LEFT, mxConstants.ALIGN_TOP, mxConstants.ALIGN_RIGHT, mxConstants.ALIGN_BOTTOM],
+
+                'top': [mxConstants.ALIGN_CENTER, mxConstants.ALIGN_TOP, mxConstants.ALIGN_CENTER, mxConstants.ALIGN_BOTTOM],
+
+                'topRight': [mxConstants.ALIGN_RIGHT, mxConstants.ALIGN_TOP, mxConstants.ALIGN_LEFT, mxConstants.ALIGN_BOTTOM],
+
+                'left': [mxConstants.ALIGN_LEFT, mxConstants.ALIGN_MIDDLE, mxConstants.ALIGN_LEFT, mxConstants.ALIGN_MIDDLE],
+                // 'left': [mxConstants.ALIGN_LEFT, mxConstants.ALIGN_MIDDLE, mxConstants.ALIGN_RIGHT, mxConstants.ALIGN_MIDDLE],
+
+                'center': [mxConstants.ALIGN_CENTER, mxConstants.ALIGN_MIDDLE, mxConstants.ALIGN_CENTER, mxConstants.ALIGN_MIDDLE],
+                'right': [mxConstants.ALIGN_RIGHT, mxConstants.ALIGN_MIDDLE, mxConstants.ALIGN_LEFT, mxConstants.ALIGN_MIDDLE],
+                'bottomLeft': [mxConstants.ALIGN_LEFT, mxConstants.ALIGN_BOTTOM, mxConstants.ALIGN_RIGHT, mxConstants.ALIGN_TOP],
+                'bottom': [mxConstants.ALIGN_CENTER, mxConstants.ALIGN_BOTTOM, mxConstants.ALIGN_CENTER, mxConstants.ALIGN_TOP],
+                'bottomRight': [mxConstants.ALIGN_RIGHT, mxConstants.ALIGN_BOTTOM, mxConstants.ALIGN_LEFT, mxConstants.ALIGN_TOP]
+			},
+			CI_NAME_JOIN: '\n',
+            CI_NAME_LOGO: ',______________,',
+			countdown:5000
+
+		};
+
+	}]);
+
+})(nameSpace.reg('graph'));

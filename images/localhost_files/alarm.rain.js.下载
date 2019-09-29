@@ -1,0 +1,143 @@
+(function() {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxAlarmEffect', ['_emxBaseSvg',
+        function(_emxBaseSvg) {
+
+
+
+            /********************************************************************************/
+
+            return _emxBaseSvg.extend({
+                /**
+                 * 创建元素被选中的特效
+                 * @param {Array<mxCell|String>|mxCell|String} cells
+                 * @param {String} color - 默认颜色为green
+                 */
+                createEffect: function(cells, color) {
+                    color = color ? color : 'green';
+                    cells = cells instanceof Array ? cells : [cells];
+                    var cell, i, g;
+                    for (i in cells) {
+                        cell = this.getCell(cells[i]);
+                        if (cell && !this.cellEffects[cell.id]) {
+                            g = this.cellEffects[cell.id] = this.createSvg('g');
+                            // 背景1
+                            g.appendChild(this.createSvg('circle', {
+                                fill: color,
+                                "stroke-width": "0",
+                                stroke: "none",
+                                "class": "rain-alarm-back-1",
+                                opacity: "0.8",
+                                filter: 'url(#' + this._defGaussianBlur(10) + ')'
+                            }));
+
+                            // 背景2
+                            g.appendChild(this.createSvg('circle', {
+                                fill: color,
+                                "stroke-width": "0",
+                                stroke: "none",
+                                "class": "rain-alarm-back-2",
+                                opacity: "1",
+                                filter: 'url(#' + this._defGaussianBlur(10) + ')'
+                            }));
+                        } else if (cell) {
+                            g = this.cellEffects[cell.id];
+                            this.attr(g.childNodes[0], {
+                                fill: color
+                            });
+                            this.attr(g.childNodes[1], {
+                                fill: color
+                            });
+                        }
+
+                        if (cell) {
+                            this.syncEffect(cell);
+                        }
+
+                        this.pushToCell(cell);
+                    }
+                },
+
+                /**
+                 * @param {mxCell|String} cell
+                 */
+                syncEffect: function(cell) {
+                    this._super(cell);
+
+                    cell = this.getCell(cell);
+                    var geo = this.getCellGeo(cell),
+                        cx = geo.x + geo.width / 2,
+                        cy = geo.y + geo.height / 2,
+                        r = Math.max(geo.width, geo.height) / 2,
+                        r2 = r / 3,
+                        g;
+
+                    g = this.cellEffects[cell.id];
+                    if (!g) return;
+
+                    this.attr(g.childNodes[0], {
+                        cx: cx,
+                        cy: cy,
+                        r: r,
+                        'data-r': r
+                    });
+                    this.attr(g.childNodes[1], {
+                        cx: cx,
+                        cy: cy,
+                        r: r2,
+                        'data-r': r2
+                    });
+
+                    this.toCellBack(g, cell);
+                    //        this.toCellFront(g, cell);
+                },
+
+                update: function(t) {
+                    this._animate_lasttime_ = this._animate_lasttime_ ? this._animate_lasttime_ : t;
+                    this._animate_sign_ = this._animate_sign_ ? this._animate_sign_ : 1;
+                    this._animate_count_ = this._animate_count_ ? this._animate_count_ : 0;
+
+                    var diff = (t - this._animate_lasttime_) / this._animate_duration_,
+                        es = this.cellEffects,
+                        r, r1, r2;
+
+                    this._animate_count_ += (t - this._animate_lasttime_) * this._animate_sign_;
+                    if (this._animate_count_ > this._animate_duration_) {
+                        this._animate_count_ = this._animate_duration_;
+                        this._animate_sign_ = -1;
+                    } else if (this._animate_count_ <= 0) {
+                        this._animate_count_ = 0
+                        this._animate_sign_ = 1;
+                    }
+
+                    for (var i in es) {
+                        r1 = +this.attr(es[i].childNodes[0], 'data-r');
+                        r2 = +this.attr(es[i].childNodes[1], 'data-r');
+                        // 当前半径
+                        //            r = +this.attr(es[i].childNodes[0], 'r');
+
+                        // 改变真实值
+                        this.attr(es[i].childNodes[0], 'r', r2 + (r1 - r2) * (this._animate_count_ / this._animate_duration_));
+                    }
+
+                    this._animate_lasttime_ = t;
+                },
+                hide: function(cell) {
+                    var node = this.getEffectNode(cell);
+                    if (node) {
+                        this.attr(node, 'visibility', 'hidden');
+                    }
+                },
+
+                show: function(cell) {
+                    var node = this.getEffectNode(cell);
+                    if (node) {
+                        this.attr(node, 'visibility', 'visible');
+                    }
+                }
+            });
+
+        }
+    ]);
+})();

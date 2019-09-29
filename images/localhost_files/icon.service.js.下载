@@ -1,0 +1,28 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('IconService', ['$http', 'Upload', 'Unit', function($http, Upload, Unit){
+
+		var o = {};
+
+		o.get = function(params){
+			return $http.post(Unit.api('/viewicon'), params);
+		};
+
+		o.upload = function(file){
+			return Upload.upload({
+				url: Unit.api('/viewicon/save'),
+				file: file
+			});
+		};
+
+		o.delete = function(iconName) {
+			return $http.delete(Unit.api('/viewicon/' + iconName));
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

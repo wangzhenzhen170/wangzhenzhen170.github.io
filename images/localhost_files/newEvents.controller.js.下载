@@ -1,0 +1,635 @@
+/**
+ * Created by uinnova on 2017/7/21.
+ */
+(function (graph, self) {
+
+    'use strict';
+
+    graph.app.controller('newEventsCtrl', ['$rootScope', '$scope', 'MonitoringService', '$state', 'Unit', '$filter', 'DefinedEventsService', '$timeout', '$interval', '$uibModal', 'uDialog',
+        function ($rootScope, $scope, MonitoringService, $state, Unit, $filter, DefinedEventsService, $timeout, $interval, $uibModal, uDialog) {
+            $scope.sourceIdParmFlag;
+            $scope.busy = true;
+            $scope.totalPages;
+            $scope.curPage = 1
+            $scope.goTop = true;
+            $scope.positionBottom = '90px';
+            $scope.matchDataFlag = false;
+            $scope.items;//总数据变量
+            $scope.dataPreview = [];//预览数据
+            $scope.dataPreviewLoadding = true;//预览数据
+            $scope.viewId = $state.params.viewId ? $state.params.viewId : '1';//事件台Id
+            $scope.creatEventFlag = $scope.viewId === '1';
+            $scope.viewName = $state.params.viewName;//事件台Id
+
+
+            /*params*/
+            $scope.sourceId = [[/*默认数据*/], [/*选择数据*/]];//事件来源
+            $scope.severity = [[/*默认数据*/], [/*选择数据*/]];//事件等级
+            $scope.ackStatus = [[/*默认数据*/], [/*选择数据*/]];//通知状态
+            $scope.notifyStatus = [[/*默认数据*/], [/*选择数据*/]];//确认状态
+            $scope.timeArea = null;//事件范围
+            //defined-params
+            $scope.itemsEventModel = [];//$scope.items.eventModel
+            $scope.itemsOp = [];//$scope.items.op
+
+            $scope.self_define_search = [[{ alias: L.get('EMV_EVENT_OBJECT'), field: 'CINAME', chineseName: L.get('EMV_EQUAL'), op: '=', value: '*' }]];//saveParams
+            $scope.viewParams = {
+                pageSize: 20,
+            };
+            $scope.saveParams = {};
+            $scope.closeThinkModal = function () {
+                $scope.columnCountTop = [];
+                if ($scope.self_define_search.length) {
+                    $.each($scope.self_define_search, function () {
+                        $.each(this, function () {
+                            this.searchThinkFlag = false;
+                        })
+                    })
+                }
+            }
+            //fnBody
+            $scope.fnBody = function (e) {
+                e.stopPropagation();
+                if (!$(e.target).hasClass('mySearchInput')) {
+                    $scope.closeThinkModal();
+
+                }
+                $scope.itemsEventModel.length && ($scope.itemsEventModel = []);//关闭input框1
+                $scope.itemsOp.length && ($scope.itemsOp = []);//关闭input框2
+            }
+
+            //参数赋值 FUNC
+            $scope.paramsFunc = function () {
+                $scope.viewParams.pageNum = Number($scope.curPage);
+                $scope.viewParams['view_search'] = {};
+                $scope.viewParams['view_search']['timeArea'] = $scope.timeArea;
+                $scope.viewParams['view_search']['self_define_search'] = $scope.self_define_search;
+                if ($scope.sourceId[1].length != $scope.items.sourceId.length && $scope.sourceId[1].length != 0) {
+                    $scope.viewParams['view_search']['sourceId'] = $scope.sourceId[1];
+                }
+                if ($scope.severity[1].length != $scope.items.severity.length && $scope.severity[1].length != 0) {
+                    $scope.viewParams['view_search']['severity'] = $scope.severity[1];
+                }
+                if ($scope.notifyStatus[1].length != $scope.items.notifyStatus.length && $scope.notifyStatus[1].length != 0) {
+                    $scope.viewParams['view_search']['notifyStatus'] = $scope.notifyStatus[1]
+                }
+            }
+            //自定义选择事件-----监听
+            $scope.$watch('self_define_search', function (newValue, oldValue) {
+                $scope.curPage = 1;
+                $scope.isEnd = false;
+                $(scrollWrap).animate({
+                    scrollTop: 0
+                }, 300);
+                $scope.dataPreview = [];
+                ($scope.self_define_search[0][0].value || $scope.self_define_search[0][0].value == '') && $scope.matchDataFlag
+                    && ($scope.paramsFunc(), $scope.dataPreviewLoad())
+            }, true)
+            //判断和获取 当self_define_search中value有值时，该值的下标
+            $scope.getSelfDefineSearchValueKey = function () {
+                $scope.self_define_search.filter(function (mem) {
+                    mem.filter(function (inMem) {
+						/*if(inMem.value.length)(
+						 )*/
+                    })
+                })
+            }
+            //查看-已编辑条件
+            $scope.defaultData = function () {
+                DefinedEventsService.queryUserFilterInfo({ viewId: $scope.viewId })
+                    .success(function (result) {
+                        if (result.data) {
+                            $scope.authority = result.data.authority;
+                            $scope.sourceId[0] = result.data.sourceId;//事件来源
+                            $scope.severity[0] = result.data.severity;//事件等级
+                            $scope.ackStatus[0] = result.data.ackStatus;//通知状态
+                            $scope.notifyStatus[0] = result.data.notifyStatus;//确认状态
+                            $scope.timeArea = result.data.timeArea;//事件范围
+                            result.data.self_define_search && ($scope.self_define_search = result.data.self_define_search);//多选默认状态
+                            $scope.dataLoad();
+                        }
+                    })
+                    .error(function (err) {
+                        console.error(err)
+                    });
+            }
+            //数据加载
+            $scope.dataLoad = function () {
+                DefinedEventsService.queryViewCdtDic({})
+                    .success(function (result) {
+                        $scope.items = result.data;
+                        $scope.matchData($scope.items)//数据匹配
+                    })
+                    .error(function (err) {
+                        console.error(err)
+                    })
+            }
+            //数据匹配
+            $scope.matchData = function (data) {
+                angular.forEach(data.sourceId, function (data) {
+                    data['type'] = 'sourceId';//数据类型；
+                    //$scope.sourceId[0].length==0&&(data['check'] = true) //返回空数组的时候默认全选
+                    $scope.sourceId[0].indexOf(data.code) !== -1 && (data['check'] = true);
+                    data.check && $scope.sourceId[1].push(data.code);
+                });
+                angular.forEach(data.severity, function (data) {
+                    data['type'] = 'severity';//数据类型；
+                    //$scope.severity[0].length==0&&(data['check'] = true) //返回空数组的时候默认全选
+                    $scope.severity[0].indexOf(data.severity) !== -1 && (data['check'] = true);
+                    data.check && $scope.severity[1].push(data.severity);
+                })
+                angular.forEach(data.notifyStatus, function (data) {
+                    data['type'] = 'notifyStatus';//数据类型；
+                    //$scope.notifyStatus[0].length==0&&(data['check'] = true) //返回空数组的时候默认全选
+                    $scope.notifyStatus[0].indexOf(data.code) !== -1 && (data['check'] = true);
+                    data.check && $scope.notifyStatus[1].push(data.code);
+                })
+                angular.forEach(data.timearea, function (data) {
+                    data['type'] = 'timearea';//数据类型；
+                    Number(data.englishName) == $scope.timeArea && (data['check'] = true);
+                })
+                $scope.matchDataFlag = true;
+                $scope.curPage = 1;
+                $scope.dataPreview = [];
+                $scope.isEnd = false;
+                $(scrollWrap).animate({
+                    scrollTop: 0
+                }, 300);
+                $scope.paramsFunc(); //预览函数的参数
+                $scope.dataPreviewLoad();//预览函数
+            }
+            //选择框-单选
+            $scope.fnCheck = function (e, item) {
+                e.stopPropagation();
+                var index;
+                switch (item.type) {
+                    case 'sourceId':
+                        index = $scope.sourceId[1].indexOf(Number(item.code));
+                        item.check ? $scope.sourceId[1].splice(index, 1) : $scope.sourceId[1].push(Number(item.code));
+                        item.check = !item.check;
+                        break;
+                    case 'severity':
+                        index = $scope.severity[1].indexOf(Number(item.severity));
+                        item.check ? $scope.severity[1].splice(index, 1) : $scope.severity[1].push(Number(item.severity));
+                        item.check = !item.check;
+                        break;
+                    case 'ackStatus':
+                        index = $scope.ackStatus[1].indexOf(Number(item.code));
+                        item.check ? $scope.ackStatus[1].splice(index, 1) : $scope.ackStatus[1].push(Number(item.code));
+                        item.check = !item.check;
+                        break;
+                    case 'notifyStatus':
+                        index = $scope.notifyStatus[1].indexOf(Number(item.code));
+                        item.check ? $scope.notifyStatus[1].splice(index, 1) : $scope.notifyStatus[1].push(Number(item.code));
+                        item.check = !item.check;
+                        break;
+                    case 'timearea':
+                        if (!item.check) {
+                            angular.forEach($scope.items.timearea, function (data) {
+                                data.check = false;
+                            })
+                            item.check = true;
+                            $scope.timeArea = Number(item.englishName);
+                        }
+                        break;
+
+                }
+                ;
+                $scope.curPage = 1;
+                $scope.dataPreview = [];
+                $scope.isEnd = false;
+                $(scrollWrap).animate({
+                    scrollTop: 0
+                }, 300);
+                $scope.paramsFunc(); //预览函数的参数
+                $scope.dataPreviewLoad();//预览函数
+            }
+            //选择框-全选
+            $scope.fnCheckAll = function (e) {
+                e.stopPropagation();
+                var type = e.target.dataset.type;
+                switch (type) {
+                    case 'sourceId':
+                        if ($scope.sourceId[1].length === $scope.items.sourceId.length) {
+                            $scope.sourceId[1] = [];
+                            angular.forEach($scope.items.sourceId, function (data) {
+                                data.check = false;
+                            });
+                            $scope.sourceIdParmFlag = true;
+                        } else {
+                            $scope.sourceId[1] = [];
+                            angular.forEach($scope.items.sourceId, function (data) {
+                                data.check = true;
+                                $scope.sourceId[1].push(data.code);
+                            });
+                            $scope.sourceIdParmFlag = false;
+                        }
+                        break;
+                    case 'severity':
+                        if ($scope.severity[1].length === $scope.items.severity.length) {
+                            $scope.severity[1] = [];
+                            angular.forEach($scope.items.severity, function (data) {
+                                data.check = false;
+                            });
+                        } else {
+                            $scope.severity[1] = [];
+                            angular.forEach($scope.items.severity, function (data) {
+                                data.check = true;
+                                $scope.severity[1].push(data.severity);
+                            });
+                        }
+                        break;
+                    case 'eventsStatus':
+                        if ($scope.notifyStatus[1].length === $scope.items.notifyStatus.length) {
+                            $scope.notifyStatus[1] = [];
+                            angular.forEach($scope.items.notifyStatus, function (data) {
+                                data.check = false;
+                            });
+                        } else {
+                            $scope.notifyStatus[1] = [];
+                            angular.forEach($scope.items.notifyStatus, function (data) {
+                                data.check = true;
+                                $scope.notifyStatus[1].push(data.code);
+                            });
+                        }
+                        break;
+                }
+                $scope.curPage = 1;
+                $scope.dataPreview = [];
+                $scope.isEnd = false;
+                $(scrollWrap).animate({
+                    scrollTop: 0
+                }, 300);
+                $scope.paramsFunc(); //预览函数的参数
+                $scope.dataPreviewLoad();//预览函数
+            }
+
+
+            /**************自定义板块-功能-开始***********/
+
+
+            $scope.fnEventModel = function (e, keyi, keyii) {
+                e.stopPropagation();
+                if (!$scope.itemsEventModel.length) {
+                    $scope.itemsEventModel = [];
+                    $scope.itemsOp = [];
+                    $scope.itemsEventModel[keyi] = [];
+                    $scope.itemsEventModel[keyi][keyii] = $scope.items.eventModel.filter(function (mem) {
+                        mem['type'] = 'eventModel';
+                        return mem.alias !== $scope.self_define_search[keyi][keyii].alias;
+                    });
+                } else {
+                    $scope.itemsEventModel = [];
+                }
+                $scope.closeThinkModal();
+            };//input 交互
+            $scope.fnOp = function (e, keyi, keyii) {
+                e.stopPropagation();
+                if (!$scope.itemsOp.length) {
+                    $scope.itemsEventModel = [];
+                    $scope.itemsOp = [];
+                    $scope.itemsOp[keyi] = [];
+                    $scope.itemsOp[keyi][keyii] = $scope.items.op.filter(function (mem) {
+                        mem['type'] = 'op';
+                        return mem.chineseName !== $scope.self_define_search[keyi][keyii].chineseName;
+                    });
+                } else {
+                    $scope.itemsOp = [];
+                }
+                $scope.closeThinkModal();
+            }//input 交互
+            $scope.fnGetValue = function (e, item, keyi, keyii) {
+                e.stopPropagation();
+                switch (item.type) {
+                    case 'op':
+                        $scope.self_define_search[keyi][keyii]['chineseName'] = item.chineseName;
+                        $scope.self_define_search[keyi][keyii]['op'] = item.englishName;
+                        $scope.itemsOp = [];
+                        break;
+                    case 'eventModel':
+                        $scope.self_define_search[keyi][keyii]['alias'] = item.alias;
+                        $scope.self_define_search[keyi][keyii]['field'] = item.name;
+                        $scope.itemsEventModel = [];
+                        break;
+                }
+            }
+            //添加新条件-内框
+            $scope.fnAddNewRule = function (e, keyi, keyii) {
+                e.stopPropagation();
+                var type = e.target.dataset.btnType;
+                switch (type) {
+                    case 'in':
+                        $.each($scope.self_define_search[keyi], function () {
+                            this.searchThinkFlag = false;
+                        })
+                        $scope.self_define_search[keyi].push({
+                            alias: L.get('EMV_EVENT_OBJECT'),
+                            field: 'CINAME',
+                            chineseName: L.get('EMV_EQUAL'),
+                            op: '=',
+                            value: ''
+                        });
+
+                        break;
+                    case 'out':
+
+                        $.each($scope.self_define_search, function () {
+                            $.each(this, function () {
+                                this.searchThinkFlag = false;
+                            })
+                        })
+                        $scope.self_define_search.push([{
+                            alias: L.get('EMV_EVENT_OBJECT'),
+                            field: 'CINAME',
+                            chineseName: L.get('EMV_EQUAL'),
+                            op: '=',
+                            value: ''
+                        }]);
+                        break;
+                }
+                $('#main_Box').animate({
+                    scrollTop: $('#main_Box')[0].scrollHeight
+                }, 500);
+            }
+            $scope.searchThinkFlag = false;
+            //联想值赋值
+            $scope.getCountTopvalueFun = function (item, value) {
+                value.value = item;
+                $scope.columnCountTop = [];
+                value.searchThinkFlag = false;
+            }
+            /*关键词联想*/
+            $scope.searchMoreKey = function (e, keyi, keyii) {
+                $scope.self_define_search[keyi][keyii].searchThinkFlag = true
+                var serchVal = $scope.self_define_search[keyi][keyii].value;
+                $scope.columnCountTop = [];
+                MonitoringService.columnCountTop10forView({
+                    column: $scope.self_define_search[keyi][keyii].field,
+                    likeValue: serchVal
+                })
+                    .success(function (result) {
+                        $scope.columnCountTop = result.data ? result.data : [];
+                        $.each($scope.columnCountTop, function (index) {
+                            if (!this) {
+                                $scope.columnCountTop.splice(index, 1);
+                            }
+                        })
+                    })
+            }
+            //删除新条件-内框
+            $scope.fnDelNewRule = function (e, keyi, keyii) {
+                e.stopPropagation();
+                var type = e.target.dataset.btnType;
+                switch (type) {
+                    case 'in':
+                        $scope.self_define_search[keyi].splice(keyii, 1);
+                        break;
+                    case 'out':
+                        $scope.self_define_search.splice(keyi, 1);
+                        break;
+                }
+
+            }
+            /**************自定义板块-功能-结束***********/
+            $scope.isEnd = false;
+            $scope.dataPreview = [];
+            //数据预览
+            $scope.dataPreviewLoad = function () {
+                DefinedEventsService.queryEventPage($scope.viewParams)
+                    .success(function (result) {
+                        if (result.data) {
+                            $scope.dataPreviewLoadding = false;//预览数据
+                            if (!result.data.data.length || result.data.totalPages == $scope.curPage) {
+                                // $scope.curPage--;
+                                $scope.isEnd = true;
+                                $scope.busy = false;
+                            }
+                            $scope.totalPages = result.data.totalPages;
+                            angular.forEach(result.data.data, function (data) {
+                                // data.SEVERITY == '严重' && (data.SEVERITYNUM = 4);
+                                // data.SEVERITY == '重要' && (data.SEVERITYNUM = 3);
+                                // data.SEVERITY == '一般' && (data.SEVERITYNUM = 2);
+                                // data.SEVERITY == '其他' && (data.SEVERITYNUM = 1);
+                                $scope.dataPreview.push(data)
+                            })
+                            $scope.calcLastTime($scope.dataPreview);
+                        }
+                        $scope.busy = false;
+                    })
+                    .error(function (err) {
+                        console.error(err)
+                    })
+            }
+            //新建-保存-根据选择条件编辑事件台
+            //$scope.isCopy=$state.params.isCopy;
+            $scope.noChangePage = $state.params.noChangePage
+            if ($scope.noChangePage == 1) {
+                $scope.newBuid = true;
+                /*新建*/
+                $timeout(function () {
+                    $('.title_input').focus()
+                }, 10)
+
+            }
+            if ($scope.noChangePage == 2) {
+                $scope.isCopy = true;
+                var nameAry = $state.params.viewName.split('_');
+                $scope.initTitleName = nameAry.slice(0, nameAry.length - 1).join('_');
+                console.log($scope.initTitleName)
+                /*复制*/
+            }
+            if ($scope.noChangePage == 3) {
+                $scope.editFlag = true;
+
+                /*编辑*/
+            }
+            /*是关注还是未关注状态的自定义0未关注 1已关注*/
+            $scope.isFollowStatus = $state.params.status;
+            $scope.fnSaveEvents = function () {
+                if (!$scope.authority && !$scope.isCopy && $scope.viewId !== '1') {
+                    Unit.error(L.get('EMV_YOU_DO_NOT_HAVE_PERMISSION_TO_EDIT_THIS_EVENT_TABLE'));
+                    return;
+                }
+                if (!$scope.viewName) {
+                    Unit.error(L.get('EMV_EVENT_TABLE_NAME_CANNOT_BE_EMPTY'));
+                    return;
+                }
+                if ($scope.viewName.length > 50) {
+                    Unit.error(L.get('EMV_EVENT_TABLE_NAME_CANNOT_BE_EMPTY', { name: '50' }));
+                    return;
+                }
+                $scope.saveParams = {
+                    viewName: $scope.viewName,
+                    viewId: $scope.viewId,
+                    search_param: {
+                        timeArea: $scope.timeArea,
+                        self_define_search: $scope.self_define_search
+                    }
+                }
+                //全选时不传，都没选时传参[]
+                if ($scope.sourceId[1].length != $scope.items.sourceId.length) {
+                    $scope.saveParams.search_param.sourceId = $scope.sourceId[1];
+                }
+                if ($scope.severity[1].length != $scope.items.severity.length) {
+                    $scope.saveParams.search_param.severity = $scope.severity[1];
+                }
+                if ($scope.notifyStatus[1].length != $scope.items.notifyStatus.length) {
+                    $scope.saveParams.search_param.notifyStatus = $scope.notifyStatus[1];
+                }
+                if ($scope.viewId === '1' || $scope.isCopy) {//新建
+                    //viewId=1新建 $scope.isCopy复制
+                    MonitoringService.addview($scope.saveParams)
+                        .success(function (result) {
+                            if (result.success) {
+                                $scope.viewId = String(result.data);
+                                $scope.jumpMenu();
+                            } else {
+                                Unit.error(result.message);
+                            }
+                        }).error(function (err) {
+                            console.error(err)
+                        });
+                } else {
+                    //修改
+                    DefinedEventsService.modifyQueryCondition($scope.saveParams)
+                        .success(function (result) {
+                            if (result.success) {
+                                $scope.jumpMenu();
+                            } else {
+                                Unit.error(result.message);
+                            }
+                        })
+                        .error(function (err) {
+                            console.error(err)
+                        });
+
+                }
+
+            };
+
+            //保存后的跳转
+            $scope.jumpMenu = function () {
+                // if ($scope.isFollowStatus === '0' || $scope.isCopy) {
+                //     //未关注的自定义事件
+                //     $scope.newEventsLoad();
+                // } else {
+                //     //获取所有已关注的自定义事件
+                //     $scope.getSubViews();
+                // }
+                if ($scope.isCopy) {
+                    $rootScope.definedEventIdMap[$scope.viewId] = $scope.viewName;
+                    //复制
+                    $state.go('tarsier.monitoring.definedEvents', {
+                        viewId: $scope.viewId,
+                        type: 1,
+                        status: 0,
+                        viewName: $scope.viewName,
+                        noChangePage: 1
+                    });
+
+                } else {
+                    $rootScope.definedEventIdMap[$scope.viewId] = $scope.viewName;
+                    $state.go('tarsier.monitoring.definedEvents', {
+                        viewId: $scope.viewId,
+                        type: 1,
+                        status: $scope.isFollowStatus,
+                        viewName: $scope.viewName,
+                        noChangePage: 1,
+                    });
+                }
+                if ($scope.creatEventFlag || $scope.isCopy) {
+                    //新建或复制
+                    $scope.menu.addMenu({
+                        label: $scope.viewName,
+                        id: $scope.viewId,
+                        code: '0602',
+                        isDisallowFavorite: true,
+                        goJumpUrl: 'tarsier.monitoring.definedEvents',
+                        moduUrl: '/index.html#/tarsier/monitoring/definedEvents',
+                        parentCode: '06',
+                        iconClassName: 'ts ts-maintenance-2',
+                        menuName: $scope.viewName,
+                        menuId: $scope.viewId
+                    }, $scope.definedfollowId);
+                    $rootScope.definedEventIdMap[$scope.viewId] = $scope.viewName;
+                    $scope.menu.open($scope.definedfollowId);
+
+                    $scope.menu.setSelect($scope.viewId);
+                } else {
+                    $rootScope.definedEventIdMap[$scope.viewId] = $scope.viewName;
+                    //编辑
+                    $scope.menu.setLabel($scope.viewId, $scope.viewName);
+                }
+                window.rootNav && window.rootNav.setBreadcrumbs([{ label: $scope.viewName }]);
+            }
+            //取消-保存
+            $scope.fnCancel = function () {
+                //history.back();
+                if ($scope.creatEventFlag) {
+                    $state.go('tarsier.monitoring.events', {
+                        viewId: 'aaa'
+                    });
+                    $scope.menu.open($scope.allfollowId);
+                    $scope.menu.setSelect('999999999999999');
+                    window.rootNav && window.rootNav.setBreadcrumbs([{ label: '全部故障' }]);
+                } else {
+                    history.back();
+                    $scope.initTitleName && window.rootNav && window.rootNav.setBreadcrumbs([{ label: $scope.initTitleName }]);
+                }
+
+            }
+            //计算持续时间
+            $scope.calcLastTime = function (params) {
+                angular.forEach(params, function (data) {
+                    var data1 = new Date(data.FIRSTOCCURRENCE);
+                    var data2 = new Date();
+                    data.last = $scope.formatSeconds((data2.getTime() - data1.getTime()) / 1000);
+                })
+            }
+            //时间计算公式
+            $scope.formatSeconds = function (value) {
+                var theTime = window.parseInt(value);// 秒
+                var theTime1 = 0;// 分
+                var theTime2 = 0;// 小时
+                if (theTime > 60) {
+                    theTime1 = window.parseInt(theTime / 60);
+                    theTime = window.parseInt(theTime % 60);
+                    if (theTime1 > 60) {
+                        theTime2 = window.parseInt(theTime1 / 60);
+                        theTime1 = window.parseInt(theTime1 % 60);
+                    }
+                }
+                var result = '';
+                if (theTime1 > 0) {
+                    result = '' + window.parseInt(theTime1) + 'm' + result;
+                }
+                if (theTime2 >= 0) {
+                    result = '' + window.parseInt(theTime2) + 'h' + result;
+                }
+                return result;
+            }
+            /*分页*/
+            var scrollWrap = $('.events-list-liBox').eq(0);
+            //显示回到顶部
+            $scope.showGoTop = false;
+            // 滚动到最底部加载更多
+            scrollWrap.on('scroll', function () {
+                //显示回到顶部
+                if ($(this).scrollTop() > 500) {
+                    $scope.showGoTop = true;
+                    $scope.$apply();
+                } else {
+                    $scope.showGoTop = false;
+                    $scope.$apply();
+                }
+
+                var last = $(scrollWrap).find('.events-list').children().eq(-1);
+                if (last.length && (last.offset().top - 50 < this.offsetHeight && !$scope.busy && !$scope.isEnd)) {
+                    $scope.busy = true;
+                    $scope.curPage++;
+                    $scope.paramsFunc(); //预览函数的参数
+                    $scope.dataPreviewLoad();//预览函数
+                }
+            });
+        }]);
+})(nameSpace.reg('graph'), nameSpace.reg('monitor.newEvents'));

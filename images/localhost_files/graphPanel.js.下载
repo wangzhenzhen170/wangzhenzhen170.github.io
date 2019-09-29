@@ -1,0 +1,198 @@
+(function(graph) {
+
+    var testdata = '<mxGraphModel dx="538.94" dy="209.16" grid="1" gridSize="10" guides="1" tooltips="0" connect="1" fold="1" page="0" pageScale="1" pageWidth="826" pageHeight="1169" upanel-width="800" upanel-height="600" upanel-enabled="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="ci_5B224170706C69636174696F6E222C22E8B4B5E98791E5B19EE4BAA4E69893E7B3BBE7BB9F222C22225D" value="贵金属交易系统" style="image;image=/mmdb-api/resource/svg/Application.png" parent="1" vertex="1" ciId="5B224170706C69636174696F6E222C22E8B4B5E98791E5B19EE4BAA4E69893E7B3BBE7BB9F222C22225D"><mxGeometry x="-69.73926271984924" y="180" width="80" height="80" as="geometry"/><Object as="ugview"><mxGeometry x="-69.73926271984924" y="180" width="80" height="80" as="oriGeo"/></Object></mxCell><mxCell id="ci_5B224170706C69636174696F6E222C22E68AA5E4BBB7E5BC95E6938E222C22225D" value="报价引擎" style="image;image=/mmdb-api/resource/svg/Application.png" parent="1" vertex="1" ciId="5B224170706C69636174696F6E222C22E68AA5E4BBB7E5BC95E6938E222C22225D"><mxGeometry x="180" y="39.893245524497445" width="80" height="80" as="geometry"/><Object as="ugview"><mxGeometry x="180" y="39.893245524497445" width="80" height="80" as="oriGeo"/></Object></mxCell><UserObject label="核心交易" view="580dca50e4b06b7715da5b0a" direction="down" id="ci_5B224170706C69636174696F6E222C22E6A0B8E5BF83E4BAA4E69893222C22225D"><mxCell style="image;image=/mmdb-api/resource/svg/Application.png" parent="1" vertex="1" ciId="5B224170706C69636174696F6E222C22E6A0B8E5BF83E4BAA4E69893222C22225D"><mxGeometry x="429.859296482412" y="180.47659194409516" width="80" height="80" as="geometry"/><Object as="ugview"><mxGeometry x="429.859296482412" y="180.47659194409516" width="80" height="80" as="oriGeo"/></Object></mxCell></UserObject><mxCell id="ci_5B224170706C69636174696F6E222C22E9A38EE999A9E7AEA1E79086E7B3BBE7BB9F222C22225D" value="风险管理系统" style="image;image=/mmdb-api/resource/svg/Application.png" parent="1" vertex="1" ciId="5B224170706C69636174696F6E222C22E9A38EE999A9E7AEA1E79086E7B3BBE7BB9F222C22225D"><mxGeometry x="180" y="329.7864910489949" width="80" height="80" as="geometry"/><Object as="ugview"><mxGeometry x="180" y="329.7864910489949" width="80" height="80" as="oriGeo"/></Object></mxCell><mxCell id="23" value="" style="edgeStyle=none" parent="1" source="ci_5B224170706C69636174696F6E222C22E8B4B5E98791E5B19EE4BAA4E69893E7B3BBE7BB9F222C22225D" target="ci_5B224170706C69636174696F6E222C22E68AA5E4BBB7E5BC95E6938E222C22225D" edge="1"><mxGeometry y="60" width="100" height="100" as="geometry"><mxPoint y="160" as="sourcePoint"/><mxPoint x="100" y="60" as="targetPoint"/></mxGeometry><Object as="ugview"><mxGeometry y="60" width="100" height="100" as="oriGeo"><mxPoint y="160" as="sourcePoint"/><mxPoint x="100" y="60" as="targetPoint"/></mxGeometry></Object></mxCell><mxCell id="24" value="" style="edgeStyle=none" parent="1" source="ci_5B224170706C69636174696F6E222C22E8B4B5E98791E5B19EE4BAA4E69893E7B3BBE7BB9F222C22225D" target="ci_5B224170706C69636174696F6E222C22E9A38EE999A9E7AEA1E79086E7B3BBE7BB9F222C22225D" edge="1"><mxGeometry x="10" y="70" width="100" height="100" as="geometry"><mxPoint x="20.27376010487211" y="217.60174969048137" as="sourcePoint"/><mxPoint x="250.7085427135678" y="150.93508302381468" as="targetPoint"/></mxGeometry><Object as="ugview"><mxGeometry x="10" y="70" width="100" height="100" as="oriGeo"><mxPoint x="20.27376010487211" y="217.60174969048137" as="sourcePoint"/><mxPoint x="250.7085427135678" y="150.93508302381468" as="targetPoint"/></mxGeometry></Object></mxCell><mxCell id="25" value="" style="edgeStyle=none" parent="1" source="ci_5B224170706C69636174696F6E222C22E68AA5E4BBB7E5BC95E6938E222C22225D" target="ci_5B224170706C69636174696F6E222C22E6A0B8E5BF83E4BAA4E69893222C22225D" edge="1"><mxGeometry x="10" y="70" width="100" height="100" as="geometry"><mxPoint x="20.27376010487211" y="211.804648241206" as="sourcePoint"/><mxPoint x="189.83897749617643" y="137.89160476294512" as="targetPoint"/></mxGeometry><Object as="ugview"><mxGeometry x="10" y="70" width="100" height="100" as="oriGeo"><mxPoint x="20.27376010487211" y="211.804648241206" as="sourcePoint"/><mxPoint x="189.83897749617643" y="137.89160476294512" as="targetPoint"/></mxGeometry></Object></mxCell><mxCell id="26" value="" style="edgeStyle=none" parent="1" source="ci_5B224170706C69636174696F6E222C22E9A38EE999A9E7AEA1E79086E7B3BBE7BB9F222C22225D" target="ci_5B224170706C69636174696F6E222C22E6A0B8E5BF83E4BAA4E69893222C22225D" edge="1"><mxGeometry x="20" y="80" width="100" height="100" as="geometry"><mxPoint x="269.5491224237127" y="137.89160476294512" as="sourcePoint"/><mxPoint x="510.1288325686403" y="250.93508302381474" as="targetPoint"/></mxGeometry><Object as="ugview"><mxGeometry x="20" y="80" width="100" height="100" as="oriGeo"><mxPoint x="269.5491224237127" y="137.89160476294512" as="sourcePoint"/><mxPoint x="510.1288325686403" y="250.93508302381474" as="targetPoint"/></mxGeometry></Object></mxCell></root></mxGraphModel>';
+
+    'use strict';
+    /**
+     * 视图面板，用于打开视图用
+     *
+     * 指令接收一个option对象:
+     *   option.config - 指定属性值，具体见代码里DEFAULT_CONFIG内容
+     *   option.viewData - 视图数据对象
+     *
+     * 回调函数:
+     *   onWillOpenView(editor) - 在每次将要打开视图之前调用该方法
+     *   onOpenView(editor) - 每次打开视图时会调用该方法，传递一个Editor对象
+     *   onSelectCell(cellId) - 每次新选中（点击）一个元素时会调用该方法
+     *   onUnselectCell(cellId) - 取消选中某个元素时
+     *   onNoneSelect() - 从选中状态到未选中任何元素时
+     *   onSelectVertex(cellId) - 选中的元素是节点时回调该方法
+     *   onSelectEdge(cellId) - 选中的元素是连线时回调该方法
+     */
+    graph.app.directive('graphPanel', ['Editor', 'emxEffects', 'emxExpandMxShape',
+        function(Editor, emxEffects, emxExpandMxShape) {
+            /**
+             * 编辑器默认属性
+             */
+            var DEFAULT_CONFIG = {
+                // 背景图片
+                backgroundImage: 'none',
+                // 是否允许移动元素
+                cellsMovable: false,
+                isFull: false,
+
+                // 容器背景颜色
+                swimlaneFillColor: 'white',
+                // 隐藏连线上的label
+                uHideEdgeLabel: 1,
+                // 开启动画效果
+                uEnableAnimate: true
+            };
+
+            /**
+             * 设置编辑器
+             * @param {object} editor - 编辑器对象
+             * @param {object} config - 配置内容
+             */
+            function configEditor(editor, config) {
+                editor.action.disabled();
+                editor.graph.container.style.backgroundImage = config.backgroundImage;
+                editor.graph.setCellsMovable(config.cellsMovable);
+                editor.isFull = config.isFull;
+
+
+                // 容器背景
+                var gss = editor.graph.getStylesheet();
+                gss.styles.swimlane &&
+                    (gss.styles.swimlane[mxConstants.STYLE_SWIMLANE_FILLCOLOR] = config.swimlaneFillColor);
+                // 是否隐藏连线上的Label
+                if (gss.styles.defaultEdge) {
+                    gss.styles.defaultEdge[mxConstants.uSTYLE_HIDELABEL] = config.uHideEdgeLabel;
+                }
+                // 开启动画效果
+                if (config.uEnableAnimate) {
+                    editor.graph.getModel().addListener(mxEvent.CHANGE, function(sender, evt) {
+                        var changes = evt.getProperty('edit').changes;
+
+                        // 设置动画效果
+                        mxEffects.animateChanges(editor.graph, changes, function() {
+                            // 动画执行完后执行的内容
+
+                            // 触发完成变化动画的事件
+                            editor.graph.fireEvent(new mxEventObject('DONECHANGEANI', 'changes', changes));
+                        });
+                    });
+                }
+            }
+
+            /**
+             * 执行回调函数
+             * @param {function} fct  - 被执行的回调函数
+             * @param {Array}    [args] - 传递给回调函数的参数列表
+             * @param {object}   [ctx]  - 函数上下文
+             */
+            function runCallBack(fct, args, ctx) {
+                if (typeof fct !== 'function') return;
+
+                try {
+                    // 回调选中元素方法
+                    fct.apply(ctx, args);
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            /**
+             * 注册点击事件
+             * @param {object} editor - Editor对象
+             * @param {object} scope  - 指令的$scope对象
+             */
+            function regClickEvent(editor, scope) {
+                editor.graph.addListener(mxEvent.CLICK, function(sender, evt) {
+                    var e, cell, mxg;
+
+                    e = evt.getProperty('event');
+                    cell = evt.getProperty('cell');
+                    mxg = editor.graph;
+
+                    if (cell) {
+                        // 如果重新选择了一个元素
+                        if (e.which === 1 && cell.id !== scope._selectedCellId) {
+                            if (scope._selectedCellId) {
+                                scope.effects.sel.clear(scope._selectedCellId);
+                                runCallBack(scope.onUnselectCell, [scope._selectedCellId]);
+                            }
+
+                            runCallBack(scope.onSelectCell, [cell.id]);
+
+                            // 如果选中的是结点元素
+                            if (mxg.model.isVertex(cell)) {
+                                scope.effects.sel.createEffect(cell.id);
+                                runCallBack(scope.onSelectVertex, [cell.id]);
+                            } else if (mxg.model.isEdge(cell)) {
+                                runCallBack(scope.onSelectEdge, [cell.id]);
+                            }
+
+                            scope._selectedCellId = cell.id;
+                        }
+                    } else {
+                        if (scope._selectedCellId) {
+                            scope.effects.sel.clear(scope._selectedCellId);
+
+                            runCallBack(scope.onUnselectCell, [scope._selectedCellId]);
+
+                            runCallBack(scope.onNoneSelect);
+
+                            scope._selectedCellId = null;
+                        }
+                    }
+
+                    evt.consume();
+                });
+            }
+
+
+            function openView(scope, viewData) {
+                var editor = scope.editor;
+                // 初始化一些与视图相关的状态
+                scope._selectedCellId = null;
+
+                if (typeof scope.onWillOpenView === 'function') {
+                    runCallBack(scope.onWillOpenView, [editor]);
+                }
+
+                editor.action.openView(viewData);
+
+                if (typeof scope.onOpenView === 'function') {
+                    runCallBack(scope.onOpenView, [editor]);
+                }
+
+            }
+
+            return {
+                restrict: 'AE',
+                replace: true,
+                templateUrl: 'app/directive/graphPanel/graphPanel.html',
+                scope: {
+                    'option': '=',
+                    'onOpenView': '=',
+                    'onWillOpenView': '=',
+                    'onSelectCell': '=',
+                    'onUnselectCell': '=',
+                    'onNoneSelect': '=',
+                    'onSelectVertex': '=',
+                    'onSelectEdge': '='
+                },
+                link: function(scope, ele, attrs) {
+                    var op = scope.option || {};
+                    var cfg = scope.config = angular.extend({}, DEFAULT_CONFIG, op.config);
+                    var editor = scope.editor = new Editor(ele[0].querySelector('.graph-panel-content'), null, true);
+
+                    configEditor(editor, cfg);
+                    regClickEvent(editor, scope);
+                    // 扩展形状
+                    new emxExpandMxShape(editor.graph);
+                    // 创建特效对象
+                    scope.effects = new emxEffects(editor.graph);
+
+                    scope.$watch('option.viewData', function(nv, ov) {
+                        if (nv) {
+                            openView(scope, nv);
+                        }
+                    });
+                }
+            };
+        }
+    ]);
+
+})(nameSpace.reg('graph'));

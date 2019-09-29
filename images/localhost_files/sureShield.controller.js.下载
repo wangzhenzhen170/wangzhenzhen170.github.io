@@ -1,0 +1,79 @@
+/**
+ * Created by uinnova on 2017/11/14.
+ */
+(function (graph) {
+
+    'use strict';
+    graph.app.controller('sureShieldCtrl', ['$uibModal', 'fn', '$scope', '$uibModalInstance', 'MonitoringService', 'OScreenService', 'selectList', 'Unit', function ($uibModal, fn, $scope, $uibModalInstance, MonitoringService, OScreenService, selectList, Unit) {
+        //条件
+        $scope.selectList = selectList;
+        $scope.previewListFun = function () {
+            $uibModal.open({
+                size: 'previewList',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/previewList.html',
+                controller: 'previewCtrl',
+                resolve: {
+                    list: function () {
+                        return $scope.selectList;
+                    },
+                    sourceId: function () {
+                        return [];
+                    },
+
+                }
+            });
+        }
+        //将屏蔽事件关闭
+        $scope.ok = function () {
+            if ($scope.selectList.selectorList[0].selectors[1].value === '-1') {
+                $scope.selectList.selectorList[0].selectors.splice(1, 1);
+            }
+            $uibModalInstance.close();
+            $scope.selectList.periodType = 1;
+            MonitoringService.saveMaPeriod($scope.selectList).success(function (result) {
+                if (result.success) {
+                    MonitoringService.fastDiscardEvent({ selectorList: $scope.selectList.selectorList }).success(function (data) {
+                        if (data.success) {
+                            Unit.success(L.get('COMMON_CLOSED_SUCCESSFUL'));
+                            fn();
+                        } else {
+                            Unit.error(L.get('EMV_CLOSING_FAILURE'));
+                        }
+
+                    }).error(function () {
+                    });
+                } else {
+                    Unit.error(L.get('EMV_CLOSING_FAILURE'));
+                }
+
+            }).error(function () {
+            });
+        };
+        // 不将屏蔽事件关闭
+        $scope.cancelClose = function () {
+            if ($scope.selectList.selectorList[0].selectors[1].value === '-1') {
+                $scope.selectList.selectorList[0].selectors.splice(1, 1);
+            }
+            $uibModalInstance.close();
+            $scope.selectList.periodType = 1;
+            MonitoringService.saveMaPeriod($scope.selectList).success(function (result) {
+                //console.log(result)
+                if (result.success) {
+                    Unit.success(L.get('EMV_SHIELDING_SUCCESS'));
+                    fn();
+                } else {
+                    Unit.error(L.get('EMV_SHIELDING_FAILURE'));
+                }
+
+            }).error(function () {
+            });
+        };
+        // 取消按钮
+        $scope.cancel = function () {
+            $uibModalInstance.close({ ok: false });
+        };
+
+    }])
+})(nameSpace.reg('graph'));

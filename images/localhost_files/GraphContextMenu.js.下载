@@ -1,0 +1,321 @@
+/* global mxPopupMenu */
+/* global mxEvent */
+/* global mxEventObject */
+/* global mxClipboard */
+
+
+(function(graph){
+
+	'use strict';
+
+
+	graph.app.factory('GraphContextMenu', function(md5, ContextMenu, Unit, Const){
+
+		var addSeparator = '-';
+
+		var addItems = function(menu, items, parentMenu){
+			var i, itemMenu = null;
+
+			for(i=0; i<items.length; i++){
+
+				if(items[i]){
+					if(angular.isArray(items[i])){
+						addItems.apply(this, [menu, items[i], itemMenu]);
+					}else if(angular.isObject(items[i])){
+						if(typeof parentMenu === 'object'){
+							menu.addItem(graph.translate(items[i].name), null, items[i].fun, parentMenu, items[i]);
+						}else{
+							itemMenu = menu.addItem(graph.translate(items[i].name), null, items[i].fun, null, items[i]);
+						}
+					}else if(angular.isString(items[i])){
+						if(items[i] === addSeparator){
+							menu.addSeparator(parentMenu);
+						}else{
+							if(typeof parentMenu === 'object'){
+								menu.addItem(items[i], null, null, parentMenu);
+							}else{
+								itemMenu = menu.addItem(graph.translate(items[i]), null, null);
+							}
+						}
+					}
+				}else{
+					throw new Error(i);
+				}
+
+			}
+		};
+
+
+		var append = function(arr, items, libs, _this){
+			var i, temp, push;
+
+			push = function(name, fun, aliases){
+				var text, funt;
+
+				text = aliases ? aliases : name;
+				funt = fun ? fun : libs[name];
+
+				if(typeof funt === 'function'){
+					items.push({
+						name: text,
+						fun: function(e){
+							var evt = e ? e : _this.evt;
+							if(_this.that){
+								funt.apply(_this.that, [evt, _this.selectionCell]);
+							}else{
+								funt.apply(_this.editor, [evt, _this.selectionCell]);
+							}
+						}
+					});
+				}else{
+					items.push(text);
+				}
+			};
+
+			for(i=0; i<arr.length; i++){
+				if(arr[i]){
+					if(arr[i].constructor === Object && arr[i].name){
+						push(arr[i].name, arr[i].fun, arr[i].aliases);
+					}else if(arr[i].constructor === Array){
+						temp = [];
+						items.push(temp);
+						append(arr[i], temp, libs, _this);
+					}else{
+						push(arr[i], libs[arr[i]]);
+					}
+				}else{
+					throw new Error(arr[i]);
+				}
+			}
+		};
+
+		var libs =  {};
+
+		var GraphContextMenu = function (o, option) {
+			this.editor = o.graph ? o : {graph: o};
+			this.option = option;
+			this.menu = new ContextMenu();
+			this.items = {
+				cell: [],
+				vertex: [],
+				edge: [],
+				canvas: [],
+				all: []
+			};
+
+			this.that = null;
+			if (typeof option === 'object' && option.that) {
+				this.that = option.that;
+			}
+			this.addLibs(option.libs);
+			//this.addConfigDefinedMenu();
+			this.itemsInit();
+			this.bind();
+		};
+
+
+		GraphContextMenu.prototype.itemsInit = function(){
+			var _this = this, arr, libs;
+
+			libs = _this.getLibs();
+
+			$.each(_this.items, function(i){
+				arr = _this.option[i] ? _this.option[i] : [];
+				append(arr, _this.items[i], libs, _this);
+			});
+		};
+
+
+		GraphContextMenu.prototype.filter = function(cell){
+			var _this = this, handle, items;
+
+			var loop = function(list){
+				var i;
+				for(i=0; i<list.length; i++){
+					if(angular.isArray(list[i])){
+						loop(list[i]);
+					}else{
+						if(handle.apply(_this, [list[i], cell])){
+							list[i] = _this.createDisabledItem(list[i]);
+						}
+					}
+				}
+			};
+
+			if(cell && cell.vertex){
+				handle = _this.filterVertex;
+				items = angular.copy(_this.items.vertex);
+				loop(items);
+			}
+
+			if(cell && cell.edge){
+				handle = _this.filterEdge;
+				items = angular.copy(_this.items.edge);
+				loop(items);
+			}
+
+			if(!cell){
+				handle = _this.filterCanvas;
+				items = angular.copy(_this.items.canvas);
+				loop(items);
+			}
+
+			//if(_this.option && _this.option.filter){
+			//	//items = _this.option.filter(items);
+			//}
+
+			return items;
+		};
+
+		/**
+		 * ci赛选
+		 * @param {object} item [[Description]]
+		 * @param {object} cell [[Description]]
+		 */
+		GraphContextMenu.prototype.filterVertex = function(item, cell){
+			var name, _this = this;
+
+			if(angular.isObject(item)){
+				name = item.name;
+			}else if(angular.isString(item)){
+				name = item;
+			}
+
+			if(!_this.editor.graph.getCellAttr(cell, 'link') && name === Const.MENU_OPEN_URL){return true;}
+			if(!_this.editor.graph.getCellAttr(cell, 'view') && !cell.relationViewId && (name === Const.MENU_VIEW_RELATION_OPEN || name === Const.MENU_VIEW_RELATION_DELETE)){return true;}
+			if(name === Const.MENU_NODE_SWITCH_TABLE && cell.isTableMode){return true;}
+			if(name === Const.MENU_NODE_SWITCH_CLASSIC && !cell.isTableMode){return true;}
+            if((!cell.getStyle() || cell.getStyle() && cell.getStyle().indexOf('image') === -1) && name === Const.MENU_IMAGE_COLOR){
+                return true;
+            }
+			if(!Unit.isCiCellByDataId(cell) && (
+					name === Const.MENU_EXPAND_NODE ||
+					name === Const.MENU_SHOW_CI_INFO ||
+					name === Const.MENU_CI_EACH
+				)){return true;}
+
+
+
+		};
+
+		GraphContextMenu.prototype.filterEdge = function(item, cell){
+            var name, _this = this;
+
+            if(angular.isObject(item)){
+                name = item.name;
+            }
+            if((!Unit.isCiCellByDataId(cell.source) || !Unit.isCiCellByDataId(cell.target)) && (name === Const.MENU_CHOOSE_RELATION)){
+                return true;
+            }
+		};
+
+		GraphContextMenu.prototype.filterCanvas = function(item){
+			var name, _this = this;
+
+			if(angular.isObject(item)){
+				name = item.name;
+			}
+
+			if(angular.isString(item)){
+				name = item;
+			}
+
+			if(!_this.editor.state.view && (
+					name === Const.MENU_VIEW_UPDATE ||
+					name === Const.MENU_VIEW_NEW
+				)){return true;}
+
+			if(_this.editor.graph.getDepCells().length === 0 && (
+					name === Const.MENU_EXPORT ||
+					name === Const.MENU_LAYOUT ||
+					name === Const.MENU_ZOOM_CENTER
+				)){return true;}
+
+			if(_this.editor.history.count() === 0 && name === Const.MENU_VIEW_RELATION_BACK){return true;}
+			if(!mxClipboard.cells && name === Const.MENU_CELL_PASTE){return true;}
+
+		};
+
+		GraphContextMenu.prototype.createDisabledItem = function(item){
+			var name;
+
+			if(angular.isObject(item)){
+				name = item.name;
+			}
+
+			if(angular.isString(item)){
+				name = item;
+			}
+
+			return {disabled: true, name: name};
+		};
+
+		GraphContextMenu.prototype.bind = function(){
+			var _this = this;
+
+			mxPopupMenu.prototype.popup = function(x, y, cell, evt){
+				if (this.div !== null && this.tbody !== null && this.factoryMethod !== null)
+				{
+					this.div.style.left = x + 'px';
+					this.div.style.top = y + 'px';
+
+					// Removes all child nodes from the existing menu
+					while (this.tbody.firstChild !== null)
+					{
+						mxEvent.release(this.tbody.firstChild);
+						this.tbody.removeChild(this.tbody.firstChild);
+					}
+
+					this.itemCount = 0;
+
+					this.factoryMethod(this, cell, evt);
+
+					if (this.itemCount > 0)
+					{
+						this.showMenu();
+						this.fireEvent(new mxEventObject(mxEvent.SHOW));
+					}
+				}
+			};
+
+			// Prevent right-click menu
+			mxEvent.disableContextMenu(document.body);
+
+			// Configures automatic expand on mouseover
+			_this.editor.graph.panningHandler.autoExpand = true;
+
+			_this.editor.graph.popupMenuHandler.autoExpand = true;
+
+			// Installs context menu
+			_this.editor.graph.popupMenuHandler.factoryMethod = function(menu, cell, evt){
+
+				_this.selectionCell = cell;
+
+				//addItems(menu, items);
+				_this.evt = evt;
+				_this.menu.clearAllItems();
+				addItems.apply(_this, [_this.menu, _this.filter(cell)]);
+				_this.menu.show(evt.clientX, evt.clientY);
+			};
+		};
+
+
+		GraphContextMenu.prototype.addLibs = function(obj){
+			if(obj && obj.constructor === Object){
+				$.each(obj, function(i){
+					if(this.constructor === Function){
+						libs[i] = obj[i];
+					}
+				});
+			}
+		};
+
+		GraphContextMenu.prototype.getLibs = function(){
+			return libs;
+		};
+
+		return GraphContextMenu;
+
+	});
+
+})(nameSpace.reg('graph'));

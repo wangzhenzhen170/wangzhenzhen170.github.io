@@ -1,0 +1,90 @@
+
+(function(self){
+
+	'use strict';
+
+	self.TOKEN = 'eqtFq47ald1QPWVWiBa4zInBGHWA59bzUGeJ2HxvBJ4=';
+
+    self.mxBasePath = 'assets/plugins/mxGraph/';
+
+	self.IMAGE_PATH = self.mxBasePath + 'images';
+	self.STYLE_PATH = self.mxBasePath + 'css';
+	self.RESOURCES_PATH = self.mxBasePath + 'resources';
+	self.RESOURCE_BASE = self.RESOURCES_PATH + '/grapheditor';
+	self.STENCIL_PATH = self.mxBasePath + 'stencils';
+
+	self.MAX_REQUEST_SIZE = 10485760;
+	self.MAX_AREA = 10000 * 10000;
+
+	self.showConnectorImg = true;
+
+	self.urlParams = (function(url) {
+		var result = {};
+		var idx = url.lastIndexOf('?');
+
+		if (idx > 0) {
+			var params = url.substring(idx + 1).split('&');
+			for (var i = 0; i < params.length; i++) {
+				idx = params[i].indexOf('=');
+
+				if (idx > 0) {
+					result[params[i].substring(0, idx)] = params[i].substring(idx + 1);
+				}
+			}
+		}
+		return result;
+	})(self.location.href);
+
+	self.mxLanguages = ['de'];
+
+
+	self.nameSpace = {
+
+		reg: function(s){
+			var arr = s.split('.');
+			var namespace = self;
+
+			for (var i = 0, k = arr.length; i < k; i++) {
+				if (typeof namespace[arr[i]] === 'undefined') {
+					namespace[arr[i]] = {};
+				}
+
+				namespace = namespace[arr[i]];
+			}
+
+			return namespace;
+		},
+
+		del: function(s){
+			var arr = s.split('.');
+			var namespace = self;
+
+			for (var i = 0, k = arr.length; i < k; i++) {
+				if (typeof namespace[arr[i]] === 'undefined') {
+					return;
+				}else if (k === i + 1) {
+					delete namespace[arr[i]];
+					return;
+				}else{
+					namespace = namespace[arr[i]];
+				}
+			}
+		},
+
+		isDefined: function(s){
+			var arr = s.split('.');
+			var namespace = self;
+
+			for (var i = 0, k = arr.length; i < k; i++) {
+				if (typeof namespace[arr[i]] === 'undefined') {
+					return false;
+				}
+
+				namespace = namespace[arr[i]];
+			}
+
+			return true;
+		}
+	};
+
+})(window);

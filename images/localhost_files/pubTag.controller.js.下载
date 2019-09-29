@@ -1,0 +1,116 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalPubTagCtrl', ['$scope', '$uibModalInstance', 'mineService','items','title','content',function($scope, $uibModalInstance,mineService,items,title,content) {
+                    $scope.items = items;
+                    $scope.title = title;
+                    $scope.content = content;
+                    $scope.echo = function (item) {
+
+                        if (item) {
+                            var  dataname= item;
+                            if (dataname.tags) {
+                               $scope.gktemp=[];
+                                for (var i = 0; i < dataname.tags.length; i++) {
+                                    $scope.gktemp.push(dataname.tags[i].tagName)
+                                }
+                                $scope.inTagBoxContentArr = $scope.gktemp;
+                            }
+                            else {
+                                $scope.inTagBoxContentArr = [];
+                            }
+                        }else{
+                            $scope.inTagBoxContentArr = [];
+                        }
+                    }
+                    $scope.echo(items);
+                //搜索标签信息
+                $scope.getTagNameslist = function (m) {
+                        mineService.getTagNameslist({
+                            tagName: "%" + m + "%"
+                        }).success(function (data) {
+                            $scope.gttag = data.data;
+                            $scope.huoqutags();
+                        }).error(function () {});
+                    }
+                    //获取标签名和id
+                $scope.huoqutags = function () {
+                        $scope.tagn = []; //存储标签名
+                        if ($scope.gttag.length!=0) {
+                            $scope.nrtag = true;
+                            for (var i = 0; i < $scope.gttag.length; i++) {
+                                $scope.tagn.push($scope.gttag[i].tagName);
+                            }
+                        }
+                        else {
+                            $scope.tagn = [];
+                            $scope.nrtag = false;
+                        }
+                    }
+                    //标签名数组封装
+                $scope.redlt = function (array) {
+                     var cpgroup = [];
+                        for (var i = 0; i < array.length; i++) {
+                            cpgroup.push({
+                                tagName: array[i]
+                            });
+                        }
+                        return cpgroup;
+                    }
+                 //标签
+                $scope.searchContent = null; //搜索栏输入内容
+                $scope.tagId = []; //存储标签ID
+                $scope.nrtag = false;
+                $scope.tagBoxBlock = false; //标签显示与隐藏
+                $scope.continueDel = false; //判断是否继续删除；
+                $scope.delTagBox = function ($event) { //删除标签框
+                  // 抓取删除标签的内容，在inTagBoxContentArr的索引。
+                 $scope.inTagBoxContentArr.splice($.inArray($event.target.previousElementSibling.innerHTML, $scope.inTagBoxContentArr), 1);
+                  //console.log($scope.inTagBoxContentArr)
+                };
+                $scope.tagBoxKeyUpFn = function (e) { //回车键 键入 标签 内容
+                    var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+                    if ($scope.searchContent) {
+                        if (keycode == 13) {
+                            var yOn = $.inArray($scope.searchContent, $scope.inTagBoxContentArr)
+                            if (yOn == -1) {
+                                $scope.inTagBoxContentArr.push($scope.searchContent);
+                            }
+                            $scope.searchContent = null;
+                            $scope.nrtag = false;
+                        }
+                        $scope.getTagNameslist($scope.searchContent);
+                    }else {
+                        $scope.nrtag = false;
+                    };
+                }
+                $scope.tagBoxClickFn = function ($event) { //鼠标点击 键入 标签内容
+                    $scope.tagBoxBlock = true;
+                    if ($.inArray($event.target.innerHTML, $scope.inTagBoxContentArr) == -1) {
+                        $scope.inTagBoxContentArr.push($event.target.innerHTML);
+                    }
+                    $scope.searchContent = null;
+                    $scope.nrtag = false;
+                    $scope.setFocus();
+                };
+                // 确定按钮
+                $scope.ok = function () {
+                    $uibModalInstance.close({ok:$scope.redlt($scope.inTagBoxContentArr)});
+                };
+                // 取消按钮
+                $scope.cancel = function () {
+                    $uibModalInstance.close({ok: false});
+                };
+
+                $scope.btnOK = true;
+                $scope.btnCancel = true;
+                //触发FOCUS方法
+                $scope.setFocus = function(){
+                    angular.element('#fnIptFocus')[0].focus();
+                };
+                }]);
+
+
+})(nameSpace.reg('graph'));

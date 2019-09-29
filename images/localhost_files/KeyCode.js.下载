@@ -1,0 +1,183 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('KeyCode', [function(){
+
+		return function(dom,obj,parameter, keyArr){
+
+			var i,j;
+
+			if(typeof dom === 'object'&& dom.length){
+				this.dom = dom;
+			}else if(typeof dom === 'string' || typeof dom === 'object' && !dom.length){
+				this.dom = $(dom);
+			}
+
+			this.dom.focus();
+
+			this.obj=obj;
+
+			this.hasSame = function(){
+
+				var temp = [], n=0;
+
+				for(i in this.obj){
+					temp.push(i.replace(/\s/g, ''));
+				}
+
+				for(i=0;i<temp.length;i++){
+					for(j=0;j<temp.length;j++){
+						if(temp[i]===temp[j]){
+							n++;
+						}
+					}
+					if(n>1){
+						return true;
+					}else{
+						n=0;
+					}
+				}
+				return false;
+			};
+
+			if(this.hasSame()){
+
+				throw new Error('快捷键有重复');
+
+			}
+			if(parameter){
+				this.parameter = parameter;
+			}
+
+			this.value ={
+				9 : 'tab',
+				46 : 'delete',
+				13 : 'enter',
+				16 : 'shift',
+				17 : 'ctrl',
+				18 : 'alt',
+				37 : 'left',
+				38 : 'up',
+				39 : 'right',
+				40 : 'down',
+				41 : 'select',
+				48 : 0,
+				49 : 1,
+				50 : 2,
+				51 : 3,
+				52 : 4,
+				53 : 5,
+				54 : 6,
+				55 : 7,
+				56 : 8,
+				57 : 9,
+				65 : 'a',
+				66 : 'b',
+				67 : 'c',
+				68 : 'd',
+				69 : 'e',
+				70 : 'f',
+				71 : 'g',
+				72 : 'h',
+				73 : 'i',
+				74 : 'j',
+				75 : 'k',
+				76 : 'l',
+				77 : 'm',
+				78 : 'n',
+				79 : 'o',
+				80 : 'p',
+				81 : 'q',
+				82 : 'r',
+				83 : 's',
+				84 : 't',
+				85 : 'u',
+				86 : 'v',
+				87 : 'w',
+				88 : 'x',
+				89 : 'y',
+				90 : 'z'
+			};
+
+			var _this = this;
+
+			this.hotKey = function(e){
+				var ev = e ||event;
+				var str ='', i;
+				if ( !ev.metaKey && ev.ctrlKey && !(/Mac OS/).test(navigator.userAgent)){
+					ev.metaKey = ev.ctrlKey;
+				}
+
+				// console.log(ev.metaKey);
+				// console.log(ev.shiftKey);
+				// console.log(ev.altKey);
+
+				//   删除ev.metaKey {ev.metaKey || ev.ctrlKey && !ev.altKey && !ev.shiftKey}
+				if(ev.ctrlKey && !ev.altKey && !ev.shiftKey){
+					str = 'ctrl+'+_this.value[ev.keyCode];
+				}else if(ev.altKey && !ev.ctrlKey && !ev.shiftKey){
+					str = 'alt+'+_this.value[ev.keyCode];
+				}else if(ev.shiftKey && !ev.altKey && !ev.ctrlKey){
+					str = 'shift+'+_this.value[ev.keyCode];
+				}else if(ev.ctrlKey && ev.altKey && !ev.shiftKey){
+					str = 'ctrl+alt+'+_this.value[ev.keyCode];
+				}else if(ev.ctrlKey && ev.shiftKey && !ev.altKey){
+					str = 'ctrl+shift+'+_this.value[ev.keyCode];
+				}else if(ev.ctrlKey && ev.altKey && ev.shiftKey){
+					str = 'ctrl+alt+shift+'+_this.value[ev.keyCode];
+				}else{
+					str = _this.value[ev.keyCode];
+				}
+
+				for(i in _this.obj){
+					if(str === i.replace(/\s/g, '')){
+						if(typeof _this.obj[i] === 'function'){
+							if(_this.parameter){
+								_this.apply.obj[i](_this.parameter);
+							}else{
+								_this.obj[i](ev);
+							}
+							//_this.parameter ? _this.apply.obj[i](_this.parameter) : _this.obj[i]();
+						}else if(typeof _this.obj[i] === 'string'){
+							if(_this.parameter){_this.parameter[_this.obj[i]](ev);}
+						}
+
+						if(angular.isArray(keyArr)){
+                            if(keyArr.indexOf(i) === -1){
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                return false;
+							}
+						}else {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            return false;
+						}
+						// console.log(i);
+						// ev.preventDefault();
+						// ev.stopPropagation();
+						// return false;
+					}
+				}
+
+			};
+
+			this.watch = function(){
+
+				this.dom.bind('keydown',this.hotKey);
+				//this.dom.keydown(this.hotKey)
+
+			};
+			this.unwatch = function(){
+
+				this.dom.unbind('keydown',this.hotKey);
+
+			};
+			this.watch();
+			//this.dom.keydown(this.hotKey)
+		};
+	}]);
+
+})(nameSpace.reg('graph'));

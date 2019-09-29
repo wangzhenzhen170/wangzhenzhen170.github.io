@@ -1,0 +1,135 @@
+(function (graph) {
+
+    'use strict';
+    graph.app.filter('mail', function () {
+        return function (string) {
+            var String = string.toString();
+            var mailString;
+            mailString = '<' + String + '>';
+            return mailString;
+        }
+    });
+    graph.app.controller('phoneNoticeCtrl', ['$uibModal', 'isOsreen', '$scope', '$uibModalInstance', 'MonitoringService', 'item', 'Unit', 'mailName', function ($uibModal, isOsreen, $scope, $uibModalInstance, MonitoringService, item, Unit, mailName) {
+        $scope.mailName = mailName;
+        $scope.item = item;
+        $scope.personCheckedArray = [];
+        $scope.personSendArray = [];                                             
+        $scope.describObj = item.SOURCECINAME + L.get('EMV_OCCUR') + item.SOURCEALERTKEY + item.SEVERITY +L.get('EMV_SEVERITY_ALARM_HANDLE_SOON');
+        //获取邮件通知人信息
+        $scope.objs = {};
+        MonitoringService.getEventCiOwner({}, $scope.item.STATUS, $scope.item.SERIAL).success(function (result) {
+            if (result.success) {
+                console.log(typeof (result.data));
+                if (result.data && typeof (result.data) === 'object') {
+                    result.data.forEach(function (item) {
+                        $scope.personCheckedArray.push(item);
+                        $scope.personSendArray.push(item.userCode);
+
+                    });
+                }
+            } else {
+                Unit.error(L.get('EMV_USER_LIST_ACQUISITION_FAILED'));
+            }
+
+        }).error(function () {
+            Unit.error(L.get('EMV_USER_LIST_ACQUISITION_FAILED'));
+        });
+        //console.log($scope.personCheckedArray)
+        $scope.queryUserFun = function (mailname) {
+            var obj;
+            if (mailname) {
+                obj = { name: mailname };
+            } else {
+                obj = {};
+            }
+            MonitoringService.userList(obj).success(function (result) {
+                if (result.success) {
+                    $scope.personArray = result.data;
+                } else {
+                    Unit.error(L.get('EMV_USER_LIST_ACQUISITION_FAILED'));
+                }
+
+            }).error(function () {
+                Unit.error(L.get('EMV_USER_LIST_ACQUISITION_FAILED'));
+            });
+        };
+        $scope.queryPerson = function () {
+            $scope.queryUserFun($scope.objs.searchPerson);
+        };
+
+        //邮件通知选择联系人
+        $scope.checkPersonFun = function (person) {
+            if (person.mobileNo === '') {
+                Unit.error(L.get('EMV_THE_CONTACT_DOES NOT_HAVE_A_NUMBER_COMPLETE_INFORMATION'));
+            } else {
+                $scope.personCheckedArray.push(person);
+                $scope.personSendArray.push(person.userCode);
+            }
+
+        };
+        $scope.removeCheckedFun = function (item, $index) {
+            $scope.personCheckedArray.splice($index, 1);
+            $scope.personSendArray.splice($index, 1);
+        };
+        $scope.ok = function () {
+            if ($scope.personCheckedArray.length > 0) {
+                if (2 > $scope.personCheckedArray.length ) {
+                    if ($scope.personCheckedArray[0].mobileNo) {
+                        $scope.sendParms = {
+                            events: [{
+                                eventType: 1,
+                                serial: $scope.item.SERIAL
+                            }],
+                            sendType: 5,
+                            status: $scope.item.STATUS,
+                            userCodes: $scope.personSendArray,
+                            content: $scope.describObj
+
+                        };
+
+
+                        MonitoringService.eventNotify($scope.sendParms).success(function (result) {
+                            if (result.success) {
+                                Unit.success(L.get('EMV_NOTIFICATION_SENT_SUCCESSFULLY'));
+                                $scope.cancel();
+                            } else {
+                                Unit.error(L.get('EMV_NOTIFICATION_FAILED_TO_BE_SENT'));
+                            }
+                        }).error(function () {
+
+                        });
+                    } else {
+                        Unit.error(L.get('EMV_CONTACT_PHONE_CANNOT_BE_EMPTY'));
+                    }
+
+                } else {
+                    Unit.error(L.get('EMV_ONLY_SUPPORT_ONE_PERSON'));
+                }
+
+
+
+            } else {
+                Unit.error(L.get('EMV_THE_CONTACT_CANNOT_BE_EMPTY'));
+            }
+
+        };
+        $scope.clearFun = function () {
+            $scope.queryPerson();
+            $scope.objs.listShowFlag = (!$scope.objs.listShowFlag);
+            if (!$scope.objs.listShowFlag) {
+                $scope.objs.searchPerson = '';
+                //$scope.queryPerson();
+            }
+
+        }
+        // 取消按钮
+        $scope.cancel = function () {
+            $uibModalInstance.close({ ok: false });
+        };
+        $scope.stopPropagation = function ($event) {
+            $event.stopPropagation();
+        };
+
+
+    }])
+})(nameSpace.reg('graph'));

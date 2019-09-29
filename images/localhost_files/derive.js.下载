@@ -1,0 +1,909 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('deriveCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams) {
+        $scope.typeName = $stateParams.name;
+        $scope.stateParamsObj = {};
+        $scope.stateParamsObj = $stateParams;
+        $scope.ruleType = 9;
+        $scope.ruleDetailFlag = true;
+        $scope.objs = {};
+        $scope.ruleTitleName = L.get('EMV_DERIVATION_RULE');
+        $scope.sourceciname = '';
+        $scope.objs.eventCount = 1;
+        $scope.objs.newruleDetail = '';
+        $scope.objs.first = false;
+        $scope.objs.second = false;
+        $scope.objs.third = false;
+        $scope.objs.correlationAlarm = false;
+        $scope.objs.modifyAlarm = false;
+        $scope.freshFlag = false;
+        $scope.colony = L.get('COMMON_CLUSTER');
+
+        $scope.getcorrelationSerevity = function (item) {
+            $scope.correlationSerevity = item.value;
+            $scope.BSeverity = item.name;
+        }
+        $scope.getmodifySerevity = function (item) {
+            $scope.modifySerevity = item.value;
+            $scope.ASeverity = item.name;
+        }
+
+        // $scope.keydown = function($event) {
+        //     console.log($scope.percent);
+        //     if(!/^100$|^(\d|[1-9]\d)(\.\d+)*$/.test($scope.percent)) {
+        //         $event.preventDefault();
+        //     }
+        // }
+
+        $scope.defaultData1 = function () {
+            $scope.sendsourceciname = '${SOURCECINAME}';
+            $scope.sendsourcealertkey = '${SOURCEALERTKEY}';
+            $scope.sendsourceseverity = '${SEVERITY}';
+            $scope.sourceciname = L.get('EMV_TRIGGER_EVENT_OBJECT');
+            $scope.sourcealertkey = L.get('EMV_TRIGGER_EVENT_INDICATOR');
+            $scope.sourceseverity = L.get('EMV_TRIGGER_EVENT_LEVEL');
+            MonitoringService.getSelectorCodes({ 'codeType': 0, }).success(function (result) {
+                if (result.success) {
+                    $scope.allServity = result.data;
+                    $scope.severityArray = [];
+                    $scope.severityArray.push({ severity: '${SEVERITY}', chineseName: L.get('EMV_TRIGGER_EVENT_LEVEL') });
+                    console.log($scope.allServity)
+                    $.each($scope.allServity, function (index, item) {
+                        var obj = {};
+                        obj.severity = item.value;
+                        obj.chineseName = item.name;
+                        $scope.severityArray.push(obj);
+                    });
+                }
+            }).error(function () {
+
+            });
+
+
+            $scope.sourceseverityArray = [];
+        }
+        $scope.defaultData1();
+        $scope.defaultData2 = function () {
+            $scope.sendsencesourceciname = '${CIMGMTGROUP}';
+            $scope.sendsencesourcealertkey = '${SOURCEALERTKEY}';
+            $scope.sendsencesourceseverity = '${SEVERITY}';
+            $scope.sencesourceciname = L.get('EMV_HOMED_CLUSTER_NAME');
+            $scope.sencesourcealertkey = L.get('EMV_TRIGGER_EVENT_INDICATOR');
+            $scope.sencesourceseverity = L.get('EMV_TRIGGER_EVENT_LEVEL');
+            MonitoringService.getSelectorCodes({ 'codeType': 0, }).success(function (result) {
+                if (result.success) {
+                    $scope.allServity = result.data;
+                    $scope.severityArray = [];
+                    $scope.severityArray.push({ severity: '${SEVERITY}', chineseName: L.get('EMV_TRIGGER_EVENT_LEVEL') });
+                    $.each($scope.allServity, function (index, item) {
+                        var obj = {};
+                        obj.severity = item.value;
+                        obj.chineseName = item.name;
+                        $scope.severityArray.push(obj);
+                    });
+                }
+            }).error(function () {
+
+            });
+            // $scope.allServity = window.localStorage.getItem('colorkey');
+            // $scope.allServity = JSON.parse($scope.allServity);
+            // $scope.severityArray = [];
+            // $scope.severityArray.push({ severity: '${SEVERITY}', chineseName: '始发事件A等级' })
+            // $.each($scope.allServity.data, function (index, item) {
+            //     var obj = {};
+            //     obj.severity = item.severity;
+            //     obj.chineseName = item.chineseName;
+            //     $scope.severityArray.push(obj)
+            // })
+            $scope.sourceseverityArray = [];
+        }
+        $scope.defaultData2();
+        $scope.sourcecinameFun = function (item, val) {
+            if ($scope.advance) {
+                $scope.sourceciname = item;
+                $scope.sendsourceciname = val;
+                $('#ciname').val(item);
+            } else {
+                $scope.sencesourceciname = item;
+                $scope.sendsencesourceciname = val;
+                $('#senceciname').val(item);
+            }
+
+
+        }
+        $scope.sourcealertkeyFun = function (item, val) {
+            if ($scope.advance) {
+                $scope.sourcealertkey = item;
+                $scope.sendsourcealertkey = val;
+                $('#cealertkey').val(item);
+            } else {
+                $scope.sencesourcealertkey = item;
+                $scope.sendsencesourcealertkey = val;
+                $('#sencecealertkey').val(item);
+            }
+
+
+        };
+        $scope.sourceseverityFun = function (item) {
+            if ($scope.advance) {
+                $scope.sourceseverity = item.chineseName;
+                $scope.sendsourceseverity = item.severity;
+                $('#severity').val(item.chineseName);
+
+            } else {
+                $scope.sencesourceseverity = item.chineseName;
+                $scope.sendsencesourceseverity = item.severity;
+                $('#senceseverity').val(item.chineseName);
+
+            }
+
+
+
+        };
+        $scope.getinputValueFun1 = function (e, data) {
+            //var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+            $('.select-wrap').find('.drop-menu').stop().slideUp(0);
+            if ($scope.advance) {
+                $scope.sendsourceciname = data;
+                $scope.sourceciname = data;
+            } else {
+                $scope.sendsencesourceciname = data;
+                $scope.sencesourceciname = data;
+            }
+
+
+
+        };
+        $scope.getinputValueFun2 = function (e, data) {
+            //var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+            $('.select-wrap').find('.drop-menu').stop().slideUp(0);
+
+            if ($scope.advance) {
+                $scope.sendsourceseverity = data;
+                $scope.sourceseverity = data;
+            } else {
+                $scope.sendsencesourceseverity = data;
+                $scope.sencesourceseverity = data;
+            }
+
+        };
+        $scope.getinputValueFun3 = function (e, data) {
+            //var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+            $('.select-wrap').find('.drop-menu').stop().slideUp(0);
+
+            if ($scope.advance) {
+                $scope.sendsourcealertkey = data;
+                $scope.sourcealertkey = data;
+            } else {
+                $scope.sendsencesourcealertkey = data;
+                $scope.sencesourcealertkey = data;
+            }
+        };
+        //设置左侧顺序线的长度
+        $scope.lineLong = function () {
+            $timeout(function () {
+                var height = angular.element('.content-following5').height();
+                angular.element('.step-line1').height(height);
+                var height2 = angular.element('.content-following1').height();
+                angular.element('.step-line2').height(height2);
+                var height3 = angular.element('.content-following2').height();
+                angular.element('.step-line3').height(height3);
+                // var height4=angular.element('.content-following4').height();
+                // angular.element('.step-line4').height(height4);
+            }, 10);
+        };
+
+        $scope.$on('ruleTitleName', function (event, data) {
+            $scope.objs.newRuleFatherName = data;
+        });
+        $scope.$on('copyFlag', function (event, data) {
+            $scope.copyFlag = data;
+        });
+        $scope.$on('saveCopyId', function (event, data) {
+            $scope.saveId = data;
+            $scope.$broadcast('saveId', $scope.saveId);
+        });
+        $scope.getSenceFetailFun = function () {
+            $scope.objs.sencenewruleDetail = '${CIMGMTGROUP}' + L.get('COMMON_CLUSTER') + L.get('COMMON_TOTAL') + '${KPIITEM}' + L.get('COMMON_ITEM1') + L.get('COMMON_EXAMPLES') + '，' + L.get('EMV_LAST_BS_MVTYPE_THEREINTO') + '${CIEVENTNUM}' + L.get('COMMON_ITEM1') + L.get('EMV_EXAMPLE_APPEAR') + '${SOURCEALERTKEY}' + L.get('EMV_WARNING_OF_INDICATION') + '。' + L.get('EMV_EXAMPLES_OF_THESE_ALARMS_INCLUDE') + '：${ALLSOURCECINAME}';
+        };
+        $scope.initFun1 = function () {
+            $scope.objs.first = false;
+            $scope.objs.second = false;
+            $scope.objs.third = false;
+            $scope.objs.correlationAlarm = false;
+            $scope.objs.modifyAlarm = false;
+
+            $scope.newrules = [
+                [
+                    {
+                        property: 'CINAME',
+                        operator: '==',
+                        value: '*',
+                        propertyDesc: L.get('EMV_EVENT_OBJECT'),
+                        operatorDesc: L.get('EMV_EQUAL'),
+                    }
+                ]
+
+            ];
+            $scope.objs.duration = 0;
+
+
+            $scope.copyValueFun($scope.rules);
+            $scope.copyValueFun1($scope.newrules);
+            $timeout(function () {
+                $scope.lineLong();
+                $scope.$broadcast('sourceId', $scope.sourceId);
+                $scope.$broadcast('rules', $scope.rules);
+                $scope.$broadcast('rulesnew', $scope.newrules);
+                $scope.$broadcast('ruleId', $scope.ruleId);
+                $scope.$broadcast('freshFlag', $scope.freshFlag);
+                $scope.$broadcast('removeButton', $scope.removeButton);
+                $scope.$broadcast('timeOutTime', $scope.objs.duration);
+                $scope.$broadcast('sourceIdArray', $scope.sourceId);
+            }, 300);
+            $scope.ruleDetailFlag = false;
+        };
+        $scope.initFun2 = function () {
+            $scope.sencekpi = '';
+            $scope.getSenceFetailFun();
+            $scope.defaultData2();
+        };
+        //弹出添加页面
+        $scope.ruleDetailFun = function (ruleDetail) {
+            $scope.percent = 30;
+            $scope.sencekpi = '';
+            $scope.objs.eventCount = 1;
+            MonitoringService.getSelectorCodes({ codeType: 0, add: [{ 'name': L.get('EMV_UPGRADE_ONE_LEVEL'), 'value': '$ADD(${SEVERITY},-1)', 'codeType': 0 }, { 'name': L.get('EMV_DOWNGRADE'), 'value': '$ADD(${SEVERITY},1)', 'codeType': 0 }] }).success(function (result) {
+                if (result.success) {
+                    $scope.upDownServityArray = result.data;
+                    $scope.ASeverity = $scope.upDownServityArray[0].name;
+                    $scope.BSeverity = $scope.upDownServityArray[0].name;
+                    $scope.correlationSerevity = $scope.upDownServityArray[0].value;
+                    $scope.modifySerevity = $scope.upDownServityArray[0].value;
+                    $scope.defaultData1();
+
+                    $scope.rules = [];//筛选规则
+                    $scope.newrules = [];//筛选规则
+                    $scope.objs.duration = '';
+                    $scope.topFun();
+                    $scope.advance = false;
+                    if (ruleDetail) {
+                        $scope.objs.first = true;
+                        $scope.objs.second = false;
+                        $scope.objs.third = false;
+                        $scope.removeButton = true;//修改时显示右上角删除按钮
+                        $scope.ruleId = ruleDetail.id;
+                        MonitoringService.getRuleById({
+                            'id': ruleDetail.id
+                        }).success(function (result) {
+                            if (result.success) {
+                                $scope.result = result.data;
+                                $scope.objs.newRuleFatherName = ruleDetail.name;
+                                $scope.sourceId = $scope.result.sourceIdList;
+                                if ($scope.result.selectorList) {
+                                    $.each($scope.result.selectorList, function () {
+                                        $scope.rules.push(this.selectors);
+                                    });
+                                }
+                                $scope.objs.ruleDetail = $scope.result.description;
+                                if ($scope.result.action.actionType === 2) {
+                                    $scope.advance = true;
+
+                                    $scope.objs.duration = $scope.result.duration;
+
+                                    $.each($scope.result.action.associates, function (index, item) {
+                                        if (item.associateType) {
+                                            if (item.associateType === 1) {
+                                                $scope.objs.first = false;
+                                                $scope.sendsourceciname = item.values.SOURCECINAME;
+                                                $scope.sendsourcealertkey = item.values.SOURCEALERTKEY;
+                                                $scope.sendsourceseverity = item.values.SOURCESEVERITY;
+                                                $scope.objs.newruleDetail = item.values.SOURCESUMMARY;
+                                            }
+                                            if (item.associateType === 2) {
+                                                $scope.objs.second = true;
+                                                if (item.values.STATUS === 1) {
+                                                    $scope.objs.modifyAlarm = false;
+                                                    $.each($scope.upDownServityArray, function (index, item1) {
+                                                        if (item1.value === item.values.SEVERITY) {
+                                                            $scope.ASeverity = item1.name;
+                                                        }
+                                                    })
+
+                                                } else if (item.values.STATUS === 2) {
+                                                    $scope.objs.modifyAlarm = true;
+                                                }
+                                            }
+                                            if (item.associateType === 3) {
+                                                $scope.objs.third = true;
+                                                if (item.values.STATUS === 1) {
+                                                    $scope.objs.correlationAlarm = false;
+                                                    $.each($scope.upDownServityArray, function (index, item1) {
+                                                        if (item1.value === item.values.SEVERITY) {
+                                                            $scope.BSeverity = item1.name;
+                                                        }
+                                                    });
+
+                                                } else if (item.values.STATUS === 2) {
+                                                    $scope.objs.correlationAlarm = true;
+                                                }
+                                            }
+                                        }
+                                    })
+                                    $.each($scope.severityArray, function (index, item) {
+                                        if (item.severity === $scope.sendsourceseverity) {
+                                            $scope.sourceseverity = item.chineseName;
+                                        }
+                                    });
+                                    if ($scope.sendsourceciname === '${SOURCECINAME}') {
+                                        $scope.sourceciname = L.get('EMV_TRIGGER_EVENT_OBJECT');
+                                    } else {
+                                        $scope.sourceciname = $scope.sendsourceciname;
+                                    }
+                                    if ($scope.sendsourcealertkey === '${SOURCEALERTKEY}') {
+                                        $scope.sourcealertkey = L.get('EMV_TRIGGER_EVENT_INDICATOR');
+                                    } else {
+                                        $scope.sourcealertkey = $scope.sendsourcealertkey;
+                                    }
+                                    $scope.objs.eventCount = $scope.result.action.associateCount;
+                                    $timeout(function () {
+                                        $scope.$broadcast('timeOutTime', $scope.result.duration);
+                                    });
+
+
+                                    if ($scope.result.associateSelectorList) {
+                                        $.each($scope.result.associateSelectorList, function () {
+                                            $scope.newrules.push(this.selectors);
+                                        });
+                                    }
+                                    $scope.initFun2();
+                                } else if ($scope.result.action.actionType === 1) {
+                                    $scope.advance = false;
+                                    $scope.percent = $scope.result.action.percent;
+                                    $.each($scope.result.associateSelectorList[0].selectors, function (index, item) {
+                                        if (index === 0) {
+                                            $scope.sencekpi = item.value;
+                                        }
+                                    });
+                                    $scope.sendsencesourcealertkey = $scope.result.action.associates[0].values.SOURCEALERTKEY;
+                                    $scope.sendsencesourceciname = $scope.result.action.associates[0].values.SOURCECINAME;
+                                    $scope.sendsencesourceseverity = $scope.result.action.associates[0].values.SOURCESEVERITY;
+                                    $.each($scope.severityArray, function (index, item) {
+                                        if (item.severity === $scope.sendsencesourceseverity) {
+                                            $scope.sencesourceseverity = item.chineseName;
+                                        }
+                                    });
+                                    if ($scope.sendsencesourceciname === '${SOURCECINAME}') {
+                                        $scope.sencesourceciname = L.get('EMV_TRIGGER_EVENT_OBJECT');
+                                    } else {
+                                        $scope.sencesourceciname = $scope.sendsencesourceciname;
+                                    }
+                                    if ($scope.sendsencesourcealertkey === '${SOURCEALERTKEY}') {
+                                        $scope.sencesourcealertkey = L.get('EMV_TRIGGER_EVENT_INDICATOR');
+                                    } else {
+                                        $scope.sencesourcealertkey = $scope.sendsencesourcealertkey;
+                                    }
+                                    $scope.getSenceFetailFun();
+                                    $scope.initFun1();
+                                }
+
+                                $timeout(function () {
+                                    $scope.lineLong();
+                                    $scope.$broadcast('sourceId', $scope.sourceId);
+                                    $scope.$broadcast('rules', $scope.rules);
+                                    $scope.$broadcast('rulesnew', $scope.newrules);
+                                    $scope.$broadcast('ruleId', $scope.ruleId);
+                                    $scope.$broadcast('freshFlag', $scope.freshFlag);
+                                    $scope.$broadcast('removeButton', $scope.removeButton);
+                                    $scope.$broadcast('timeOutTime', $scope.objs.duration);
+                                    $scope.$broadcast('sourceIdArray', $scope.sourceId);
+                                }, 300);
+                                $scope.ruleDetailFlag = false;
+
+                            } else {
+                                Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                            }
+
+
+                        })
+                    } else {
+                        $scope.sourceId = [];
+                        $timeout(function () {
+                            $('#newNameInput').focus();
+                        }, 2);
+                        $scope.removeButton = false;
+                        $scope.rules = [
+                            [
+                                {
+                                    property: 'CINAME',
+                                    operator: '==',
+                                    value: '*',
+                                    propertyDesc: L.get('EMV_EVENT_OBJECT'),
+                                    operatorDesc: L.get('EMV_EQUAL'),
+                                }
+                            ]
+
+                        ];
+                        $scope.ruleId = '';
+                        $scope.objs.ruleDetail = '';
+                        $scope.objs.newRuleFatherName = '';
+                        $scope.initFun1();
+                        $scope.initFun2();
+                    }
+
+                } else {
+                    Unit.error(L.get('EMV_INTERFACE_DATA_REQUEST_IS_NOT_AVAILABLE'))
+                }
+
+            })
+
+
+
+
+        }
+
+        $scope.firstFun = function () {
+
+            if (!$scope.objs.first && !$scope.objs.second && !$scope.objs.third) {
+                Unit.error(L.get('EMV_EXECUTION_CONDITION_CANNOT_BE_EMPTY'));
+            } else {
+                $scope.objs.first = !$scope.objs.first;
+            }
+        };
+        $scope.secondFun = function () {
+
+            if ($scope.objs.first && $scope.objs.second && !$scope.objs.third) {
+                Unit.error(L.get('EMV_EXECUTION_CONDITION_CANNOT_BE_EMPTY'));
+            } else {
+                $scope.objs.second = !$scope.objs.second;
+            }
+        };
+        $scope.thirdFun = function () {
+
+            if ($scope.objs.first && !$scope.objs.second && $scope.objs.third) {
+                Unit.error(L.get('EMV_EXECUTION_CONDITION_CANNOT_BE_EMPTY'));
+            } else {
+                $scope.objs.third = !$scope.objs.third;
+            }
+        };
+
+
+
+        //页面滚动条回到初始位置
+        $scope.topFun = function () {
+            $('.content').animate({
+                scrollTop: 0
+            }, 300);
+        };
+
+        //规则描述框内容返显
+        $scope.copyValueFun = function (rules) {
+            // if($scope.objs.ruleDetail!=''){
+            // 	return
+            // }
+            $scope.andObj = L.get('EMV_TRIGGER_EVENT_CONDITION') + '：';
+            $scope.newandObj = L.get('EMV_ASSOCIATED_EVENT_CONDITION') + '：';
+            for (var i = 0; i < rules.length; i++) {
+                for (var j = 0; j < rules[i].length; j++) {
+
+                    if (j === rules[i].length - 1) {
+                        $scope.andObj += rules[i][j].propertyDesc + rules[i][j].operatorDesc + rules[i][j].value;
+                    } else {
+                        $scope.andObj += rules[i][j].propertyDesc + rules[i][j].operatorDesc + rules[i][j].value + ' ' + L.get('COMMON_AND') + ' ';
+                    }
+
+                }
+                if (i < rules.length - 1) {
+                    $scope.andObj += ' ' + L.get('COMMON_OR') + ' ';
+                }
+
+            }
+            for (var k = 0; i < $scope.newrules.length; k++) {
+                for (var l = 0; l < $scope.newrules[k].length; l++) {
+
+                    if (l === $scope.newrules[k].length - 1) {
+                        $scope.newandObj += $scope.newrules[k][l].propertyDesc + $scope.newrules[k][l].operatorDesc + $scope.newrules[k][l].value;
+                    } else {
+                        $scope.newandObj += $scope.newrules[k][l].propertyDesc + $scope.newrules[k][l].operatorDesc + $scope.newrules[k][j].value + ' ' + L.get('COMMON_AND') + ' ';
+                    }
+
+                }
+                if (k < $scope.newrules.length - 1) {
+                    $scope.newandObj += ' ' + L.get('COMMON_OR') + ' ';
+                }
+
+            }
+            $timeout(function () {
+                $scope.objs.ruleDetail = $scope.andObj;
+                $scope.objs.newruleDetail = $scope.andObj + '  ' + $scope.newandObj;
+            }, 5);
+
+        }
+        //规则描述框内容返显
+        $scope.copyValueFun1 = function (newrules) {
+            $scope.andObj = L.get('EMV_TRIGGER_EVENT_CONDITION') + '：';
+            $scope.newandObj = L.get('EMV_ASSOCIATED_EVENT_CONDITION') + '：';
+            for (var i = 0; i < $scope.rules.length; i++) {
+                for (var j = 0; j < $scope.rules[i].length; j++) {
+
+                    if (j === $scope.rules[i].length - 1) {
+                        $scope.andObj += $scope.rules[i][j].propertyDesc + $scope.rules[i][j].operatorDesc + $scope.rules[i][j].value;
+                    } else {
+                        $scope.andObj += $scope.rules[i][j].propertyDesc + $scope.rules[i][j].operatorDesc + $scope.rules[i][j].value + ' ' + L.get('COMMON_AND') + ' ';
+                    }
+
+                }
+                if (i < $scope.rules.length - 1) {
+                    $scope.andObj += ' ' + L.get('COMMON_OR') + ' ';
+                }
+
+            }
+            for (var k = 0; k < newrules.length; k++) {
+                for (var m = 0; m < newrules[k].length; m++) {
+
+                    if (m === newrules[k].length - 1) {
+                        $scope.newandObj += newrules[k][m].propertyDesc + newrules[k][m].operatorDesc + newrules[k][m].value;
+                    } else {
+                        $scope.newandObj += newrules[k][m].propertyDesc + newrules[k][m].operatorDesc + newrules[k][m].value + ' ' + L.get('COMMON_AND') + ' ';
+                    }
+
+                }
+                if (k < newrules.length - 1) {
+                    $scope.newandObj += ' ' + L.get('COMMON_OR') + ' ';
+                }
+
+            }
+            $timeout(function () {
+                $scope.objs.newruleDetail = $scope.andObj + '  ' + $scope.newandObj;
+            }, 5);
+
+        };
+
+        //设置边框颜色为正常
+        $scope.checkTrueFun = function () {
+            for (var i = 0; i < angular.element('.select-choice').length; i++) {
+                $($('.select-choice')[i]).css('border-color', '#e4e4e4');
+            }
+
+        };
+
+
+        //保存调接口函数
+        $scope.saveLastFun = function (flag) {
+            var selectorList = [];
+            $.each($scope.rules, function () {
+                var json = {};
+                json.selectors = this;
+                selectorList.push(json);
+            });
+            if ($scope.advance) {
+
+                var associateSelectorList = [];
+                $.each($scope.newrules, function () {
+                    var json = {};
+                    json.selectors = this;
+                    associateSelectorList.push(json);
+                });
+
+                var checkStingLong = JSON.stringify(selectorList);
+                if (checkStingLong.length > 4096) {
+                    Unit.error(L.get('EMV_FILTER_CONDITION_CHARACTER_LENGTH_CANNOT_EXCEED') + '4000')
+                    return false;
+                }
+                var obj0 = {};
+                var obj1 = {};
+                var obj2 = {};
+                var values1 = {};
+                var values2 = {};
+                if ($scope.objs.correlationAlarm) {
+                    values1 = {
+                        'STATUS': 2,
+                        'CLOSETIME': '$NOW()',
+                        'CLOSEINFO': 'System Closed',
+                        'STATECHANGE': '$NOW()',
+                        'CLOSEUID': 'system',
+                        'DUPLICATESERIAL': '${SERIAL}'
+                    };
+                } else {
+                    values1 = {
+                        'SEVERITY': $scope.correlationSerevity,
+                        'STATUS': 1,
+
+                    };
+                }
+                if ($scope.objs.modifyAlarm) {
+                    values2 = {
+                        'STATUS': 2,
+                        'CLOSETIME': '$NOW()',
+                        'CLOSEINFO': 'System Closed',
+                        'STATECHANGE': '$NOW()',
+                        'CLOSEUID': 'system',
+                        'DUPLICATESERIAL': '${SERIAL}'
+                    };
+                } else {
+                    values2 = {
+                        'SEVERITY': $scope.modifySerevity,
+                        'STATUS': 1,
+
+                    };
+                }
+                if (!$scope.objs.first) {
+                    obj0 = {
+                        'associateType': 1,
+                        'values': {
+                            'SOURCECINAME': $scope.sendsourceciname,
+                            'SOURCEALERTKEY': $scope.sendsourcealertkey,
+                            'SOURCESEVERITY': $scope.sendsourceseverity,
+                            'SOURCESUMMARY': $scope.objs.newruleDetail
+                        }
+                    };
+                }
+                if ($scope.objs.second) {
+                    obj1 = {
+                        'associateType': 2,
+                        'values': values2
+                    };
+                }
+                if ($scope.objs.third) {
+                    obj2 = {
+                        'associateType': 3,
+                        'values': values1
+                    };
+                }
+                $scope.action = {
+                    'associates': [obj0, obj1, obj2
+                    ],
+                    'associateCount': $scope.objs.eventCount,
+                    'actionType': 2
+                };
+                $scope.associateSelectorList = associateSelectorList;
+            } else {
+                if ($scope.colony.length < 1) {
+                    Unit.error(L.get('EMV_THE_SCENED_CLUSTER_NAME_CANNOT_BE_EMPTY'));
+                    return false;
+                } else if ($scope.percent === '' || $scope.percent <= 0) {
+                    Unit.error(L.get('EMV_THE_SCENE_SETTING_PERCENTAGE_CANNOT_BE_EMPTY'));
+                    return false;
+                } else if ($scope.sencekpi === '') {
+                    Unit.error(L.get('EMV_THE_SCENE_ALARM_INDICATOR_CANNOT_BE_EMPTY'));
+                    return false;
+                } else if ($scope.objs.sencenewruleDetail === '') {
+                    Unit.error(L.get('EMV_THE_SCENED_ALARM_DESCRIPTION_CANNOT_BE_EMPTY'));
+                    return false;
+                }
+
+
+                $scope.action = {
+                    'percent': $scope.percent,
+                    'associates': [{
+                        'associateType': 1,
+                        'values': {
+                            'SOURCECINAME': $scope.sendsencesourceciname,
+                            'SOURCEALERTKEY': $scope.sendsencesourcealertkey,
+                            'SOURCESEVERITY': $scope.sendsencesourceseverity,
+                            'SOURCESUMMARY': $scope.objs.sencenewruleDetail
+                        }
+                    }],
+                    'actionType': 1,
+                    'calKey': 'KPIITEM',
+                    'equalKeys': ['CIMGMTGROUP', 'SOURCEALERTKEY']
+                };
+                $scope.associateSelectorList = [{
+                    'selectors': [
+                        {
+                            'propertyDesc': L.get('EMV_ALARM_SOURCE_INDICATOR_NAME'),
+                            'operatorDesc': L.get('EMV_EQUAL'),
+                            'value': $scope.sencekpi,
+                            'property': 'SOURCEALERTKEY',
+                            'operator': '=='
+                        },
+                        {
+                            'propertyDesc': L.get('COMMON_CLUSTER'),
+                            'operatorDesc': L.get('EMV_EQUAL'),
+                            'value': '${CIMGMTGROUP}',
+                            'property': 'CIMGMTGROUP',
+                            'operator': '=='
+                        }
+                    ]
+                }
+                ]
+            }
+
+            MonitoringService.saveRule({
+                'id': $scope.ruleId,
+                'name': $scope.objs.newRuleFatherName,
+                'ruleType': '9',
+                'active': flag,
+                'priority': 1,
+                'description': $scope.objs.ruleDetail,
+                'selectorList': selectorList,
+                'duration': $scope.objs.duration,
+                'sourceIdList': $scope.sourceId,
+                'associateSelectorList': $scope.associateSelectorList,
+                'action': $scope.action,
+
+
+            }).success(function (result) {
+                if (result.success) {
+                    Unit.success(L.get('COMMON_SAVED_SUCCESSFULLY'));
+                    $scope.freshFlag = !$scope.freshFlag;
+                    $scope.ruleDetailFlag = true;
+                    $scope.$broadcast('saveId', result.data);
+                } else {
+                    Unit.error(L.get('COMMON_SAVE_FAILED'));
+                    $scope.$broadcast('saveId', result.data);
+                }
+
+            })
+
+        }
+        $scope.objs.duration = '';
+        //保存
+        $scope.saveFun = function (flag) {
+            //$scope.checkFun();
+            if (!$scope.objs.newRuleFatherName) {
+                Unit.error(L.get('COMMON_RULE_NAME_CANNOT_BE_EMPTY'));
+                return false;
+            }
+            if ($scope.sourceId === null) {
+                Unit.error(L.get('EMV_THE_SOURCE_OF_THE_EVENT_CANNOT_BE_UNSELECTED'))
+                return false;
+            }
+            if ($scope.objs.duration === undefined) {
+                Unit.error(L.get('EMV_LINKED_TIME_RANGE_CANNOT_BE_EMPTY'));
+                return false;
+            }
+            if ($scope.eventCount === '') {
+                Unit.error(L.get('EMV_THE_NUMBER_OF_ALARMS_CANNOT_BE_EMPTY'))
+                return false;
+            }
+            if ($scope.sendsourceciname === '') {
+                Unit.error(L.get('EMV_THE_ALARM_OBJECT_CANNOT_BE_EMPTY'));
+                return false;
+            }
+            if ($scope.sendsourceseverity === '') {
+                Unit.error(L.get('EMV_THE_ALARM_LEVEL_CANNOT_BE_EMPTY'))
+                return false;
+            }
+            if ($scope.sendsourcealertkey === '') {
+                Unit.error(L.get('EMV_THE_ALARM_INDICATOR_CANNOT_BE_EMPTY'));
+                return false;
+            }
+            if ($scope.sendsourceciname === '') {
+                Unit.error(L.get('EMV_THE_ALARM_OBJECT_CANNOT_BE_EMPTY'));
+                return false;
+            }
+
+            if ($scope.ruleId) {
+                MonitoringService.checkRuleName({
+                    'name': $scope.objs.newRuleFatherName,
+                    'id': $scope.ruleId,
+                    'ruleType': 9
+                }).success(function (result) {
+                    if (result.success) {
+                        $scope.saveLastFun(flag);
+                    } else {
+                        Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+                    }
+                }).error(function () {
+
+                });
+            } else {
+                MonitoringService.checkRuleName({
+                    'name': $scope.objs.newRuleFatherName,
+                    'ruleType': 9
+                }).success(function (result) {
+                    if (result.success) {
+                        $scope.saveLastFun(flag);
+                    } else {
+                        Unit.error(L.get('EMV_RULE_NAME_ALREADY_EXISTS'))
+                    }
+                }).error(function () {
+
+                });
+            }
+
+
+
+        }
+        //取消按钮
+        $scope.cancelFun = function () {
+            $scope.ruleDetailFlag = true;
+        };
+        $scope.$on('rules', function (event, data) {
+            $scope.rules = data;//接受值
+        });
+        $scope.$on('rulesnew', function (event, data) {
+            $scope.newrules = data;
+        });
+        $scope.$on('ruleDetail', function (event, data) {
+            $scope.objs.ruleDetail = data;//接受值
+        });
+        $scope.$on('freshFlag', function (event, data) {
+            $scope.freshFlag = data;//接受值
+        });
+        $scope.$on('duration', function (event, data) {
+            $scope.objs.duration = data;
+        });
+        $scope.$on('sourceId', function (event, data) {
+            $scope.sourceId = data;
+            $scope.$broadcast('sourceIdArray', $scope.sourceId);
+        });
+        // 自定义下拉框
+        $('.environment-edit-wrap').on('click', '.select-wrap', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu').stop().slideToggle(150);
+
+        });
+        $('.environment-edit-wrap').on('click', '.select-wrap1', function (event) {
+            event.stopPropagation();
+            // $(this).toggleClass('active');
+            $(this).find('.drop-menu1').stop().slideToggle(150);
+
+        });
+
+        $(document).on('click', function () {
+            // $('.select-wrap').removeClass('active');
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+            $('.public-select-time').find('.select-time').hide();
+            $scope.$broadcast('importFlag', false);
+            $('.select-wrap1').find('.drop-menu1').stop().slideUp(150);
+            $scope.objs.listShowFlag = false;
+            if (!$scope.$$phase) {
+                $scope.$apply();
+            }
+            $scope.lineLong()
+        });
+        // 拖拽缩放功能
+        var parentW;
+        $timeout(function () {
+            parentW = $('.preview-wrapper').width() / 0.4;
+        }, 1);
+
+        $('.drag-scale').bind('mousedown', function (e) {
+            var dragW = $('.drag-scale').width() + 2;
+            var leftW = $('.preview-wrapper').width();
+            var disX = e.pageX;
+
+            $(document).bind('mousemove', function (e) {
+                var _disX = e.pageX;
+                var _leftW = leftW + (_disX - disX);
+                var marginLeft = leftW + (_disX - disX) + dragW;
+
+                if (_leftW < 400) {
+                    _leftW = 400;
+                    marginLeft = 400 + dragW;
+                }
+
+                if (_leftW > (parentW - 500 - dragW)) {
+                    _leftW = parentW - 500 - dragW;
+                    marginLeft = _leftW + dragW;
+                }
+
+                $('.preview-wrapper').width(_leftW);
+                $('.environment-edit-wrap').css('margin-left', marginLeft);
+            });
+
+            $(document).bind('mouseup', function () {
+                $(document).unbind('mousemove');
+                $(document).unbind('mouseup');
+            });
+
+            return false;
+        });
+
+
+
+    }]);
+
+
+})(nameSpace.reg('graph'));

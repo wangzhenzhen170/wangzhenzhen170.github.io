@@ -1,0 +1,26 @@
+(function (graph) {
+
+    'use strict';
+
+    var app = graph.app;
+
+    // us means Uinnova Graph
+    app.directive('ugSceneActionTable', [function () {
+        return {
+                restrict: 'A',
+                replace: false,
+                templateUrl: 'app/directive/sceneInfo/actionTable.html',
+//                scope: {
+//                    curActGroup: '=',
+//                    actMode: '=',
+//                    actSel: '=',
+//                    actions: '='
+//                },
+                scope: true,
+                link: function (scope, ele, attrs) {
+
+                }
+        };
+    }]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

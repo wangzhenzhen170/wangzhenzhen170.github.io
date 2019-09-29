@@ -1,0 +1,41 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.directive('checkImage', function($http) {
+		return {
+			restrict: 'A',
+			link: function(scope, element, attrs) {
+				if(element.length){
+					attrs.$observe('ngSrc', function(ngSrc) {
+						if(typeof ngSrc === 'string') {
+							$http.get(String(ngSrc))
+								.error(function () {
+									element.attr('src', '/global/404.png');
+								});
+						}
+					});
+				}
+			}
+		};
+	});
+
+	graph.app.directive('checkBgImage', function($http) {
+		return {
+			restrict: 'A',
+			link: function(scope, element, attrs) {
+				attrs.$observe('ngBackground', function(ngBackground) {
+					$http.get(ngBackground)
+						.success(function(){
+							element.attr('style', 'background-image:url(' + ngBackground + ')');
+						})
+						.error(function(){
+							element.attr('style', 'background-image:url(/global/404.png)');
+						});
+				});
+			}
+		};
+	});
+
+
+})(nameSpace.reg('graph'));

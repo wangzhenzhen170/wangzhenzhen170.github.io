@@ -1,0 +1,35 @@
+/**
+ * Created by gc on 2015/8/12.
+ */
+
+(function(graph){
+
+    'use strict';
+
+    graph.app.service('AuthService', ['$http', 'Unit', function($http, Unit){
+        var o = {};
+
+        o.login = function(params) {
+            return $http.post(Unit.api('/login'), params);
+        };
+
+        o.logout = function() {
+            return $http.delete(Unit.api('/logout'));
+        };
+
+        o.getCurrentUser = function() {
+            return $http.get(Unit.api('/user'));
+        };
+
+		o.getUser = function(userName) {
+			return $http.get(Unit.api('/user/' + userName));
+		};
+
+		o.updUser = function(params) {
+			return $http.put(Unit.api('/user/update'), params);
+		};
+
+        return o;
+    }]);
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,100 @@
+(function(graph) {
+
+    'use strict';
+
+    //右侧浮动层
+    graph.app.directive('myDetails', ['mineService', 'UserService', function(mineService, UserService, $filter) {
+        return {
+            restrict: 'E',
+            replace: true,
+            templateUrl: 'app/directive/myDetails/myDetails.html',
+            link: function($scope, element, attrs) {
+                $scope.L = L;
+                $scope.mydetails = function() {
+                    var dInfo = JSON.parse(attrs.name);
+                    if (dInfo) {
+                        //  console.log(dInfo)
+                        $scope.detail = dInfo;
+                        $scope.horst_line();
+                        $scope.mydetailName();
+                        if ($scope.detail.diagram.createTime) {
+                            $scope.dcreateTime = $scope.mydate($scope.detail.diagram.createTime);
+                        } else {
+                            $scope.dcreateTime = '';
+                        }
+                    }
+                    if (dInfo.groups) {
+                        $scope.detailGroup = dInfo.groups;
+                        $scope.getidlist($scope.detailGroup);
+                        $scope.gourpdatalist();
+                    } else {
+                        $scope.detailGroup = [];
+                    }
+                }
+                $scope.mydetailName = function() {
+                    UserService.getCurUser().success(function(data) {
+                        $scope.my_dName = data.data.userName;
+                        //console.log($scope.my_dName)
+                    }).error(function() {})
+
+                }
+
+                //获取历史版本信息
+                $scope.horst_line = function() {
+                        mineService.queryDiagramVersionByDiagramId(
+                            $scope.detail.diagram.id
+                        ).success(function(data) {
+                            $scope.historyView = data.data;
+                            //  console.log($scope.historyView)
+                        }).error(function(error) {});
+                    }
+                    //获取小组成员的列表
+                $scope.gourpdatalist = function() {
+                        $scope.gourp_data = []; //接小组信息
+                        // console.log($scope.detailtemp);
+                        mineService.getgroupListcy({
+                            ids: $scope.detailtemp
+                        }).success(function(data) {
+                            $scope.gourp_data = data.data;
+                            //console.log($scope.gourp_data);
+                        }).error(function(error) {});
+                    }
+                    //获取小组id
+                $scope.getidlist = function(arr) {
+                    $scope.detailtemp = [];
+                    for (var i = 0; i < arr.length; i++) {
+                        $scope.detailtemp.push(arr[i].id);
+                    }
+
+                };
+                //过滤时间
+                $scope.mydate = function(arr) {
+                    var Date = arr.toString();
+                    var Datefotmadate;
+                    Datefotmadate = Date.slice(0, 4) + '-' + Date.slice(4, 6) + '-' + Date.slice(6, 8) + ' ' + Date.slice(8, 10) + ':' + Date.slice(10, 12);
+                    return Datefotmadate;
+
+                }
+
+                $scope.forarr = function(arr) {
+                    var res = '';
+                    if (!angular.isArray(arr)) {
+                        return;
+                    }
+                    if (arr[0].tagName) {
+                        arr.forEach(function(item) {
+                            res += item.tagName + '   ';
+                        });
+                    } else {
+                        arr.forEach(function(item) {
+                            res += item + '   ';
+                        })
+                    }
+                    //console.log(res);
+                    return res;
+                }
+
+            }
+        };
+    }]);
+})(nameSpace.reg('graph'));

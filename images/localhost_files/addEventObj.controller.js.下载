@@ -1,0 +1,147 @@
+(function (graph) {
+
+    'use strict';
+    graph.app.filter('mail', function () {
+        return function (string) {
+            var String = string.toString();
+            var mailString;
+            mailString = '<' + String + '>';
+            return mailString;
+        }
+    });
+    graph.app.controller('addEventObjCtrl', ['$uibModal', '$scope', 'fn', 'type', '$uibModalInstance', 'MonitoringService', 'Unit', function ($uibModal, $scope, fn, type, $uibModalInstance, MonitoringService, Unit) {
+        $scope.type = type;
+        //ci分类查询
+        MonitoringService.getCiClassCodes().success(function (result) {
+            if (result.success) {
+                $scope.listData = result.data;
+                if (Array.isArray($scope.listData) && $scope.listData.length) {
+                    $scope.selectDefaul1 = $scope.listData[0].className;
+                    $scope.getCcCiByClassId($scope.listData[0].id);
+                }
+
+            } else {
+                console.log('error');
+            }
+        }).error(function (error) {
+            console.log(error);
+        });
+        //查询ci分类下的所有ci
+        $scope.getCcCiByClassId = function (id) {
+            MonitoringService.getCcCiByClassId({ classId: id }).success(function (result) {
+                if (result.success) {
+                    $scope.ciData = result.data;
+                    if (Array.isArray($scope.ciData) && $scope.ciData.length) {
+                        $scope.selectDefaul2 = $scope.ciData[0].ci.ciCode
+                    } else {
+                        $scope.selectDefaul2 = null;
+                    }
+                } else {
+                    console.log('error');
+                }
+            }).error(function () {
+                console.log('error');
+            });
+        }
+        /*发送方式*/
+        if (type === 'add' || type === 'addGet') {
+            $scope.sendType = 1;
+        } else {
+            $scope.sendType = 2;
+        }
+        $scope.chooseSendType = function (e, type) {
+            $scope.sendType = type;
+        }
+        $scope.goToSelect = function (status, e) {
+            e.stopPropagation();
+            if (status === 1) {
+                $scope.flag2 = false;
+                $scope.flag1 = !$scope.flag1;
+            } else {
+                $scope.flag1 = false;
+                $scope.flag2 = !$scope.flag2;
+            }
+        };
+        $scope.selectLi = function (status, item) {
+            if (status === 1) {
+                $scope.selectDefaul1 = item.className;
+                $scope.flag1 = false;
+                $scope.getCcCiByClassId(item.id);
+            } else {
+                $scope.selectDefaul2 = item.ci.ciCode;
+                $scope.flag2 = false;
+            }
+        };
+        // 取消按钮
+        $scope.cancel = function () {
+            $uibModalInstance.close({ ok: false });
+        };
+        $scope.ok = function () {
+            var parms = {
+                groupId: 15
+            };
+            parms.code = $scope.sendType === 1 ? $scope.ciCodeName : $scope.selectDefaul2;
+            if (!parms.code) {
+                Unit.error(L.get('EMV_OBJECT_CANNOT_BE_NULL'));
+                return;
+            }
+            if (type === 'get' || type === 'addGet') {
+                fn(parms.code);
+                $uibModalInstance.close({ ok: false });
+                return;
+            }
+            parms.chineseName = parms.code;
+            parms.englishName = parms.code;
+            MonitoringService.saveDict4Group15(parms).success(function (result) {
+                if (result.success) {
+                    fn();
+                    $uibModalInstance.close({ ok: false });
+                    Unit.success(L.get('COMMON_ADDING_SUCCESSFUL'));
+                } else {
+                    Unit.error(result.message);
+                }
+            }).error(function (error) {
+                console.log(error);
+            });
+        }
+        $scope.bodyInt = function (ev) {
+            var e = ev || window.event;
+            var target = e.target || e.srcElement;
+            if (!$(target).parents('.searhInput').length) {
+                $scope.flag1 = false;
+                $scope.flag2 = false;
+            }
+
+        };
+
+    }]);
+    //自定义过滤
+    graph.app.filter('addSearch', function () {
+        return function (item, sourceIdVal) {
+            if (!sourceIdVal) {
+                return item;
+            }
+            var result = [];
+            $.each(item, function () {
+                if (this.className && (this.className.toUpperCase().indexOf(sourceIdVal) !== -1 || this.className.indexOf(sourceIdVal) !== -1)) {
+                    result.push(this);
+                }
+            });
+            return result;
+        };
+    });
+    graph.app.filter('ciSearch', function () {
+        return function (item, sourceIdVal) {
+            if (!sourceIdVal) {
+                return item;
+            }
+            var result = [];
+            $.each(item, function () {
+                if (this.ci.ciCode && (this.ci.ciCode.toUpperCase().indexOf(sourceIdVal) !== -1 || this.ci.ciCode.indexOf(sourceIdVal) !== -1)) {
+                    result.push(this);
+                }
+            });
+            return result;
+        };
+    });
+})(nameSpace.reg('graph'));

@@ -1,0 +1,80 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function(graph){
+
+	'use strict';
+
+		
+		
+
+		
+
+	graph.app.controller('ruleVisualizationsettingsCtrl', ['$scope','$state','$timeout','MonitoringService','$uibModal','Unit','uDialog', function($scope,$state,$timeout,MonitoringService,$uibModal,Unit,uDialog){
+		$scope.success=false;
+		//进入目标元素的函数
+		$scope.drag = function(ev,item)
+		{
+			
+			ev.dataTransfer.setData("id",item.id);
+			ev.dataTransfer.setData("bgimg",item.bgimg);
+			ev.dataTransfer.setData("name",item.name);
+			
+			
+		}
+		//拖动元素的函数
+		$scope.drop = function (ev)
+		{
+			ev.preventDefault();
+			
+			var data={};
+			$scope.data=data;
+			data.id=ev.dataTransfer.getData("id");
+			data.bgimg=ev.dataTransfer.getData("bgimg");
+			data.name=ev.dataTransfer.getData("name");
+			uDialog.dialog({
+							class: 'ruleSetVision',
+							animation: true,
+							backdrop: 'static',
+							templateUrl: 'app/modal/manageAlert/rulesetvision.html',
+							controller: 'rulesetvisionCtrl',
+							resolve: {
+								data:function(){
+									return data;
+								},
+								fn: function(){
+									return function(success,data,ruledetail){
+										$scope.success=success;
+										$scope.data=data;
+										$scope.ruledetail=ruledetail;
+										
+									}
+								}
+							}
+			});
+			
+		};
+		
+		
+		$scope.rule=[
+			{id:2,name:'过滤',bgimg:'rule-set-filter'},
+			{id:1,name:'标准化',bgimg:'rule-set-stand'},
+			{id:7,name:'维护期',bgimg:'rule-set-mintance'},
+			{id:3,name:'压缩',bgimg:'rule-set-compression'},
+			{id:6,name:'通知',bgimg:'rule-set-notice'},
+			{id:5,name:'清理',bgimg:'rule-set-clean'},
+			{id:4,name:'升级',bgimg:'rule-set-update'}
+			
+
+		]
+		
+
+
+			
+		
+	
+
+	}]);
+	
+
+})(nameSpace.reg('graph'));

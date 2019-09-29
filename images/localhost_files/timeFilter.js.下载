@@ -1,0 +1,60 @@
+(function (graph) {
+
+    'use strict';
+
+    /*时间过滤器 -- 精确到天*/
+    graph.app.filter('tarsierDateFilter', function () { //时间过滤器
+        return function (data) {
+            if (data) {
+                var tarsierDateData = data.toString();
+                var tarsierDateYear = tarsierDateData.substring(0, 4);
+                var tarsierDateMonth = tarsierDateData.substring(4, 6);
+                var tarsierDateDay = tarsierDateData.substring(6, 8);
+                //var tarsierDateHour = tarsierDateData.substring(8, 10);
+                //var tarsierDateMinute = tarsierDateData.substring(10, 12);
+               // var tarsierDateSecond = tarsierDateData.substring(12, 14);
+                return tarsierDateYear + '-' + tarsierDateMonth + '-' + tarsierDateDay;
+                /*+ ' ' + tarsierDateHour + ':' + tarsierDateMinute + ':' + tarsierDateSecond*/
+            }
+        }
+    });
+    /*时间过滤器 -- 精确到秒*/
+    graph.app.filter('tarsierDateFilterMine', function () { //时间过滤器
+        return function (data) {
+            if (data) {
+                var tarsierDateData = data.toString();
+                var tarsierDateYear = tarsierDateData.substring(0, 4);
+                var tarsierDateMonth = tarsierDateData.substring(4, 6);
+                var tarsierDateDay = tarsierDateData.substring(6, 8);
+                var tarsierDateHour = tarsierDateData.substring(8, 10);
+                var tarsierDateMinute = tarsierDateData.substring(10, 12);
+                var tarsierDateSecond = tarsierDateData.substring(12, 14);
+                return tarsierDateYear + '-' + tarsierDateMonth + '-' + tarsierDateDay + '-' + tarsierDateHour + ':' + tarsierDateMinute + ':' + tarsierDateSecond;
+            }
+        }
+    });
+
+    /*teamImageFilter过滤器*/
+    graph.app.filter('teamImageFilter', function () { //时间过滤器
+        return function (data) {
+            var initImage = 'assets/images/tarsier/team/group-image.png';
+            var judu = data.indexOf(initImage);
+            if (judu === -1) {
+                return data;
+            } else {
+                return initImage;
+            }
+
+        }
+    });
+
+    graph.app.filter('mineDate', function () {
+        return function (input) {
+            var Date = input.toString();
+            var Datefotmadate;
+            Datefotmadate = Date.slice(0, 4) + '-' + Date.slice(4, 6) + '-' + Date.slice(6, 8) + ' ' + Date.slice(8, 10) + ':' + Date.slice(10, 12) + ':' + Date.slice(12, 14);
+            return Datefotmadate;
+        }
+    });
+
+})(nameSpace.reg('graph'));

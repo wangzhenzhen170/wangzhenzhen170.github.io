@@ -1,0 +1,35 @@
+
+(function(){
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('_emxBaseEffect', [function(){
+        // 特效基类
+        return Class.extend({
+            /**
+             * 初始化
+             * @param {mxGraph} mxg
+             */
+            init: function(mxg){
+
+            },
+
+            /**
+             * 执行效果
+             * 子类需要重写此方法
+             * @param {Array<mxCell>} cells - 需要显示效果的元素列表
+             */
+            run: function(cells){
+
+            },
+
+            /**
+             * 停止效果
+             * @param {Array<mxCell>} cells - 需要显示效果的元素列表
+             */
+            stop: function(cells){
+
+            }
+        });
+
+    }]);
+})();

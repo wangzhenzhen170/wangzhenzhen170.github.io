@@ -1,0 +1,24 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalSearchNodeCtrl', ['$scope', '$uibModalInstance', 'editor', 'Unit', function($scope, $uibModalInstance, editor, Unit){
+
+		$scope.$modal = $uibModalInstance;
+
+		$scope.search = function(){
+			if($scope.keyword){
+				editor.action.searchCell($scope.keyword, function(result){
+					if(result.count){
+						$uibModalInstance.close();
+					}else{
+						Unit.warning(graph.translate('NO_RESULT'));
+					}
+				});
+			}
+		};
+	}]);
+
+
+})(nameSpace.reg('graph'));

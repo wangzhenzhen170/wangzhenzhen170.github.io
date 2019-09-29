@@ -1,0 +1,32 @@
+/**
+ * Created by uinnova on 2017/8/22.
+ */
+(function(graph) {
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('ngTime', function() {
+		return {
+			restrict : 'A',
+			require : '?ngModel',
+			link : function($scope, $element, $attrs, $ngModel) {
+				if (!$ngModel) {
+					return;
+				}
+
+				$('.form_date').datetimepicker({
+					language:  'fr',
+					weekStart: 1,
+					todayBtn:  0,
+					autoclose: 1,
+					todayHighlight: 1,
+					startView: 2,
+					minView: 2,
+					forceParse: 0
+				});
+
+			},
+		};
+	});
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,133 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('ViewService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+
+		o.get = function(params){
+			return $http.post(Unit.api('/view'), params);
+		};
+
+		o.private = function(){
+			return $http.get(Unit.api('/view/private'));
+		};
+
+		o.myOpenView = function(params){
+			return $http.post(Unit.api('/view/myopenview'),params);
+		};
+
+		o.public = function(){
+			return $http.get(Unit.api('/view/public'));
+		};
+
+		o.publicForRelation = function(){
+			return $http.get(Unit.api('/view/relation'));
+		};
+
+		o.getUserView = function(userid){
+			return $http.get(Unit.api('/view/public/' + userid));
+		};
+
+		o.getView = function(id){
+			return $http.get(Unit.api('/view/' + id));
+		};
+
+		o.create = function(data){
+			return $http.post(Unit.api('/view'), data);
+		};
+
+		o.update = function(data){
+			return $http.put(Unit.api('/view'), data);
+		};
+
+		o.remove = function(id){
+			return $http.delete(Unit.api('/view/' + id));
+		};
+
+		o.uploadImage = function(){
+
+		};
+
+		o.getByIds = function(data) {
+			return $http.post(Unit.api('/view'), data);
+		};
+
+		o.setPublic = function(viewid){
+			return $http.put(Unit.api('/view/open/' + viewid));
+		};
+
+		o.setUnpublic = function(viewid){
+			return $http.put(Unit.api('/view/close/' + viewid));
+		};
+
+		o.getThreshold = function(viewid, data) {
+			return $http.post(Unit.api('/view/threshold/' + viewid), data);
+		};
+
+		o.saveThreshold = function(viewid, data) {
+			return $http.put(Unit.api('/view/threshold/' + viewid), data);
+		};
+
+		o.subscription = function(viewid){
+			return $http.post(Unit.api('/subscription/view/' + viewid));
+		};
+
+		o.unsubscription = function(viewid){
+			return $http.delete(Unit.api('/subscription/view/' + viewid));
+		};
+
+		o.getViewMonitor = function(viewid, data) {
+			return $http.post(Unit.api('/view/performance/' + viewid), data);
+		};
+
+		o.getSubscription = function(){
+			return $http.post(Unit.api('/view/subscriptions'), {page: 1, pageSize: 100});
+		};
+
+		o.getViewEvent = function(viewid, data) {
+			return $http.post(Unit.api('/view/cikpi/' + viewid), data);
+		};
+
+		o.getViewEventByCiKpi = function(viewid, data) {
+			return $http.post(Unit.api('/view/event/' + viewid), data);
+		};
+
+		o.getDeletedView = function(data) {
+			return $http.post(Unit.api('/view/softdelete'), data);
+		};
+
+		o.getRestoreView = function(viewid, data) {
+			return $http.put(Unit.api('/view/restoresoftview/' + viewid), data);
+		};
+
+		o.deleteSoftView = function() {
+			return $http.delete(Unit.api('/view/softdelete'));
+		};
+
+		o.getSubscriptionsPage = function(data) {
+			return $http.post(Unit.api('/view/subscriptions'), data);
+		};
+
+		o.getPrivatePage = function(data) {
+			return $http.post(Unit.api('/view/myprivateview'), data);
+		};
+
+		o.getPublicViewPage = function(data) {
+			return $http.post(Unit.api('/view/myopenview'), data);
+		};
+
+		o.getMonitorState = function(id){
+			return $http.get(Unit.api('/view/monitor/' + id));
+		};
+
+		o.getMonitorCount = function(ids){
+			return $http.get(Unit.api('/event/geteventbgview'), {ids: ids});
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

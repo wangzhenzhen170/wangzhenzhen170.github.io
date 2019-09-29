@@ -1,0 +1,212 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalSetAttrShowCtrl', ['$uibModal','$scope', '$uibModalInstance', 'title', 'chooseRelationService','Unit','Const','editor', 'DiagramCIService','selectciId', function($uibModal,$scope, $uibModalInstance, title, chooseRelationService, Unit, Const, editor, DiagramCIService, selectciId){
+	    $scope.class = {};
+	    $scope.close = function(){
+            $('.toolbar-sidebar').find('.toolbar-btn').removeClass('active');
+            $uibModalInstance.close();
+        };
+
+        $scope.checkClass = function(id){
+            var i, len = $scope.classList.length, res;
+
+            for(i = 0; i < len; i++){
+                if(Number($scope.classList[i].ciClass.id) === Number(id)){
+                    res = true;
+                    break;
+                }
+            }
+
+            return res;
+        };
+
+        $scope.getClassNames = function () {
+            var ciIds = editor.action.getCisIdByCiId();
+            $scope.proNamess = [];
+
+            var data2 = {};
+
+            if (ciIds.length === 1 && ciIds.length > 0) {
+                var ciId = ciIds[0];
+
+                data2 = {
+                    cdt: {
+                        ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+                        id: ciId
+                    }
+                };
+            }
+
+            if (ciIds.length >= 2) {
+                data2 = {
+                    cdt: {
+                        ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+                        ids: ciIds
+                    }
+                };
+            }
+
+            if (ciIds.length > 0) {
+                DiagramCIService.queryList(data2).success(function (result) {
+                    $scope.classList = [];
+                    $scope.ciList = result.data;
+                    angular.forEach(result.data, function(item){
+                        if(!$scope.checkClass(item.ciClass.id)){
+                            $scope.checkS(item);
+                            $scope.classList.push(item);
+                        }
+
+                        if(selectciId){
+                            if(Number(selectciId) === Number(item.ci.id)){
+                                $scope.class.classItem = item;
+                                $scope.checkS();
+                            }
+                        }
+                    });
+                });
+            }
+        };
+
+        $scope.checkS =  function(classItem){
+            if(!classItem && $scope.class.classItem){
+                classItem = $scope.class.classItem;
+            }
+            if(angular.isObject(classItem)){
+                if(!classItem.keyNameList){
+                    classItem.keyNameList = [];
+                }
+                // $scope.class.classItem.keyNameList = [];
+                angular.forEach($scope.ciList, function(item){
+                    if(Number(item.ciClass.id) === Number(classItem.ciClass.id)){
+                        var cell = editor.graph.getCellByDataId(Const.CI_PREFIX + item.ci.id);
+                        var labelList  = cell.getUtAttr('data-label-list');
+                        if(labelList && labelList.length){
+                            angular.forEach(labelList, function(label){
+                                if(classItem.keyNameList.indexOf(label) === -1){
+                                    classItem.keyNameList.push(label);
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        };
+
+        $scope.dmClick = function(attrDefsItem){
+            var index = $scope.class.classItem.keyNameList.indexOf(attrDefsItem.proStdName);
+            if(index === -1){
+                $scope.class.classItem.keyNameList.push(attrDefsItem.proStdName);
+            }else {
+                $scope.class.classItem.keyNameList.splice(index, 1);
+            }
+        };
+
+        $scope.ok = function(){
+            angular.forEach($scope.classList, function(classItem){
+                if(classItem.attrDefs && classItem.attrDefs.length) {
+                    angular.forEach(classItem.attrDefs, function(attrDefsItem){
+                        $scope.selectAttr(classItem, attrDefsItem);
+                        // if($scope.keyNameList.indexOf(attrDefsItem.proStdName) !== -1){
+                        //     $scope.selectAttr(classItem, attrDefsItem);
+                        // }
+                    });
+                }
+            });
+
+            $scope.close();
+        };
+
+        $scope.selectAttr = function(classItem, attrDefsItem){
+            var getLengthByArr = function(arr, val){
+                var res;
+                res = 0;
+                angular.forEach(arr, function(item){
+                    if(String(item) === String(val)){
+                        res++;
+                    }
+                });
+                return res;
+            };
+            var add;
+            if(!classItem.keyNameList){
+                classItem.keyNameList = [];
+            }
+            if(classItem.keyNameList.indexOf(attrDefsItem.proStdName) !== -1){
+                add = true;
+            }
+            if(angular.isObject(classItem)){
+                editor.graph.model.beginUpdate();
+                try {
+                    angular.forEach($scope.ciList, function(item){
+                        if(Number(item.ciClass.id) === Number(classItem.ciClass.id)){
+                            var cell = editor.graph.getCellByDataId(Const.CI_PREFIX + item.ci.id);
+                            var labelList = cell.getUtAttr('data-label-list');
+                            var value, labelsByCell;
+                            if(cell.getUtAttr('data-values')){
+                                value = [];
+                            }else {
+                                value = [];
+                            }
+
+                            // if(angular.isFunction(cell.getValue().getAttribute)){
+                            //     labelsByCell = cell.getValue().getAttribute('label');
+                            // }else {
+                            //     labelsByCell = cell.getValue();
+                            // }
+                            //
+                            // if(labelsByCell){
+                            //     labelsByCell = labelsByCell.split(Const.CI_NAME_JOIN);
+                            // }else {
+                            //     labelsByCell = [];
+                            // }
+
+                            if(!angular.isArray(labelList)){
+                                labelList = [];
+                            }
+
+                            if(add){
+                                if(attrDefsItem.proStdName && labelList.indexOf(attrDefsItem.proStdName) === -1){
+                                    labelList.push(attrDefsItem.proStdName);
+                                }
+                            }else {
+                                if(attrDefsItem.proStdName && labelList.indexOf(attrDefsItem.proStdName) !== -1){
+                                    labelList.splice(labelList.indexOf(attrDefsItem.proStdName), 1);
+                                }
+                            }
+
+                            var valObj = {};
+                            if(angular.isArray(labelList)){
+                                angular.forEach(labelList, function(uitem){
+                                    if(!valObj[uitem]){
+                                        value.push(item.attrs[uitem]);
+                                    }
+
+                                    valObj[uitem] = item.attrs[uitem];
+                                });
+                            }
+
+                            if(angular.isFunction(cell.getValue().setAttribute)){
+                                cell.getValue().setAttribute('label', value.join(Const.CI_NAME_JOIN));
+                            }else {
+                                cell.setValue('label', value.join(Const.CI_NAME_JOIN));
+                            }
+
+                            cell.setUtAttr('data-values', value);
+                            cell.setUtAttr('data-label-list', labelList);
+
+                            cell.setUtAttr('data-label-val', valObj);
+                            cell.setUtAttr('data-label-val-obj', item.attrs);
+                            editor.uvAttrShow[classItem.ciClass.id] = labelList;
+                        }
+                    });
+                } finally {
+                    editor.graph.model.endUpdate();
+                }
+                editor.graph.view.refresh();
+            }
+        };
+	}]);
+})(nameSpace.reg('graph'));

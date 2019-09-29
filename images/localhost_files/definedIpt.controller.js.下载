@@ -1,0 +1,66 @@
+
+(function(graph){
+
+    'use strict';
+
+    var controller = function($scope, $uibModalInstance, editor,$state, cell,Const, $cookies){
+        $scope.$modal = $uibModalInstance;
+
+        $scope.ok = function(){
+            if($scope.defItem){
+                $scope.initTag($scope.defItem);
+            }else {
+                $scope.setOk = true;
+            }
+            $scope.close();
+        };
+
+        $scope.initTag = function(item){
+            cell.setUtAttr('data-id', Const.TAGS_PREFIX + item.id);
+            cell.setUtAttr('code', item.tagName);
+
+            editor.graph.setCellAttr(cell, 'code', item.tagName);
+            editor.graph.setCellAttr(cell, 'data-id', Const.TAGS_PREFIX + item.id);
+
+            if(angular.isFunction(cell.getValue().setAttribute)){
+                cell.getValue().setAttribute('label', item.tagName);
+            }else {
+                cell.setValue(item.tagName);
+            }
+
+            editor.graph.view.refresh();
+            editor.graph.fireEvent(new mxEventObject(Const.CANVAS_TAGS_CHANGE));
+            $scope.close();
+        };
+
+        $scope.close = function(){
+            $uibModalInstance.close();
+        };
+
+        $scope.$on('createTags', function(e,result){
+            $scope.defItem = result.def;
+            if(result.close === 1){
+                if(angular.isObject(result.def)){
+                    $scope.ok();
+                }
+                $scope.close();
+            }
+        });
+
+        $scope.initSrc = function(code){
+            return '/diagram-web/integration/page/jumpout/' + code + '?token=' + $cookies.get('token');
+            // return 'http://192.168.10.140:3000/mark/lyx_mark.html?token=a7f9fc639c7e0f3a73c3803a4a30f89771b5e5cdf9bf39fcbe7fce271895b5f8a4c310316b4e119db9edc31fadbcc157ecb4296807cda054411076dce810ab96';
+        };
+
+        $scope.iframeSrc = $scope.initSrc('0210');
+        // $scope.iframeSrc = $scope.initSrc('0201');
+
+        // '/diagram-web/integration/page/jumpout/' + code + '?token=' + localStorage.getItem('token')
+
+        // http://192.168.10.140:3000/mark/lyx_mark.html
+    };
+
+    graph.app.controller('ModalDefinedIptCtrl', ['$scope', '$uibModalInstance', 'editor', '$state','cell','Const', '$cookies', controller]);
+
+
+})(nameSpace.reg('graph'));

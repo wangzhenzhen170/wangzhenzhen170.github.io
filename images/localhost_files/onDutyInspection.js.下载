@@ -1,0 +1,1521 @@
+(function (graph) {
+
+	'use strict';
+
+	graph.app.controller('onDutyInspectionCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', '$compile', '$interval', 'Dialog', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams, $compile, $interval, Dialog) {
+
+		$scope.ondutyDuration = '';
+
+		// start
+		//总页数
+		$scope.pages = 20;
+		$scope.pageNum = 1;
+		$scope.pageSize = 15;
+
+
+		$scope.totalRows = $scope.pages * $scope.pageSize;
+		$scope.pageSizeOption = [15, 30, 45];
+		// end
+
+
+
+		//报表查阅状态
+		$scope.inquireFlag = [];
+		//筛选报表时间范围
+		$scope.timeArea = 3600000 * 12;
+		$scope.report = {};
+		$scope.report.inspectionPerson = '';
+		$scope.reportId = -1;
+		$scope.roomName = '';
+		$scope.roomCodes = [];
+		$scope.roomNames = [];
+		
+		$scope.L = L;
+		$scope.reportStartDate = 0;
+
+		$scope.selectRoomLiNum = -1;
+
+		//默认展示页码个数
+		$scope.pagesShowCount = 5;
+		$scope.selectedPageFlag = new Array($scope.pagesShowCount);
+		$scope.notSelectedPageFlag = new Array($scope.pagesShowCount);
+		$scope.pageNumClass = new Array($scope.pages);
+		for (var i = 0; i < $scope.selectedPageFlag.length; i++) {
+			$scope.selectedPageFlag[i] = false;
+			$scope.notSelectedPageFlag[i] = true;
+		}
+		//提交按钮是否可用
+		$scope.submitBtn = false;
+		$scope.addConcernFlag = true;
+
+		/**表格多房间报表内容生成部分 start */
+
+		//报表添加房间控制变量
+		$scope.partSize = Number(1);
+		// $scope.roomNames = [];
+		// $scope.allActiveEvents = [];
+		// $scope.allClosedEvents = [];
+		// $scope.allConcerns = [];
+		// $scope.allNewReportConcerns = [];
+		$scope.partSizeArr = [''];
+		//查询房间名称
+		$scope.getRoomNames = function () {
+			MonitoringService.queryRoomNames().success(function (result) {
+				if (result.data) {
+					$scope.roomNames = result.data;
+					//遍历次数
+					$scope.partSizeArr = new Array($scope.roomNames.length);
+					$scope.newReportConcerns = new Array($scope.roomNames.length);
+					$scope.newReportActiveEvents = new Array($scope.roomNames.length);
+					$scope.newReportActiveEvents = new Array($scope.roomNames.length);
+					$scope.concerns = new Array($scope.roomNames.length);
+					$scope.roomCodes = new Array($scope.roomNames.length);
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+
+		/**表格多房间报表内容生成部分 end */
+
+
+
+		//告警查询
+		$scope.queryEvents = function () {
+			MonitoringService.queryInspEvents({ serials: $scope.report.eventSerial }).success(function (result) {
+				// console.log($scope.report.eventSerial)
+				if (result.success) {
+					if (result.data) {
+						var events = result.data;
+						// console.log(events);
+						//var roomCodes = $scope.roomCodes.split('、');
+						var roomCodes = new Array($scope.roomCodes.length);
+						//console.log(roomCodes);
+						var notOtherFlag = false;
+						var acevents = [];
+						var acoevents = [];
+						for (var k = 0; k < events.length; k++) {
+							if ('roomid' in events[k]) {
+								for (var i = 0; i < $scope.roomCodes.length; i++) {
+									roomCodes[i] = $scope.roomCodes[i].split('、');
+									for (var j = 0; j < roomCodes[i].length; j++) {
+										if (events[k].roomid === roomCodes[i][j]) {
+											notOtherFlag = true;
+											acevents[i].push(events[k]);
+										}
+									}
+								}
+							}
+							if (!notOtherFlag) {
+								acoevents.push(events[k]);
+							}
+						}
+						$scope.activeEvents = acevents;
+						$scope.otherActiveEvents = acoevents;
+						$scope.changeOtherEventsFlag();
+
+					}
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+			MonitoringService.queryInspEvents({ serials: $scope.report.eventClosedSerial }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						var events = result.data;
+						// console.log(events);
+						//var roomCodes = $scope.roomCodes.split('、');
+						var roomCodes = new Array($scope.roomCodes.length);
+						// console.log(roomCodes);
+						var notOtherFlag = false;
+						var clevents = [];
+						var cloevents = [];
+						for (var k = 0; k < events.length; k++) {
+							if ('roomid' in events[k]) {
+								for (var i = 0; i < $scope.roomCodes.length; i++) {
+									roomCodes[i] = $scope.roomCodes[i].split('、');
+									for (var j = 0; j < roomCodes[i].length; j++) {
+										if (events[k].roomid === roomCodes[i][j]) {
+											notOtherFlag = true;
+											clevents[i].push(events[k]);
+										}
+									}
+								}
+							}
+							if (!notOtherFlag) {
+								// console.log(events.length)
+								cloevents.push(events[k]);
+							}
+						}
+						$scope.closedEvents = clevents;
+						$scope.otherClosedEvents = cloevents;
+						$scope.changeOtherEventsFlag();
+					}
+
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+		//检查结果数据
+		$scope.newReportConcernsRs = function () {
+			var concerns = $scope.concernsToday;
+			for (var i = 0; i < concerns.length; i++) {
+				$scope.newReportConcerns.push(concerns[i]);
+			}
+		}
+
+		//关注事项查询
+		// $scope.queryConcerns =  function () {
+		// 	MonitoringService.queryConcernsByReportId({reportId:$scope.report.id}).success(function(result){
+		// 		if(result.success) {
+		// 			if(result.data) {
+		// 				var res = result.data;
+		// 				for(var i = 0;i<res.length; i++) {
+		// 					if(res[i].concernsTime) {
+		// 						var cTime = res[i].concernsTime.toString();
+		// 						var concernsTime = cTime.substring(0,4)+'/'+cTime.substring(4,6)+'/'+cTime.substring(6,8)+' '+cTime.substring(8,10)+':'+cTime.substring(10,12);
+		// 						res[i].concernsTime = concernsTime;
+		// 					}
+		// 				}
+		// 				$scope.concerns = res;
+		// 			}
+		// 		}
+		// 	}).error(function(error){
+		// 		console.log(error);
+		// 	});
+		// };
+		//根据报表时间查询关注事项
+		$scope.queryConcerns = function () {
+			MonitoringService.queryConcernsByReportTime({ reportId: $scope.report.id }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						var res = result.data;
+						for (var i = 0; i < res.length; i++) {
+							if (res[i].concernsTime) {
+								var cTime = res[i].concernsTime.toString();
+								// var concernsTime = cTime.substring(0, 4) + '/' + cTime.substring(4, 6) + '/' + cTime.substring(6, 8) + ' ' + cTime.substring(8, 10) + ':' + cTime.substring(10, 12);
+								var concernsTime = cTime.substring(4, 6) + '/' + cTime.substring(6, 8) + ' ' + cTime.substring(8, 10) + ':' + cTime.substring(10, 12);
+								res[i].concernsTime = concernsTime;
+							}
+						}
+						var notOtherFlag = false;
+						var roomCodes = new Array($scope.roomCodes.length);
+						var concernsArr = new Array($scope.roomCodes.length);
+						var otherConcernsArr = [];
+						for (var k = 0; k < res.length; k++) {
+							if ('roomCode' in res[k]) {
+								for (i = 0; i < $scope.roomCodes.length; i++) {
+									roomCodes[i] = $scope.roomCodes[i].split('、');
+									for (var j = 0; j < roomCodes[i].length; j++) {
+										if (res[k].roomCode === roomCodes[i][j]) {
+											notOtherFlag = true;
+											concernsArr[i].push(res[k]);
+										}
+									}
+								}
+							}
+							if (!notOtherFlag) {
+								otherConcernsArr.push(res[k]);
+							}
+						}
+
+						$scope.concerns = concernsArr;
+						$scope.otherConcerns = otherConcernsArr;
+					}
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+
+		//新增报表关注事项查询
+		$scope.queryNewReportConcerns = function () {
+			MonitoringService.queryConcerns({ roomName: $scope.roomName, daysCount: 10 }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						var res = result.data;
+						for (var i = 0; i < res.length; i++) {
+							if (res[i].concernsTime) {
+								var cTime = res[i].concernsTime.toString();
+								// var concernsTime = cTime.substring(0, 4) + '/' + cTime.substring(4, 6) + '/' + cTime.substring(6, 8) + ' ' + cTime.substring(8, 10) + ':' + cTime.substring(10, 12);
+								var concernsTime = cTime.substring(4, 6) + '/' + cTime.substring(6, 8) + ' ' + cTime.substring(8, 10) + ':' + cTime.substring(10, 12);
+								res[i].concernsTime = concernsTime;
+							}
+						}
+						var notOtherFlag = false;
+						var roomCodes = new Array($scope.roomCodes.length);
+						var concernsArr = new Array($scope.roomCodes.length);
+						var otherConcernsArr = [];
+						for (var k = 0; k < res.length; k++) {
+							if ('roomCode' in res[k]) {
+								for (i = 0; i < $scope.roomCodes.length; i++) {
+									roomCodes[i] = $scope.roomCodes[i].split('、');
+									for (var j = 0; j < roomCodes[i].length; j++) {
+										if (res[k].roomCode === roomCodes[i][j]) {
+											notOtherFlag = true;
+											concernsArr[i].push(res[k]);
+										}
+									}
+								}
+							}
+							if (!notOtherFlag) {
+								otherConcernsArr.push(events[k]);
+							}
+						}
+						$scope.concerns = concernsArr;
+						$scope.otherConcerns = otherConcernsArr;
+						$scope.concerns = res;
+					}
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+		//新增报表告警查询
+		$scope.queryNewReportEvents = function () {
+			MonitoringService.queryActiveEventsByRoomName({ roomName: $scope.roomName }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						$scope.activeEvents = result.data;
+						$scope.newReportEventsSerial(1, result.data);
+					}
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+			MonitoringService.queryClosedEventsByRoomName({ roomName: $scope.roomName }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						$scope.closedEvents = result.data;
+						$scope.newReportEventsSerial(2, result.data);
+					}
+
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+
+		//查询其他房间告警
+		$scope.queryOtherEvents = function () {
+			MonitoringService.queryOtherActiveEvents({ pageNum: $scope.eventsPageNum, pageSize: $scope.eventsPageSize }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						$scope.otherActiveEvents = result.data;
+						$scope.newReportEventsSerial(1, result.data);
+					}
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+			MonitoringService.queryOtherClosedEvents({ pageNum: $scope.eventsPageNum, pageSize: $scope.eventsPageSize }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						$scope.otherClosedEvents = result.data;
+						$scope.newReportEventsSerial(2, result.data);
+					}
+
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+		//判断是否显示其他告警
+		$scope.changeOtherEventsFlag = function () {
+			if ($scope.otherActiveEvents.length > 0 || $scope.otherClosedEvents.length > 0) {
+				$scope.showOtherEventsFlag = true;
+			} else {
+				$scope.showOtherEventsFlag = false;
+			}
+		};
+
+		$scope.newReportEventsSerial = function (stage, events) {
+			if (stage === 1) {
+				var acevents = [];
+				for (var i = 0; i < events.length; i++) {
+					acevents.push(events[i].serial);
+				}
+				$scope.newReportActiveEvents = acevents.join(',');
+			}
+			if (stage === 2) {
+				var clevents = [];
+				for (var j = 0; j < events.length; j++) {
+					clevents.push(events[j].serial);
+				}
+				$scope.newReportClosedEvents = clevents.join(',');
+			}
+			// console.log($scope.newReportClosedEvents)
+
+		};
+
+		$scope.clickPageNum = function (pageNum) {
+			$scope.pageNum = pageNum;
+			$scope.selectedPageFlag[pageNum - 1] = true;
+			$scope.notSelectedPageFlag[pageNum - 1] = false;
+		};
+
+		$scope.pagesCountArr = new Array($scope.pagesShowCount);
+		// $scope.getPages();
+
+
+
+		$scope.initTime = function () {
+			var oDate = new Date();
+			var intStartTime = oDate.getFullYear() + "/" + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1) < 10? '0'+(oDate.getMonth()+1): (oDate.getMonth() + 1)) + "/" + (oDate.getDate()<10?'0'+(oDate.getDate()):(oDate.getDate()));
+			$scope.startD = intStartTime; //获取系统的年；
+			var intEndTime = oDate.getFullYear() + "/" + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1) < 10? '0'+(oDate.getMonth()+1): (oDate.getMonth() + 1)) + "/" + (oDate.getDate()<10?'0'+(oDate.getDate()):(oDate.getDate()));
+			$scope.endD = intEndTime;   //获取系统的年；
+			$scope.startTimeHour = '00:00:00';
+			$scope.endTimeHour = '00:00:00';
+		};
+
+		$scope.initTime();
+
+		$scope.$on('startTimeHour', function (event, msg) {
+			$scope.startTimeHour = msg;
+		});
+		$scope.$on('endTimeHour', function (event, msg) {
+			$scope.endTimeHour = msg;
+		});
+		$scope.goToTimeSearch = function () {
+			if (!$("#startTime").val() || !$scope.startTimeHour) {
+				Unit.error('请选择起始时间');
+				return;
+			}
+			if (!$("#endTime").val() || !$scope.endTimeHour) {
+				Unit.error('请选择结束时间');
+				return;
+			}
+			var startTime = ($("#startTime").val() + " " + $scope.startTimeHour);
+			var endTime = $("#endTime").val() + ' ' + $scope.endTimeHour;
+			$scope.startTime = Number((new Date(startTime)).getTime());
+			$scope.endTime = Number((new Date(endTime)).getTime());
+			if ($scope.startTime > $scope.endTime) {
+				Unit.error('结束时间必须大于起始时间');
+				return;
+			}
+			$scope.startD = $("#startTime").val();
+			$scope.endD = $("#endTime").val();
+
+			//$scope.selectTimeDefaul="自定义时间";
+			var startGetD = $scope.startD.split('/');
+			var endGetD = $scope.endD.split('/');
+			// $scope.selectTimeDefaul = startGetD[1] + "/" + startGetD[2] + "-" + endGetD[1] + '/' + endGetD[2];
+			$scope.selectTimeListFlag = false;
+			$scope.selectDefTimeFlag = false;
+			$scope.reportStartDate = startGetD.join('') + '000000';
+			$scope.reportEndDate = endGetD.join('') + '999999';
+			var starthour = $scope.startTimeHour.split(':');
+			var endhour = $scope.endTimeHour.split(':');
+			for(var i = 1;i < 3;i++) {
+				if(startGetD[i].length<2){
+					startGetD[i] = 0 + startGetD[i];
+				}
+				if(endGetD[i].length<2){
+					endGetD[i] = 0 + endGetD[i];
+				}
+				if(starthour[i].length<2){
+					starthour[i] = 0 + starthour[i];
+				}
+				if(endhour[i].length<2){
+					endhour[i] = 0 + endhour[i];
+				}
+			}
+			$scope.startD = startGetD[0]+'/'+startGetD[1]+'/'+startGetD[2];
+			$scope.selectTimeDefaul = startGetD[1] + "/" + startGetD[2] + "-" + endGetD[1] + '/' + endGetD[2];
+			$scope.reportStartDate = startGetD.join('') + starthour.join('');
+			$scope.reportEndDate = endGetD.join('') + endhour.join('');
+			$scope.queryByTimeFun();
+		};
+
+		$scope.getAutoDuration = function () {
+			MonitoringService.queryInspDuration({reportId: $scope.report.id}).success(function(result){
+				if(result.success) {
+					$scope.AutoDuration = result.data;
+				}
+			}).error(function(error){
+				console.log(error);
+			});
+		};
+
+		$scope.getRoomSources = function () {
+			MonitoringService.queryRooms().success(function (res) {
+				$scope.allRoomSourcesList = res.data;
+				$scope.allRoomSourcesList['其他'] = ['其他'];
+				$scope.allRoomSources = {}
+				Object.keys(res.data).forEach(function (i) {
+					$scope.allRoomSources[i] = '';
+					res.data[i].forEach(function (d, index) {
+						if (index === res.data[i].length - 1) {
+							$scope.allRoomSources[i] += d;
+						} else {
+							$scope.allRoomSources[i] = $scope.allRoomSources[i] + d + ',';
+						}
+
+					});
+				});
+				// console.log($scope.allRoomSourcesList);
+				// console.log($scope.allRoomSources)
+
+
+			}).error(function (error) {
+				console.log(error);
+			});
+		}
+		$scope.getRoomSources();
+
+
+		//保存重点关注事项
+		$scope.saveConcerns = function (concnern) {
+			MonitoringService.saveConcern(concnern).success(function () {
+
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+		//保存重点关注事项
+		$scope.updateConcerns = function (concnern) {
+			MonitoringService.updateConcern(concnern).success(function () {
+
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+		//根据房间名称查询房间
+		$scope.queryRoomsByName = function () {
+			// console.log($scope.report.roomCode);
+			var roomNames = $scope.report.roomCode.split(',');
+			var size = roomNames.length;
+			for (var i = 0; i < size; i++) {
+				MonitoringService.queryRoomsByName({ roomName: roomNames[i] }).success(function (result) {
+					if (result.success) {
+						$scope.roomCodes[i] = result.data.join('、');
+						$scope.rooms[i] = result.data;
+						$scope.roomNames[i] = result.data;
+						// var n = $scope.roomDefault.length;
+						// for( var i = 0; i<n; i++) {
+						// 	$scope.roomSel.push(result.data[0]);
+						// }
+						if ($scope.report.id === undefined) {
+							$scope.queryNewReportEvents();
+							$scope.queryOtherEvents();
+							$scope.queryNewReportConcerns();
+							$scope.queryConcernsToday();
+							$timeout(function () {
+								$scope.changeOtherEventsFlag();
+							}, 500);
+						}
+					}
+				}).error(function (error) {
+					console.log(error);
+				});
+			}
+		};
+
+
+
+		$scope.queryConcernsToday = function () {
+			MonitoringService.queryConcernsToday({ roomName: $scope.roomName }).success(function (result) {
+				if (result.success) {
+					if (result.data) {
+						var res = result.data;
+						for (var i = 0; i < res.length; i++) {
+							if (res[i].concernsTime) {
+								var cTime = res[i].concernsTime.toString();
+								// var concernsTime = cTime.substring(0,4)+'/'+cTime.substring(4,6)+'/'+cTime.substring(6,8)+' '+cTime.substring(8,10)+':'+cTime.substring(10,12);
+								var concernsTime = cTime.substring(4, 6) + '/' + cTime.substring(6, 8) + ' ' + cTime.substring(8, 10) + ':' + cTime.substring(10, 12);
+								res[i].concernsTime = concernsTime;
+							}
+						}
+						$scope.concernsToday = res;
+						$scope.newReportConcerns = res;
+						var num = $scope.concernsToday.length;
+						for (var i = 0; i < num; i++) {
+							$scope.selectRoomListFlag.push(false);
+							$scope.roomDefault.push($scope.concernsToday[i].roomCode);
+							$scope.roomSel.push($scope.concernsToday[i].roomCode);
+						}
+
+
+					}
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+
+		//根据日期查询报表
+		$scope.queryByTime = function () {
+			if ($scope.reportDate === 0) {
+				Unit.error('请选择日期！');
+				$scope.queryInspReports();
+			} else {
+				var date = new Date($scope.reportDate);
+				var time = $scope.dateFormat(date);
+				if (time === 19700102000000) {
+					Unit.error('请选择日期！');
+					$scope.queryInspReports();
+				} else {
+					MonitoringService.queryInspReportsByDate({ 'pageNum': $scope.pageNum, 'pageSize': $scope.pageSize, 'date': time }).success(function (result) {
+						if (result.success) {
+							var res = result.data;
+							for (var i = 0; i < res.length; i++) {
+								if (res[i].reportTime) {
+									var cTime = res[i].reportTime.toString();
+									var reportTime = cTime.substring(0, 4) + '/' + cTime.substring(4, 6) + '/' + cTime.substring(6, 8) + ' ' + cTime.substring(8, 10) + ':' + cTime.substring(10, 12);
+									res[i].reportTime = reportTime;
+								}
+								// res[i].inquirer += ' 查阅';
+								if (res[i].inquirer && res[i].inquireTime && res[i].inquirer !== '' && res[i].inquirer !== undefined) {
+									var iTime = res[i].inquireTime.toString();
+									// var inquireTime = iTime.substring(0,4)+'/'+iTime.substring(4,6)+'/'+iTime.substring(6,8)+' '+iTime.substring(8,10)+':'+iTime.substring(10,12);
+									var inquireTime = '(' + iTime.substring(0, 4) + '/' + iTime.substring(4, 6) + '/' + iTime.substring(6, 8) + ' ' + iTime.substring(8, 10) + ':' + iTime.substring(10, 12) + ')';
+									res[i].inquireTime = inquireTime;
+									$scope.inquireFlag[i] = true;
+
+								} else {
+									$scope.inquireFlag[i] = false;
+								}
+							}
+							$scope.reports = res;
+						}
+					}).error(function (error) {
+						console.log(error);
+					});
+				}
+			}
+
+		};
+		//time格式转换
+		$scope.dateFormat = function (date) {
+			var year = date.getFullYear().toString();
+			if (year.length < 4) {
+				var i = 4 - year.length;
+				for (; i > 0; i--) {
+					year = '0' + year;
+				}
+			}
+			var month = (date.getMonth() + 1).toString();
+			if (month.length < 2) {
+				var i = 2 - month.length;
+				for (; i > 0; i--) {
+					month = '0' + month;
+				}
+			}
+			var day = date.getDate().toString();
+			if (day.length < 2) {
+				var j = 2 - day.length;
+				for (; j > 0; j--) {
+					day = '0' + day;
+				}
+			}
+			var time = year + month + day + '000000';
+			return time;
+		};
+		//时间格式转换(用于值班周期显示)
+		$scope.dateStrFormat = function (date) {
+			var year = date.getFullYear().toString();
+			if (year.length < 4) {
+				var i = 4 - year.length;
+				for (; i > 0; i--) {
+					year = '0' + year;
+				}
+			}
+			var month = (date.getMonth() + 1).toString();
+			if (month.length < 2) {
+				var i = 2 - month.length;
+				for (; i > 0; i--) {
+					month = '0' + month;
+				}
+			}
+			var day = date.getDate().toString();
+			if (day.length < 2) {
+				var i = 2 - day.length;
+				for (; i > 0; i--) {
+					day = '0' + day;
+				}
+			}
+			var hour = date.getHours().toString();
+			if (hour.length < 2) {
+				var i = 2 - hour.length;
+				for (; i > 0; i--) {
+					hour = '0' + hour;
+				}
+			}
+			var minute = date.getMinutes().toString();
+			if (minute.length < 2) {
+				var i = 2 - minute.length;
+				for (; i > 0; i--) {
+					minute = '0' + minute;
+				}
+			}
+			var time = year + '/' + month + '/' + day + ' ' + hour + ':' + minute;
+			return time;
+		};
+		//日期格式转换
+		$scope.dayFormat = function (date) {
+			// console.log(date)
+			var year = date.getFullYear().toString();
+			if (year.length < 4) {
+				var i = 4 - year.length;
+				for (; i > 0; i--) {
+					year = '0' + year;
+				}
+			}
+			var month = (date.getMonth() + 1).toString();
+			if (month.length < 2) {
+				var i = 2 - month.length;
+				for (; i > 0; i--) {
+					month = '0' + month;
+				}
+			}
+			var day = date.getDate().toString();
+			if (day.length < 2) {
+				var i = 2 - day.length;
+				for (; i > 0; i--) {
+					day = '0' + day;
+				}
+			}
+			var time = year + month + day;
+			return time;
+		};
+		//时间格式转换
+		$scope.hourFormat = function (date) {
+			var hour = date.getHours().toString();
+			if (hour.length < 2) {
+				var i = 2 - hour.length;
+				for (; i > 0; i--) {
+					hour = '0' + hour;
+				}
+			}
+			var minute = date.getMinutes().toString();
+			if (minute.length < 2) {
+				var i = 2 - minute.length;
+				for (; i > 0; i--) {
+					minute = '0' + minute;
+				}
+			}
+			var time = hour + minute;
+			return time;
+		};
+
+		// $scope.reportEndDate = $scope.dateFormat(oDate).substring(0, 8) + '999999';
+		
+
+		//1min刷新
+		// $scope.refresh = function () {
+		// 	$interval(function(){
+		// 		//刷新巡检报告
+		// 		$scope.queryByTimeFun();
+		// 	}, 60000);
+		// };
+		// $scope.refresh();
+
+		$scope.selectTimeDefaul = '显示全部';
+		$scope.getSetTime = 12;
+		$scope.selectTimeListAry = [
+			{ 'name': '最近1天', 'time': '1' },
+			{ 'name': '最近3天', 'time': '3' },
+			{ 'name': '最近7天', 'time': '7' },
+			{ 'name': '最近一个月', 'time': '30' },
+			{ 'name': '显示全部', 'time': -1 }
+		];
+		$scope.selectTimeListFlag = false;
+		$scope.goToSelectTime = function (e) {
+			e.stopPropagation();
+			if ($scope.selectTimeListFlag === true) {
+				$scope.goBack();
+			} else {
+				$scope.selectTimeListFlag = true;
+			}
+		};
+
+		$scope.selectTimeLi = function (item) {
+			if ($scope.startTime) {
+				delete $scope.startTime;
+			}
+			if ($scope.endTime) {
+				delete $scope.endTime;
+			}
+			$scope.selectTimeListFlag = false;
+			$scope.selectTimeDefaul = item.name;
+			$scope.selectDefTimeFlag = false;
+			// $scope.timeArea = Number(item.time * 3600000);
+			$scope.pageNum = 1;
+			$scope.initTime();
+			var date = new Date();
+			// var endTime = date.getTime();
+			var startTime = date.getTime() - item.time*24*60*60*1000;
+			var startT = new Date(startTime);
+			var startHour = $scope.hourFormat(startT);
+			var startTStr = startT.getFullYear() + '' + ((startT.getMonth() + 1) > 9 ? (startT.getMonth() + 1) : '0' + (startT.getMonth() + 1) < 10? '0'+(startT.getMonth()+1): (startT.getMonth() + 1)) + (startT.getDate()< 10?'0'+(startT.getDate()):(startT.getDate())) + startHour + (startT.getSeconds() < 10 ? '0' + startT.getSeconds() : startT.getSeconds());
+			var endTStr = $scope.dateFormat(date).substring(0,8)+'235959';
+			if(item.time === -1){
+				$scope.reportStartDate = -1;
+			} else {
+				$scope.reportStartDate = startTStr;
+			}
+			$scope.reportEndDate = endTStr;
+			$scope.deleteList = [];
+			$scope.checkedReportIds = [];
+			$scope.queryByTimeFun();
+		};
+
+		$scope.selectDefTimeFlag = false;
+		$scope.selectDefTime = function () {
+			$scope.selectDefTimeFlag = true;
+			$scope.initTime();
+		};
+		$scope.goBack = function () {
+			$scope.selectTimeListFlag = false;
+			$scope.selectDefTimeFlag = false;
+		};
+
+		$scope.clickBlank = function (e) {
+			var cname = e.target.className;
+			if (cname !== 'definedT ng-binding' && cname !== 'dataInput ng-pristine ng-untouched ng-valid ng-not-empty' && cname !== 'ng-binding'
+				&& cname !== 'selectBox' && cname !== 'btn ng-binding' && cname !== 'dataInput ng-valid ng-not-empty ng-touched ng-dirty ng-valid-parse' &&
+				e.target.tagName !== 'IMG' && cname !== 'timeBtns'&&cname!=='' && cname !== 'clear' && cname !== 'dataInput ng-pristine ng-valid ng-not-empty ng-touched') {
+				$scope.selectTimeListFlag = false;
+				$scope.selectDefTimeFlag = false;
+				// if(cname !== 'border-rnone border-gray border-R2 form-control bg-white input-ctrl ng-pristine ng-untouched ng-valid ng-empty' && cname !== 'border-rnone border-gray border-R2 form-control bg-white input-ctrl ng-pristine ng-valid ng-empty ng-touched'
+				// && cname !== 'glyphicon glyphicon-calendar' && cname !== 'border-lnone border-gray border-R2 input-group-addon' && cname !== 'border-rnone border-gray border-R2 form-control bg-white input-ctrl ng-pristine ng-valid ng-touched ng-not-empty') {
+				if((cname.indexOf('form-control') < 0 && cname.indexOf('input-ctrl') < 0) && cname.indexOf('input-group-addon') < 0 && cname !== 'glyphicon glyphicon-calendar' ) {
+					$scope.selectDurationFlag = false;
+				}
+			}
+			
+			if(cname.indexOf('full') < 0){
+				for (var i = 0; i < $scope.newConcerns.length; i++) {
+					$scope.newConcerns[i].showFlag = false;
+					$scope.newConcerns[i].showEquipmentFlag = false;
+				}
+				if (!$(e.target).parents('.public-select-time').length && !$(e.target).hasClass('timeInput')) {
+					$('.select-time').hide();
+				}
+
+			}
+		};
+
+		$scope.saveRomeparms = {
+			inspectionReportInfo: {
+				'inspectionPerson': ''
+			},
+			newConcerns: {}
+		}
+
+
+		$scope.validateConcernsTime = function (ConcernsTime, concernsTimeNum) {
+			var reg  = /^(0[1-9]|1[012])\/(0[1-9]|[12]\d|3[01]) ([01]\d|2[0-3]):([0-5]\d)$/;
+			// console.log(reg.test(ConcernsTime.toString()));
+			if (reg.test(ConcernsTime.toString())) {
+				return true;
+			} else {
+				return false;
+			}
+		};
+
+		/*分页 开始*/
+		$scope.paging = function (data) {
+			$scope.pageSize = data.pageSize;
+			$scope.pageNum = data.currentPage;
+			if ($scope.reportStartDate === 0 && $scope.startDate === 0 && $scope.endDate === 0) {
+				$scope.queryInspReports();
+			} else {
+				$scope.queryByTimeFun();
+			}
+		};
+		/*分页 结束*/
+
+
+		/*值班报告start*/
+		$scope.reportContentShowFlag = false;
+		$scope.reports = [];
+
+		$scope.dataCenterName = "";
+		$scope.reportData = {};
+		$scope.report = {};
+		$scope.reportConStatus = 0; //报告详情页状态值 0:新建报告,无id 1:打开某报告，有id,不可编辑 2:打开某报告，有id,可编辑 3.打开某报告，有id,编辑状态
+		$scope.activeEvents = [];
+		$scope.closedEvents = [];
+		$scope.concerns = [];
+		$scope.newConcerns = [];
+		$scope.selectDurationFlag = false;
+		// $scope.onDutyDateString = "";
+
+		$scope.rooms = [];
+		$scope.roomDefault = [];
+		$scope.roomSel = [];
+		$scope.selectRoomListFlag = [];
+
+		$scope.newConcernsDeleteList = [];
+
+		$scope.equipments = [];
+
+		$scope.showCheckTableFlag = false;
+
+		$scope.checkedReportIds = [];
+		//删除报告Flag
+		$scope.deleteFlag = false;
+		//选中报告id
+		$scope.deleteList = [];
+
+		$scope.initNewSummaries = [];
+
+		//获取数据中心名称
+		$scope.getDataCenterName = function () {
+			MonitoringService.getName().success(function(result){
+				if(result.success){
+					$scope.dataCenterName = result.data;
+				}
+			}).error(function(error){
+				console.log(error)
+			});
+		};
+
+		$scope.getDataCenterName();
+
+		//获取新建报告初始数据
+		$scope.queryNewReport = function () {
+			MonitoringService.getNewReport().success(function(result){
+				if(result.success){
+					$scope.reportData = result.data;
+					$scope.handleData(result.data);
+				}
+			}).error(function(error){
+				console.log(error);
+			});
+		};
+
+		//处理数据
+		$scope.handleData = function (reportData) {
+			$scope.report = reportData.onDutyReportInfo;
+			//更新时间
+			var time = $scope.report.updateTime;
+			if(time){
+				var date = new Date(time);
+				$scope.report.updateTime = $scope.dateStrFormat(date);
+			} else {
+				$scope.report.updateTime = '';
+			}
+
+			if(reportData.summaries && reportData.summaries.length >0){
+				reportData.summaries.sort($scope.compare('concernsTime'));
+			}
+			if(reportData.newSummaries && reportData.newSummaries.length >0){
+				reportData.newSummaries.sort($scope.compare('concernsTime'));
+			}
+			if(reportData.activeEvents && reportData.activeEvents.length >0){
+				reportData.activeEvents.sort($scope.compare('occurtime'));
+			}
+			if(reportData.closedEvents && reportData.closedEvents.length >0){
+				reportData.closedEvents.sort($scope.compare('occurtime'));
+			}
+
+
+			$scope.activeEvents = reportData.activeEvents;
+			$scope.closedEvents = reportData.closedEvents;
+
+			reportData.summaries.forEach(function(concern){
+				var concernsTimeStr = concern.concernsTime + '';
+				concern.concernsTime = concernsTimeStr.substring(4, 6)+'/'+concernsTimeStr.substring(6, 8)+' '+concernsTimeStr.substring(8, 10)+':'+concernsTimeStr.substring(10, 12);
+				concern.roomDefault = concern.roomCode;
+				concern.equipmentDefault = concern.equipment;
+			});
+			$scope.concerns = reportData.summaries;
+			reportData.newSummaries.forEach(function(concern){
+				var concernsTimeStr = concern.concernsTime + '';
+				concern.concernsTime = concernsTimeStr.substring(4, 6)+'/'+concernsTimeStr.substring(6, 8)+' '+concernsTimeStr.substring(8, 10)+':'+concernsTimeStr.substring(10, 12);
+				concern.roomDefault = concern.roomCode;
+				concern.equipmentDefault = concern.equipment;
+			});
+			$scope.newConcerns = reportData.newSummaries;
+			$scope.initNewSummaries = reportData.newSummaries;
+		};
+
+		$scope.compare = function( propertyName) {
+			return function(object1, object2) {
+			  var value1 = object1[propertyName];
+			  var value2 = object2[propertyName];
+			  if (value2 > value1) {
+				return 1;
+			  } else if (value2 < value1) {
+				return -1;
+			  } else {
+				return 0;
+			  }
+			};
+		  };
+		//新建值班报告
+		$scope.newReport = function () {
+			$scope.reportContentShowFlag = false;
+			$scope.showCheckTableFlag = false;
+			$scope.reportConStatus = 0;
+			$scope.queryNewReport();
+			$scope.newConcernsDeleteList = [];
+			$scope.report = {};
+			$timeout(function(){
+				$scope.reportContentShowFlag = true;
+			},500);
+			document.getElementById('reportCon').scrollTo(0,0);
+		};
+
+		//初始化值班周期日期选项
+		$scope.initOnDutyTime = function () {
+			var oDate = new Date();
+			var startTimeStr = oDate.getFullYear() + "/" + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1) < 10? '0'+(oDate.getMonth()+1): (oDate.getMonth() + 1)) + "/" + (oDate.getDate()<10?'0'+(oDate.getDate()):(oDate.getDate()));
+			$scope.onDutyStartD = startTimeStr;
+			var endTimeStr = oDate.getFullYear() + "/" + ((oDate.getMonth() + 1) > 9 ? (oDate.getMonth() + 1) : '0' + (oDate.getMonth() + 1) < 10? '0'+(oDate.getMonth()+1): (oDate.getMonth() + 1)) + "/" + (oDate.getDate()<10?'0'+(oDate.getDate()):(oDate.getDate()));
+			$scope.onDutyEndD = endTimeStr;
+			$scope.onDutyStartTimeHour = '00:00:00';
+			$scope.onDutyEndTimeHour = '00:00:00';
+		};
+
+		//选择值班周期时间flag
+		$scope.changeSelectDurationFlag = function () {
+			console.log('changeSelectDurationFlag')
+			console.log($scope.selectDurationFlag)
+			$scope.selectDurationFlag = true;
+			//初始化时间
+			$scope.initOnDutyTime();
+		};
+		
+		$scope.initOnDutyTime();
+		
+		$scope.goToOnDutyTimeSearch = function () {
+			if (!$("#onDutyStartTime").val() || !$scope.onDutyStartTimeHour) {
+				Unit.error('请选择起始时间');
+				return;
+			}
+			if (!$("#onDutyEndTime").val() || !$scope.onDutyEndTimeHour) {
+				Unit.error('请选择结束时间');
+				return;
+			}
+			var startTime = ($("#onDutyStartTime").val() + ' ' + $scope.onDutyStartTimeHour);
+			var endTime = $("#onDutyEndTime").val() + ' ' + $scope.onDutyEndTimeHour;
+			$scope.onDutyStartTime = Number((new Date(startTime)).getTime());
+			$scope.onDutyEndTime = Number((new Date(endTime)).getTime());
+			if ($scope.onDutyStartTime > $scope.onDutyEndTime) {
+				Unit.error('结束时间必须大于起始时间');
+				return;
+			}
+			$scope.onDutyStartD = $("#onDutyStartTime").val();
+			$scope.onDutyEndD = $("#onDutyEndTime").val();
+
+			$scope.report.ondutyCycle = $scope.onDutyStartD + ' ' + $scope.onDutyStartTimeHour.substring(0,5) + ' - ' +  $scope.onDutyEndD + ' ' + $scope.onDutyEndTimeHour.substring(0,5);
+		};
+
+		$scope.onDutyTimeGoBack = function () {
+			$scope.selectDurationFlag = false;
+		};
+		$scope.$on('startTimeHour', function (event, msg) {
+			$scope.onDutyStartTimeHour = msg;
+		});
+		$scope.$on('endTimeHour', function (event, msg) {
+			$scope.onDutyEndTimeHour = msg;
+		});
+
+		//是否添加备注
+		$scope.showCheckTable = function () {
+			$scope.showCheckTableFlag = !$scope.showCheckTableFlag;
+			if(!$scope.showCheckTableFlag) {
+				$scope.newConcerns = $scope.initNewSummaries;
+			} else {
+				if($scope.newConcerns.length < 1){
+					$scope.newConcerns.push({ roomCode: '', concernsTime: '01/01 00:00', rooms: $scope.rooms, roomDefault: $scope.rooms[0], equipments: $scope.equipments, equipmentDefault: $scope.equipments[0] });
+				}
+			}
+		};
+
+		//添加值班情况总结
+		$scope.addConcern = function () {
+			if ($scope.newConcerns.length && $scope.newConcerns.length > 0) {
+				$scope.addItemFlag = true;
+				$scope.newConcerns.forEach(function (item) {
+					if (!item.concernsTime || !item.concernsDesc) {
+						Unit.error('请检查上一条数据是否填写完整');
+						$scope.addItemFlag = false;
+						return;
+					}
+
+					if (!$scope.validateConcernsTime(item.concernsTime)) {
+						Unit.error('请检查时间格式是否正确');
+						$scope.addItemFlag = false;
+						return;
+					}
+				});
+				$scope.addItemFlag && $scope.newConcerns.push({ roomCode: '', concernsTime: '01/01 00:00', rooms: $scope.rooms, roomDefault: $scope.rooms[0], equipments: $scope.equipments, equipmentDefault: $scope.equipments[0]});
+			} else {
+				$scope.newConcerns.push({ roomCode: '', concernsTime: '01/01 00:00', rooms: $scope.rooms, roomDefault: $scope.rooms[0], equipments: $scope.equipments, equipmentDefault: $scope.equipments[0] });
+			}
+		};
+
+		$scope.loadRooms = function (status) {
+			MonitoringService.getAllRooms().success(function(result){
+				if(result.success){
+					$scope.rooms = result.data;
+					if(!status){
+						$scope.getEquipmentsByRoomCode($scope.rooms[0], -1);
+					} else {
+						$scope.newConcerns.forEach(function(item){
+							item.rooms = result.data;
+						});					
+					}
+				}
+			}).error(function(error){
+				console.log(error);
+			});
+		};
+
+		$scope.loadRooms();
+
+		$scope.selectRoom = function (index) {
+			$scope.newConcerns[index].showFlag = !$scope.newConcerns[index].showFlag;
+		};
+
+		$scope.selectRoomLi = function (index, item) {
+			$scope.newConcerns[index].showFlag = !$scope.newConcerns[index].showFlag;
+			$scope.newConcerns[index].roomDefault = item;
+			$scope.newConcerns[index].roomCode = item;
+			$scope.getEquipmentsByRoomCode(item, index);
+			
+		};
+
+		$scope.roomsSearch = function (index) {
+			$scope.newConcerns[index].showFlag = true;
+			if($scope.newConcerns[index].roomDefault === '' || $scope.newConcerns[index].roomDefault.length === 0) {
+				$scope.newConcerns[index].rooms = $scope.rooms;
+			}
+			if($scope.newConcerns[index].roomDefault.length > 0) {
+				var searchStr = $scope.newConcerns[index].roomDefault;
+				var rooms = [];
+				$scope.rooms.forEach(function(room){
+					if(room.indexOf(searchStr) >= 0) {
+						rooms.push(room);
+					}
+				});
+				$scope.newConcerns[index].rooms = rooms;
+			}
+			$scope.getEquipmentsByRoomCode($scope.newConcerns[index].roomDefault, index);
+		};
+
+		$scope.deleteRow = function (index) {
+			if($scope.newConcerns[index].id) {
+				$scope.newConcernsDeleteList.push($scope.newConcerns[index].id);
+			}
+			$scope.newConcerns.splice(index, 1);
+		};
+
+		
+		$scope.deleteConcernConfirm = function(index){
+			var dialog = uDialog.confirm({
+				title: '确认',
+				content: '该条记录已被保存，确认删除这条记录吗',
+				confirm: function () {
+					$scope.deleteRow(index);
+				}
+			});
+		};
+
+		$scope.selectEquipment = function (index) {
+			$scope.newConcerns[index].showEquipmentFlag = !$scope.newConcerns[index].showEquipmentFlag;
+		};
+
+		$scope.selectEquipmentLi = function (index, item) {
+			$scope.newConcerns[index].showEquipmentFlag = !$scope.newConcerns[index].showEquipmentFlag;
+			$scope.newConcerns[index].equipmentDefault = item;
+			$scope.newConcerns[index].equipment = item;
+		};
+
+		$scope.getEquipmentsByRoomCode = function (roomCode, index) {
+			MonitoringService.queryFacilityByRoomCode({roomCode: roomCode}).success(function(result){
+				if(result.success){
+					if(index < 0) {
+						$scope.equipments = result.data;
+					} else {
+						$scope.newConcerns[index].equipments = result.data;
+						$scope.newConcerns[index].equipmentDefault = result.data[0];
+					}
+				}
+			}).error(function(error){
+				console.log(error);
+			});
+		};
+
+		$scope.uploadFile = function (file, index) {
+			var formData = new FormData();
+			formData.append('file', file);
+			MonitoringService.uploadFile(formData).success(function (result) {
+				if (result.data) {
+					$scope.newConcerns[index].concernsUrl = result.data;
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+
+		};
+
+		$scope.deleteFile = function (index) {
+			delete $scope.newConcerns[index].concernsUrl;
+		}
+
+		$scope.saveReport = function (saveParams) {
+			MonitoringService.saveReport(saveParams).success(function(result){
+				if(result.success) {
+					Unit.success(result.data);
+					$scope.queryByTimeFun();
+					document.getElementById('reportCon').scrollTo(0,0);
+					$scope.reportContentShowFlag = false;
+				}
+			}).error(function(error){
+				console.log(error);
+			});
+		};
+
+		$scope.submitReport = function () {
+
+			if ($scope.report.ondutyPerson === '' || $scope.report.ondutyPerson === undefined) {
+				Unit.error('请输入值班人');
+			} else {
+				if ($scope.report.ondutyCycle === '' || $scope.report.ondutyCycle === undefined) {
+					Unit.error('请选择值班周期');
+				} else {
+					//生成报告标题及报告时间
+					$scope.onDutyReportTitle();
+
+					var newSummaries = [];
+
+					var saveItemFlag = true;
+					
+					if($scope.showCheckTableFlag) {
+						$scope.newConcerns.forEach(function(concern) {
+							if (!concern.concernsTime || !concern.concernsDesc) {
+								saveItemFlag = false;
+								Unit.error('请检查值班情况总结是否填写完整');
+								return;
+							}
+		
+							if (!$scope.validateConcernsTime(concern.concernsTime)) {
+								saveItemFlag = false;
+								Unit.error('请检查时间格式是否正确');
+								return;
+							}
+							var concernObj = {
+								roomCode: concern.roomDefault,
+								equipment: concern.equipmentDefault?concern.equipmentDefault:'',
+								concernsDesc: concern.concernsDesc,
+								concernsUrl: concern.concernsUrl?concern.concernsUrl:'',
+								concernsTime: new Date().getFullYear() + concern.concernsTime.replace(/[^0-9]/ig, "") + '00',
+								submitPerson: concern.submitPerson,
+								reportCode: $scope.report.id  
+							};
+							newSummaries.push(concernObj);
+						});
+					}
+
+					if(saveItemFlag) {
+						var saveParams = {
+							onDutyReportInfo: $scope.report,
+							activeEvents: $scope.activeEvents,
+							closedEvents: $scope.closedEvents,
+							newSummaries: newSummaries
+						};
+						// console.log(saveParams)
+						$scope.saveReport(saveParams);
+					}
+				}
+
+			}
+		};
+
+		//生成报告标题及报告时间
+		$scope.onDutyReportTitle = function () {
+			if($scope.report.reportTitle) {
+				timeStr = $scope.report.reportTitle.substring(0,16);
+			} else {
+				var date = new Date();
+				$scope.report.reportTime = date.getTime();
+				var timeStr = $scope.dateStrFormat(date);
+				timeStr = timeStr.substring(0,10)+'_'+timeStr.substring(11,16);
+			}
+			var nameArr = [];
+			var nameStr = ''; 
+			if($scope.report.ondutyPerson && ($scope.report.ondutyPerson.indexOf(',') >= 0 || $scope.report.ondutyPerson.indexOf('，') >= 0 || $scope.report.ondutyPerson.indexOf('、') >= 0 || $scope.report.ondutyPerson.indexOf(' ') >= 0)) {
+				nameArr = $scope.report.ondutyPerson.split(/[,，、 ]/);
+				nameArr.forEach(function(name) {
+					nameStr = nameStr + name + '_';
+				});
+				if(nameStr.length > 0) {
+					nameStr = nameStr.substring(0, nameStr.length-1);
+				}
+			} else {
+				nameStr = $scope.report.ondutyPerson; 
+			}
+			$scope.report.reportTitle = timeStr + '_' + nameStr;
+		};
+
+		//根据日期范围查询值班报告
+		$scope.queryByTimeFun = function () {
+			if(!$scope.reportEndDate){
+				$scope.reportEndDate=$scope.dateFormat(new Date()).substring(0, 8)+'235959';
+			}
+			MonitoringService.queryReportsByPage({ 'pageNum': $scope.pageNum, 'pageSize': $scope.pageSize, 'startTime': $scope.reportStartDate, 'endTime': $scope.reportEndDate }).success(function (result) {
+				if (result.success) {
+					var res = result.data.data;
+					//将选中状态放在报告对象中
+					res.forEach(function(report, index){
+						res[index].checked = false;
+						$scope.checkedReportIds.forEach(function(id){
+							if(report.id === id){
+								res[index].checked = true;
+							}
+						});
+					});
+					$scope.reports = res;
+					// $scope.pageNum = 1;
+					$scope.totalRows = result.data.totalRows;
+				}
+			}).error(function (error) {
+				console.log(error);
+			});
+		};
+		$scope.queryByTimeFun();
+
+		$scope.getUpdateFlag = function (id) {
+			MonitoringService.getUpdateFlag({reportId: id}).success(function(res){
+				if(res.data) {
+					if(res.data.updateFlag){
+						$scope.reportConStatus = 2;
+					} else {
+						$scope.reportConStatus = 1;
+					}
+					
+				}
+			}).error(function(error){
+				console.log(error);
+			});
+		};
+
+		$scope.showReportContent = function (report) {
+			$scope.reportContentShowFlag = false;
+			$scope.newConcernsDeleteList = [];
+			$scope.report = report;
+			$scope.getUpdateFlag(report.id);
+
+			//点击报告
+			MonitoringService.queryReportById({ reportId: $scope.report.id }).success(function (res) {
+				$scope.handleData(res.data);
+			}).error(function (error) {
+				console.log(error);
+			});
+
+			$scope.report = report;
+			$scope.reportId = $scope.report.id;
+			$scope.checkRsFlag = false;
+			$timeout(function(){
+				$scope.reportContentShowFlag = true;
+			},500);
+			document.getElementById('reportCon').scrollTo(0,0);
+		};
+
+		$scope.editReport = function () {
+			$scope.newConcernsDeleteList = [];
+			$scope.reportConStatus = 3;
+			$scope.showCheckTableFlag = true;
+			//初始化房间选项
+			$scope.loadRooms(1);
+			$scope.newConcerns.forEach(function(newConcern, index){
+				console.log(newConcern);
+				$scope.getEquipmentsByRoomCode(newConcern.roomDefault,index);
+			});
+			
+			// document.getElementById('reportCon').scrollTo(0,0);
+			if($scope.newConcerns.length < 1){
+				$scope.newConcerns.push({ roomCode: '', concernsTime: '01/01 00:00', rooms: $scope.rooms, roomDefault: $scope.rooms[0], equipments: $scope.equipments, equipmentDefault: $scope.equipments[0] });
+			}
+		};
+
+		$scope.updateReport = function (saveParams) {
+			MonitoringService.updateReport(saveParams).success(function(result){
+				if(result.success) {
+					Unit.success(result.data);
+					$scope.queryByTimeFun();
+					$scope.reportContentShowFlag = false;
+				}
+			}).error(function(error){
+				console.log(error);
+			});
+		};
+
+		$scope.saveChange = function () {
+			if ($scope.report.ondutyPerson === '' || $scope.report.ondutyPerson === undefined) {
+				Unit.error('请输入值班人');
+			} else {
+				if ($scope.report.ondutyCycle === '' || $scope.report.ondutyCycle === undefined) {
+					Unit.error('请选择值班周期');
+				} else {
+					//生成报告标题及报告时间
+					$scope.onDutyReportTitle();
+
+					delete $scope.report.reportTime;
+
+					var newConcerns = [];
+
+					var saveItemFlag = true;
+					
+					if($scope.showCheckTableFlag) {
+						$scope.newConcerns.forEach(function(concern) {
+							if (!concern.concernsTime || !concern.concernsDesc) {
+								saveItemFlag = false;
+								Unit.error('请检查值班情况总结是否填写完整');
+								return;
+							}
+		
+							if (!$scope.validateConcernsTime(concern.concernsTime)) {
+								saveItemFlag = false;
+								Unit.error('请检查时间格式是否正确');
+								return;
+							}
+							var concernObj = {
+								id: concern.id,
+								reportCode: $scope.report.id,
+								roomCode: concern.roomDefault,
+								equipment: concern.equipmentDefault?concern.equipmentDefault:'',
+								concernsDesc: concern.concernsDesc,
+								concernsUrl: concern.concernsUrl?concern.concernsUrl:'',
+								concernsTime: new Date().getFullYear() + concern.concernsTime.replace(/[^0-9]/ig, "") + '00',
+								submitPerson: concern.submitPerson  
+							};
+							newConcerns.push(concernObj);
+						});
+					}
+
+					if(saveItemFlag) {
+						delete $scope.report.updatePerson;
+						delete $scope.report.updateTime;
+						delete $scope.report.createTime;
+						delete $scope.report.modifyTime;
+						delete $scope.report.dataStatus;
+						var saveParams = {
+							onDutyReportInfo: $scope.report,
+							activeEvents: $scope.activeEvents,
+							closedEvents: $scope.closedEvents,
+							newSummaries: newConcerns
+						};
+						//删除值班总结
+						MonitoringService.deleteSummaries($scope.newConcernsDeleteList).success(function(result){
+							if(result.success) {
+								// Unit.success(result.data);
+							}
+						}).error(function(error){
+							console.log(error);
+						});
+						// console.log(saveParams)
+						$scope.updateReport(saveParams);
+					}
+				}
+
+			}
+		};
+
+		$scope.queryRecentReport =  function () {
+			$scope.reportContentShowFlag = false;
+			document.getElementById('reportCon').scrollTo(0,0);
+			
+			MonitoringService.queryRecentReport().success(function(res){
+				if(res.data) {
+					$scope.handleData(res.data);
+					$scope.newConcernsDeleteList = [];
+					$scope.reportId = $scope.report.id;
+					$scope.reportContentShowFlag = true;
+					$scope.reportConStatus = 1;
+				} else {
+					Unit.error('暂无值班报告');
+				}			
+			}).error(function(error){
+				$scope.reportContentShowFlag = false;
+				console.log(error);
+			});
+
+		};
+
+		$scope.deleteReports = function () {
+			var deleteList = $scope.deleteList;
+			MonitoringService.deleteReports(deleteList).success(function(result){
+				if(result.success){
+					Unit.success(result.data);
+					$scope.queryByTimeFun();
+				}
+			}).error(function(error){
+				console.log(error);
+			});
+			//删除列表状态
+			$scope.deleteFlag = false;
+			//右侧展开状态
+			$scope.reportContentShowFlag = false;
+			$scope.deleteList = [];
+			$scope.checkedReportIds = [];
+		};
+
+		$scope.selectItem = function (checkStatus, reportId){
+			if(checkStatus){
+				$scope.deleteList.push(reportId);
+			} else {
+				$scope.deleteList.forEach(function(id,index){
+					if(id === reportId) {
+						$scope.deleteList.splice(index, 1);
+					}
+				});
+			}
+			$scope.checkedReportIds = $scope.deleteList;
+		};
+
+		$scope.changeDeleteFlag = function () {
+			$scope.deleteFlag = true;
+		};
+
+		$scope.cancelDelete = function () {
+			$scope.deleteFlag = false;
+			$scope.deleteList = [];
+			$scope.checkedReportIds = [];
+			$scope.queryByTimeFun();
+		};
+
+		$scope.deleteConfirm = function(){
+			if($scope.deleteList.length>0){
+				var dialog = uDialog.confirm({
+					title: '确认',
+					content: '确认删除选中的'+$scope.deleteList.length+'张报告吗',
+					confirm: function () {
+						if($scope.deleteList.length>0){
+							//批量删除操作
+							$scope.deleteReports();
+							$timeout(function(){
+								$scope.queryByTimeFun();
+							},500);
+							
+						}
+					}
+				});
+			} else {
+				Unit.error('请选择要删除的报告');
+			}
+
+		};
+
+		//打印预览
+		$scope.showPrintReport = function (id) {
+			var url = $state.href('tarsier.monitoring.printOnDutyReport',{reportId:id});
+				window.open(url, '_blank');
+		};
+
+		$scope.goToTop = function () {
+			document.getElementById('reportCon').scrollTo(0,0);
+		};
+
+	}]);
+	
+
+
+})(nameSpace.reg('graph'));

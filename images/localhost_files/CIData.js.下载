@@ -1,0 +1,106 @@
+/* global deferred */
+
+(function(graph){
+
+	'use strict';
+
+    /** 用于前端缓存查询到的CI数据
+     * @returns {object.<string, object} - 返回一个空对象
+     */
+	graph.app.factory('CIData', ['CiService', '$q', function(CiService, $q){
+        var dataCache = {};
+        var ciData = {};
+
+        /**
+         * 获取数据
+         * 如果缓存中有数据则直接返回缓存里的数据
+         * @param   {string} ciId - 需要查询的CI的长ID
+         * @returns {promise}
+         */
+        ciData.get = function (ciId) {
+            var deferred = $q.defer();
+
+            if (dataCache[ciId]) {
+
+                deferred.resolve(dataCache[ciId]);
+
+            } else {
+
+                CiService.getCi(ciId).then(function (ret) {
+
+                    dataCache[ciId] = ret.data.data;
+                    deferred.resolve(dataCache[ciId]);
+
+                }, function (ret) {
+
+                    deferred.reject(ret);
+
+                });
+
+            }
+
+            return deferred.promise;
+        };
+
+        /**
+         * 批量获取CI数据
+         * @param {Array.<String>} ciIds - ci的id数组
+         * @returns {promise}
+         */
+        ciData.getBatch = function (ciIds) {
+            var dfd  = $q.defer();
+            var nocaches = [], retDatas = {};
+
+            angular.forEach(ciIds, function (ciId) {
+
+                if (dataCache[ciId]) {
+                    retDatas[ciId] = dataCache[ciId];
+                } else {
+                    nocaches.push(ciId);
+                }
+
+            });
+
+            if (nocaches.length === 0) {
+
+                dfd.resolve(retDatas);
+
+            } else {
+                CiService.ids(ciIds).then(function (ret) {
+
+                    var rd = ret.data.data;
+                    angular.forEach(rd, function (ciData, ciId) {
+                        dataCache[ciId] = ciData;
+                        retDatas[ciId] = ciData;
+                    });
+
+                    dfd.resolve(retDatas);
+
+                }, function (ret) {
+
+                    deferred.reject(ret);
+
+                });
+            }
+
+
+            return dfd.promise;
+        };
+
+        /**
+         * 清除缓存数据
+         * 如果指定了ciId则清除指定的ci数据缓存，否则清空全部
+         * @param {string} [ciId] - CI的长ID
+         */
+        ciData.clear = function (ciId) {
+            if (ciId && dataCache[ciId]) {
+                delete dataCache[ciId];
+            } else {
+                dataCache = {};
+            }
+        };
+
+        return ciData;
+    }]);
+
+})(nameSpace.reg('graph'));

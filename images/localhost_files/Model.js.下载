@@ -1,0 +1,252 @@
+
+(function(){
+
+	'use strict';
+
+
+	var isInit = false;
+
+
+	/**
+	 * 注册Factory
+	 */
+	graph.app.factory('GraphModel', ['Const', 'Unit', '$rootScope', 'Event', function(Const, Unit, $rootScope, Event){
+
+		/**
+		 * 这是一个模型转换的ng工厂,支持在monitor/tag/original三种模型之间来回切换
+		 * 默认的model为original,无论切换到任意一种model,都需要把original数据格式存储起来,方便切回
+		 * 切换到任意一种非original模型都要从original原型去转换
+		 */
+		var factory = function(editor){
+
+			/**
+			 * 必需要传入的editor参数
+			 */
+			this.editor = editor;
+
+			/**
+			 * 状态数据的数据格式
+			 * 会在new的时候初始化这个数据原型
+			 * @type {{}}
+			 */
+			this.maps = {};
+
+			this.modelNames = {
+				monitor: 'monitor',
+				tag: 'tag',
+				original: 'original'
+			};
+
+			this.circleWidth = 24;
+			this.circleHeight = 24;
+			this.circleStyle = 'ellipse;strokeWidth=none;strokeColor=none;movable=0;fillColor=green;fontColor=white;';
+
+			/**
+			 * 更新originalData内容
+			 */
+			this.updateOriginalData();
+			this.handleClick();
+			this.currentModel = this.modelNames.original;
+		};
+
+		factory.prototype.handleClick = function(){
+
+			var _this = this;
+
+			if(isInit){
+				return false;
+			}
+
+			isInit = true;
+
+			$rootScope.$on(Event.GRAPH_CELL_CLICK, function(event, obj){
+				var cell = obj.cell, id = obj.cell.id.split('_').pop();
+
+				// 监控事件
+				if(cell.id.indexOf(Const.IN_PREFIX + 'monitor_event_') === 0){
+					_this.showModal(id, 'monitor_event');
+				}
+
+				// 事件工单
+				if(cell.id.indexOf(Const.IN_PREFIX + 'event_ticket_') === 0){
+					_this.showModal(id, 'event_ticket');
+				}
+
+				// 变更工单
+				if(cell.id.indexOf(Const.IN_PREFIX + 'change_ticket_') === 0){
+					_this.showModal(id, 'change_ticket');
+				}
+			});
+		};
+
+		factory.prototype.showModal = function(id, index){
+			this.editor.action.ciTable(id, index);
+		};
+
+
+		/**
+		 * 更新originalData
+		 * 当用户的画布内容发生变化之后需要更新此对象
+		 * 确保originalData为最新的内容
+		 */
+		factory.prototype.updateOriginalData = function(){
+			// TODO 把originalData初始化
+		};
+
+
+		/**
+		 * monitor模型
+		 */
+		factory.prototype.monitor = function(){
+			var _this = this,
+				cells = [],
+				graph = _this.editor.graph;
+
+			_this.currentModel = _this.modelNames.monitor;
+
+			$.each(graph.getDepCells(), function(){
+				var cell = this;
+
+				if(!graph.isSwimlane(cell) && cell.vertex && Unit.isCiCell(cell)){
+					cells.push(cell);
+				}
+			});
+
+
+			var queue = function(cell){
+
+				//obj = {
+				//	style: cell.getStyle(),
+				//	value: cell.getValue(),
+				//	width: cell.geometry.width,
+				//	height: cell.geometry.height,
+				//	cell: cell
+				//};
+
+				cell.setStyle('text;html=1;overflow=fill;rounded=0;align=left;verticalAlign=top;');
+				cell.setValue(Unit.getMonitorVertexHtml({
+					id: cell.id
+				}));
+
+				//_this.maps[cell.id] = obj;
+				//_this.editor.graph.refresh();
+			};
+
+			$.each(cells, function(){
+				queue(this);
+			});
+		};
+
+
+		/**
+		 * 创建气泡
+		 * @param id	气泡ID
+		 * @param index	气泡位置 0 第一个 1 第二个 2 第三个
+         * @param cell	添加气泡的节点
+         */
+		factory.prototype.createCircle = function(id, index, cell){
+			var _this = this;
+			return _this.editor.graph.insertVertex(
+				cell.getParent(),
+				Const.IN_PREFIX + id + cell.id,
+				0,
+				cell.geometry.x + ((_this.circleWidth + 2) * index) - _this.circleWidth / 2,
+				cell.geometry.y - _this.circleHeight / 5 * 4,
+				_this.circleWidth,
+				_this.circleHeight,
+				_this.circleStyle
+			);
+		};
+
+		/**
+		 * 更新monitor状态的数值
+		 * monitor参数结构
+		 * 	[
+		 * 		{
+		 * 			id: ci ID
+		 * 			monitorEvent: 监控事件
+	 	 * 			eventTicket: 事件工单
+	 	 * 			changeTicket: 变更工单
+	 	 * 			kpiUnusual: 异常指标
+	 	 *	 		kpiCount: 指标总数
+	 	 *
+	 	 *		}
+		 * 	]
+		 */
+		factory.prototype.updateMonitorData = function(monitor){
+			var _this = this;
+
+			$.each(monitor, function(){
+				var obj = this,
+					number,
+					color1 = 'orange',
+					color2 = 'green',
+					color = '',
+					map = _this.maps[Const.CI_PREFIX + obj.id];
+
+
+				if(map){
+					if(typeof obj.monitorEvent !== 'undefined' && map.in1){
+						number = Number(obj.monitorEvent);
+						map.in1.setValue(obj.monitorEvent);
+						color = number ? color1 : color2;
+						_this.editor.graph.setCellStyles('fillColor', color, [map.in1]);
+					}
+
+					if(typeof obj.eventTicket !== 'undefined' && map.in2){
+						number = Number(obj.eventTicket);
+						map.in2.setValue(obj.eventTicket);
+						color = number ? color1 : color2;
+						_this.editor.graph.setCellStyles('fillColor', color, [map.in2]);
+					}
+
+					if(typeof obj.changeTicket !== 'undefined' && map.in3){
+						number = Number(obj.changeTicket);
+						map.in3.setValue(obj.changeTicket);
+						color = number ? color1 : color2;
+						_this.editor.graph.setCellStyles('fillColor', color, [map.in3]);
+					}
+
+					if(typeof obj.kpiUnusual !== 'undefined' && map.row2cell2){
+						number = Number(obj.kpiUnusual);
+						map.row2cell2.innerText = number;
+						map.row2cell2.style.color = number ? color1 : color2;
+					}
+
+					if(typeof obj.kpiCount !== 'undefined' && map.row3cell2){
+						number = Number(obj.kpiCount);
+						map.row3cell2.innerText = number;
+						//map.row3cell2.style.color = number ? color1 : color2;
+					}
+
+					/**
+					 * update cell's value if no than next refresh will be recover original value
+					 */
+					if(typeof obj.kpiCount !== 'undefined' || typeof obj.kpiUnusual !== 'undefined'){
+						map.cell.setValue(map.tableEle.outerHTML);
+					}
+				}
+			});
+
+
+			_this.editor.graph.refresh();
+		};
+
+		/**
+		 * tag模型
+		 */
+		factory.prototype.tag = function(){
+			// TODO 实现标签功能
+		};
+
+		/**
+		 * original原型
+		 */
+		factory.prototype.original = function(){
+			// TODO 实现原型功能
+		};
+
+		return factory;
+	}]);
+
+})(nameSpace.reg('graph'));

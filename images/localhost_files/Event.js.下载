@@ -1,0 +1,63 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('Event', [function(){
+		return {
+
+			GRAPH_CELL_CLICK: 'graphCellClick',
+			GRAPH_CI_CELL_CLICK: 'graphCiCellClick',
+			GRAPH_CANVAS_CLICK: 'graphCanvasClick',
+
+			GRAPH_SCALE: 'graphScale',
+
+			GRAPH_VERTEX_CLONE: 'graphVertexClone',
+
+			VIEW_DELETE_BEFORE: 'viewDeleteBefore',
+			VIEW_DELETE_AFTER: 'viewDeleteAfter',
+			VIEW_UPDATE_BEFORE: 'viewUpdateBefore',
+			VIEW_PUBLIC_BEFORE: 'viewPublicBefore',
+			VIEW_UNPUBLIC_BEFORE: 'viewUnpublicBefore',
+
+			CATE_DELETE_AFTER: 'cateDeleteAfter',
+
+			VIEW_SET_PUBLIC: 'viewSetPublic',
+			VIEW_SET_UNPUBLIC: 'viewSetUnpublic',
+
+			VIEW_SUBSCRIPTION_BEFORE: 'viewSubscriptionBefore',
+			VIEW_UNSUBSCRIPTION_BEFORE: 'viewUnsubscriptionBefore',
+			VIEW_SUBSCRIPTION_AFTER: 'viewSubscriptionAfter',
+			VIEW_UNSUBSCRIPTION_AFTER: 'viewUnsubscriptionAfter',
+
+			GRAPH_INFO_TOGGLE: 'graphInfoToggle',
+
+			GRAPH_TABLE_SHOW: 'graphTableShow',
+			GRAPH_TABLE_HIDE: 'graphTableHide',
+
+
+			GRAPH_CHANGE: 'graphChange',
+
+			GROUP_VIEW_ID_CHANGE: 'groupViewIdChange',
+
+			CI_TABLE_UNCHECKED: 'ciTableUnchecked',
+
+			SIDEBAR_CALLAPSED: 'sidebarCallapsed',
+
+			USERINFO_UPDATE: 'userinfoUpdate',
+
+			TIMELINE_POINT_CLICK: 'timelinePointClick',
+			GRAPH_MONITOR_UPDATE: 'graphMonitorUpdate',
+
+			GRAPH_SEARCH_CLEAR: 'graphSearchClear',
+
+			NEED_NOTIFY: 'needNotity',
+
+			NO_TOKEN: 'noToken',
+
+			CLOSE_EVENT: 'closeEvent'
+
+		};
+	}]);
+
+})(nameSpace.reg('graph'));

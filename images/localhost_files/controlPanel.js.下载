@@ -1,0 +1,261 @@
+(function() {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('uControlPanel', [function() {
+        /**
+         * 设置元素CSS样式
+         */
+        var setCss = function(el, k, v) {
+            if (typeof k == 'string') {
+                var t = {};
+                t[k] = v;
+                k = t;
+            }
+
+            for (var i in k) {
+                el.style.setProperty(i, k[i]);
+            }
+        }
+
+        var addCssRule = function(sheet, rule, k, v) {
+            if (typeof k == 'string') {
+                var t = {};
+                t[k] = v;
+                k = t;
+            }
+            var properties = []
+            for (var i in k) {
+                properties.push(i + ':' + k[i]);
+            }
+            sheet.addRule(rule, properties.join(';'));
+        }
+
+        /**
+         * 为Dom元素增加class
+         * @param {HTMLElement} el
+         * @param {string|Array<string>} cls - class名或class列表
+         */
+        var addClass = function(el, cls) {
+            cls = cls instanceof Array ? cls : cls.split(/\s+/);
+            var classList = el.className.split(/\s+/); // 为了兼容IE，所以不直接使用元素的classList属性
+            for (var i in cls) {
+                typeof cls[i] === 'string' && classList.indexOf(cls[i]) < 0 && classList.push(cls[i]);
+            }
+
+            el.className = classList.join(' ');
+        }
+
+        /**
+         * 删除Dom元素的某些class
+         */
+        var removeClass = function removeClass(el, cls) {
+            cls = cls instanceof Array ? cls : cls.split(/\s+/);
+
+            for (var i in cls) {
+                typeof cls[i] === 'string' && (el.className = el.className.replace(cls, ''));
+            }
+        }
+
+        /**
+         * 控制面板
+         * 将所有Scene的可执行操作集中在一起
+         * (或许叫做ActionPanel更合适一些)
+         */
+        var ControlPanel = Class.extend({
+            // 创建操作面板
+            makePanel: function(actions) {
+                var outter = document.createElement('ul'),
+                    wrapper = document.createElement('div'),
+                    arrowDown = document.createElement('div');
+                this.sceneActionEls = {};
+                wrapper.className = 'control-panel-wrapper';
+                outter.className = 'control-panel-outter control-panel-clear';
+                arrowDown.className = 'control-panel-arrow-down';
+                wrapper.appendChild(outter);
+                wrapper.appendChild(arrowDown);
+                for (var i in actions) {
+                    var sacts = actions[i],
+                        part = document.createElement('li'),
+                        ul = document.createElement('ul');
+                    ul.className = 'control-panel-clear';
+                    part.appendChild(ul);
+                    this.sceneActionEls[sacts.sceneId] = ul;
+                    for (var j in sacts.actions) {
+                        var li = document.createElement('li'),
+                            a = document.createElement('a'),
+                            act = sacts.actions[j];
+                        li.appendChild(a);
+                        a.href = '#';
+                        a.text = act.title;
+                        a.onclick = (function() {
+                            var theAct = sacts.actions[j];
+                            return function(e) {
+                                e.preventDefault();
+                                theAct.callBack.apply();
+                            }
+                        })();
+                        setCss(li, 'float', 'left');
+                        ul.appendChild(li);
+                    }
+                    setCss(part, 'float', 'left');
+                    outter.appendChild(part);
+                }
+
+                this.el = wrapper;
+                return wrapper;
+            },
+
+            init: function(actions, cell, mxgraph) {
+                this.initStyle();
+
+                this.cell = cell;
+                this.mxg = mxgraph;
+                this.makePanel(actions);
+                this.visible = false;
+
+                var that = this;
+
+                // 右键拖动画布开始时
+                this.mxg.panningHandler.addListener(mxEvent.PAN_START, function(sender, evt) {
+                    if (that.visible) {
+                        that.hideForPan = true;
+                        that.hide();
+                    }
+                });
+                // 右键拖动画布结束时
+                this.mxg.panningHandler.addListener(mxEvent.PAN_END, function(sender, evt) {
+                    if (that.hideForPan) {
+                        that.hideForPan = false;
+                        that.show();
+                    }
+                });
+
+                // 缩放时修改位置
+                this.mxg.view.addListener(mxEvent.SCALE, function(sender, evt) {
+                    if (that.visible) that.positionToCell();
+                });
+                this.mxg.view.addListener(mxEvent.SCALE_AND_TRANSLATE, function(sender, evt) {
+                    if (that.visible) that.positionToCell();
+                });
+            },
+
+            appendTo: function(parent) {
+                parent.appendChild(this.el);
+            },
+
+            positionToCell: function() {
+                var mxv = this.mxg.view,
+                    state = mxv.getState(this.cell),
+                    geo = state.paintBounds, //state.cellBounds,
+                    p = new mxPoint((geo.x + mxv.translate.x) * mxv.scale, (geo.y + mxv.translate.y) * mxv.scale)
+                    //                p = mxv.transformControlPoint(state,
+                    //                      new mxPoint(0, 0));
+                p.x = p.x + (geo.width * mxv.scale - this.el.clientWidth) / 2;
+                p.y = p.y - this.el.clientHeight;
+                setCss(this.el, {
+                    left: p.x + 'px',
+                    top: p.y + 2 + 'px'
+                });
+
+            },
+
+            /**
+             *
+             */
+            show: function() {
+                setCss(this.el, 'display', 'block');
+                this.positionToCell();
+                this.visible = true;
+            },
+
+            hide: function() {
+                setCss(this.el, 'display', 'none');
+                this.visible = false;
+            },
+
+            /**
+             * 控制面板的样式元素
+             */
+            style: document.createElement("style"),
+
+            /**
+             * 初始化控制面板的样式
+             */
+            initStyle: function() {
+                // 只初始化一次，如果已经初始化则直接退出
+                if (this.style.parentElement) return;
+
+                document.head.insertBefore(this.style, document.head.children[0])
+                var sheet = this.style.sheet;
+                // 清除浮动
+                addCssRule(sheet, 'ul.control-panel-clear::after', {
+                    display: 'block',
+                    clear: 'both',
+                    content: '""',
+                    visibility: 'hidden',
+                    height: '0'
+                });
+
+                addCssRule(sheet, 'div.control-panel-wrapper', {
+                    'display': 'none',
+                    'position': 'absolute',
+                    'margin': '0',
+                    'top': '0',
+                    'left': '0'
+                });
+
+                // 向下的箭头
+                addCssRule(sheet, 'div.control-panel-wrapper>div.control-panel-arrow-down', {
+                    'position': 'relative',
+                    'width': '0',
+                    'height': '0',
+                    'border-top': '10px solid rgba(0,0,0, 0.7)',
+                    'border-left': '10px solid rgba(0,0,0,0)',
+                    'border-right': '10px solid rgba(0,0,0,0)',
+                    'left': '50%',
+                    'margin-left': '-7px'
+                });
+
+                addCssRule(sheet, 'ul.control-panel-outter', {
+                    'display': 'block',
+                    'position': 'relative',
+                    'list-style': 'none',
+                    'margin': '0px',
+                    // 'padding': '10px',
+                    'background-color': 'rgba(0,0,0, 0.7)',
+                    'color': 'white',
+                    'border-radius': '20px'
+                });
+
+                addCssRule(sheet, 'ul.control-panel-outter>li>ul', {
+                    'list-style': 'none',
+                    'display': 'block',
+                    // 'margin': '2px',
+                    'padding': '2px 15px'
+                });
+
+                addCssRule(sheet, 'ul.control-panel-outter>li>ul>li', {
+                    'margin': '5px 10px',
+                    'white-space': 'nowrap'
+                });
+
+                addCssRule(sheet, 'ul.control-panel-outter>li>ul>li>a', {
+                    'text-decoration': 'none',
+                    'color': '#fff',
+                    // 'padding': '6px 10px',
+                    // 'background-color': 'white',
+                    // 'border': '2px solid white'
+                });
+                addCssRule(sheet, 'ul.control-panel-outter>li>ul>li>a:hover', {
+                    // 'background-color': 'lightgray'
+                    'color': '#40a8df'
+                });
+                addCssRule(sheet, 'ul.control-panel-outter>li>ul>li>a:active', {
+                    // 'background-color': 'gray'
+                });
+            }
+        });
+
+        return ControlPanel;
+    }]);
+})();

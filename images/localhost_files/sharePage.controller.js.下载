@@ -1,0 +1,521 @@
+(function(graph, self) {
+
+	'use strict';
+
+	graph.app.controller('sharePageCtrl', ['$scope','$state', 'MonitoringService','DefinedEventsService', 'oScreenConst', 'uDialog', 'Unit', '$timeout', '$uibModal', '$interval', function($scope,$state, MonitoringService,DefinedEventsService, oScreenConst, uDialog, Unit, $timeout, $uibModal, $interval) {
+     //通过uuid查询快照条件
+		$scope.formatTime=function(time){
+			var nS=new Date(time);
+			//var   year=nS.getFullYear();
+			var   month=Number(nS.getMonth())+Number(1)<10?'0'+(Number(nS.getMonth())+Number(1)):Number(nS.getMonth())+Number(1);
+			var   date=nS.getDate();
+			return month+L.get('COMMON_MONTH')+date+L.get('COMMON_DAY_1')
+		}
+		$scope.getParms=function(){
+			//alert('1')
+			var uuid=window.location.href.split('=')[1]
+			var uuidParn={uuid:uuid};
+			MonitoringService.queryByUUID(uuidParn)
+				.success(function(result){
+					if(result.success){
+						//console.log(result)
+						$scope.startTime=result.data.startTime;
+						$scope.endTime=result.data.endTime;
+						$scope.topNumFirstKey=result.data.topTenColumnOne;
+						$scope.topNumSecondKey=result.data.topTenColumnTwo;
+						$scope.startTimeShow=$scope.formatTime($scope.startTime);
+						$scope.endTimeShow=$scope.formatTime($scope.endTime);
+						$scope.eventArea=result.data.eventArea;
+						$scope.topNumFirstKeyName=result.data.topTenColumnOneChn;
+						$scope.topNumSecondKeyName=result.data.topTenColumnTwoChn;
+						$scope.timeArea=result.data.timeArea
+						if(result.data.viewId){
+							$scope.viewId=result.data.viewId
+						}else{
+							$scope.viewId='';
+						}
+						$scope.columnCountTop();
+						$scope.eventCiTop();
+						$scope.listCombineData();
+						$scope.CombineTimeData();
+						
+
+					}
+				})
+				.error(function(err){console.error(err)})
+		}
+		$scope.getParms();
+
+		/*指标TOP10*/
+		$scope.columnCountTop=function(){
+
+				var parm={
+					startTime:$scope.startTime,
+					endTime:$scope.endTime,
+					column:$scope.topNumFirstKey,
+					viewId:$scope.viewId,
+				}
+			MonitoringService.columnCountTop(parm)
+					.success(function(result){
+						if(result.success){
+							var data=result.data;
+							$scope.topAry=[];
+							$scope.TopName=data.yAxis_data;
+							$scope.topNum=data.series_data;
+							var maxNum=Math.max.apply(Math, $scope.topNum )/0.8;
+							$.each($scope.TopName,function(index){
+								var obj={}
+								obj.name=this;
+								obj.num=$scope.topNum[index];
+								obj.click_param=data.click_param[index];
+								obj.length=Math.round(($scope.topNum[index]/maxNum)*100)+'%';
+								$scope.topAry.push(obj);
+							})
+							//console.log($scope.topAry);
+						}
+					})
+					.error(function(err){console.error(err)})
+			}
+		/*对象TOP10*/
+		$scope.eventCiTop=function(){
+			var parm={
+				startTime:$scope.startTime,
+				endTime:$scope.endTime,
+				column:$scope.topNumSecondKey,
+				viewId:$scope.viewId,
+			}
+			MonitoringService.columnCountTop(parm)
+				.success(function(result){
+					if(result.success){
+						var data=result.data;
+						//console.log(data);
+						$scope.eventTopAry=[];
+						$scope.eventTopName=data.yAxis_data;
+						$scope.eventTopNum=data.series_data;
+						var maxNum=Math.max.apply(Math, $scope.eventTopNum )/0.8;
+						$.each($scope.eventTopName,function(index){
+							var obj={}
+							obj.name=this;
+							obj.num=$scope.eventTopNum[index];
+							obj.click_param=data.click_param[index];
+							obj.length=Math.round(($scope.eventTopNum[index]/maxNum)*100)+'%';
+							$scope.eventTopAry.push(obj);
+						})
+						//console.log($scope.eventTopAry);
+					}
+				})
+				.error(function(err){console.error(err)})
+		}
+		/*TOP下钻*/
+		$scope.topDetail=function(flag,item){
+			//console.log(item)
+			var topDetailParms={
+				search_param:{},
+				startTime:$scope.startTime,
+				endTime:$scope.endTime,
+				selectCount:true
+
+			}
+			//console.log($scope.formatTime(topDetailParms.startTime))
+			//console.log($scope.formatTime(topDetailParms.endTime))
+			if(flag==1){/*第一个图*/
+				topDetailParms.search_param[$scope.topNumFirstKey]=item.click_param;
+			}
+			if(flag==2){/*第二个*/
+				topDetailParms.search_param[$scope.topNumSecondKey]=item.click_param;
+			}
+
+			if($scope.viewId){
+				topDetailParms=$scope.viewId;
+			}
+
+			uDialog.dialog({
+				class: 'compressDetail',
+				animation: true,
+				backdrop: 'static',
+				templateUrl: 'app/modal/manageAlert/topDetail.html',
+				controller: 'topDetailCtrl',
+				resolve: {
+					topDetailParms: function() {
+						return topDetailParms
+					},
+					name:function(){
+						return L.get('COMMON_CAVEAT')
+					}
+
+
+				}
+			});
+		}
+		/*top对象可选*/
+		$scope.topChoose = function(type) {
+			var item={};
+			if(type==1){
+				item.type=1;
+				item.showContent=$scope.topNumFirstKey;
+			}
+			if(type==2){
+				item.type=2;
+				item.showContent=$scope.topNumSecondKey;
+			}
+			$uibModal.open({
+				size: 'top10',
+				animation: true,
+				backdrop: 'static',
+				templateUrl: 'app/modal/manageAlert/topChoose.html',
+				controller: 'topChooseCtrl',
+				resolve: {
+					item: function() {
+						return item;/*1 第一个top，2第二个top*/
+					},
+					fn:function(){
+						return function(d){
+							if(type==1){
+								$scope.topNumFirstKey= d.showKey;
+								$scope.topNumFirstKeyName= d.showKeyName;
+								$scope.columnCountTop();
+							}
+							if(type==2){
+								$scope.topNumSecondKey=d.showKey;
+								$scope.topNumSecondKeyName= d.showKeyName;
+								$scope.eventCiTop();
+							}
+						}
+					}
+				}
+			});
+		}
+		/*告警归集统计折线图*/
+		$scope.listCombineData=function(){
+			var parm={
+				startTime:$scope.startTime,
+				endTime:$scope.endTime
+				/*viewId:''*/
+			}
+			MonitoringService.listCombineData(parm)
+				.success(function(result){
+					//console.log(result);
+					if(result.success){
+						$scope.combinDateList=result.data;
+						$scope.eventListAry=[];/*事件*/
+						$scope.alarmListAry=[];/*告警*/
+						$scope.incidentListAry=[];/*故障*/
+						$scope.dataTime=[];
+						$.each($scope.combinDateList,function(index){
+							if(this.displayType==2){
+								$scope.combinDateTotal=this;
+								$scope.combinDateList.splice(index,1)
+							}else{
+								$scope.eventListAry.push(this.eventCount);
+								$scope.alarmListAry.push(this.alarmCount)
+								$scope.incidentListAry.push(this.incidentCount);
+								$scope.dataTime.push(this.combinDate);
+								this.alarmRate=parseInt((this.incidentCount/this.eventCount)*100)
+							}
+
+						})
+						/*折线图*/
+						$scope.allDataLineChart = echarts.init(document.getElementById('lineMain'));
+						var optionLine = {
+							baseOption: {
+								tooltip: {
+									/*鼠标放在图像上显示当时的数据信息*/
+									trigger: 'axis',
+									textStyle:{
+										align:'center',
+									},
+									extraCssText: 'background: #000000;border-radius: 0;padding: 10px 10px;',
+									formatter: function(params) {
+										var result = '';
+										params.forEach(function (item,index) {
+											if(index==2){
+												result += '<span style="font-size: 16px;">'+item.value+'</span>'+' '+'<span style="font-size: 14px;">'+item.seriesName+'</span>'+'<br/>';
+											}else{
+												result +='<span style="font-size: 16px;">'+ item.value+'</span>'+ ' '+'<span style="font-size: 14px;">'+item.seriesName+'</span>'+' <i class="fa fa-long-arrow-right" style="color:#A7AAB0" aria-hidden="true"></i> ';
+											}
+
+										});
+										var rata=params[0].value?parseInt((params[2].value/params[0].value)*100):0;
+										result += '<span style="font-size: 12px;color: #A7AAB0">( '+L.get('EMV_COLLECTION_RATE')+rata+ '% )</span>';
+										return result;
+									}
+								},
+								legend: {
+									right:46,
+									top:10,
+									data:[L.get('COMMON_EVENT'),L.get('COMMON_CAVEAT'),L.get('EMV_FAULT_VIEW')]
+								},
+								grid: {
+									top: 50,
+									right: '50',
+									left: '20',
+									bottom: '40',
+									containLabel: true
+								}
+								,
+								xAxis: {
+									type: 'category',
+									boundaryGap: false,
+									//nameGap:30,
+									axisLine:{
+										lineStyle:{
+											color:'#A7AAB0'
+										}
+
+									},
+									data: $scope.dataTime
+								},
+								yAxis: {
+									type: 'value',
+									minInterval:1,
+									min:0,
+									axisLine:{
+										lineStyle:{
+											color:'#A7AAB0'
+										}
+
+									},
+								},
+								series: [{
+									name: L.get('COMMON_EVENT'),
+									type: 'line',
+									smooth: true,
+									symbol:'circle',
+									symbolSize:6,
+									data:$scope.eventListAry
+								},
+									{
+										name: L.get('COMMON_CAVEAT'),
+										type: 'line',
+										smooth: true,
+										symbol:'circle',
+										symbolSize:6,
+										data:$scope.alarmListAry
+									},
+									{
+										name: L.get('EMV_FAULT_VIEW'),
+										type: 'line',
+										smooth: true,
+										symbol:'circle',
+										symbolSize:8,
+										data:$scope.incidentListAry
+									}
+								],
+								color: ['#47A6DC','#F86060','#FDD2D2'],
+							},
+						};
+						$scope.allDataLineChart.setOption(optionLine);
+
+
+
+					}
+				})
+				.error(function(err){console.error(err)})
+		}
+		/*告警恢复时长*/
+		$scope.CombineTimeData=function(){
+			var parm={
+				startTime:$scope.startTime,
+				endTime:$scope.endTime
+				/*viewId:''*/
+			}
+			MonitoringService.listCombineDuration(parm)
+				.success(function(result){
+					//console.log(result);
+					if(result.success){
+						$scope.combinTimeList=result.data;
+						$scope.recoveryAry=[];/*恢复时长*/
+						$scope.responseAry=[];/*相应时长*/
+						$scope.alarmCountNumAry=[];/*告警量*/
+						$scope.XTime=[];
+						var width=$(".chartBox").width();
+						//alert(width);
+						$(".lineChart").css('width',width);
+						$.each($scope.combinTimeList,function(index){
+							if(this.displayType==2){
+								$scope.combinTimeTotal=this;
+								$scope.combinTimeList.splice(index,1)
+							}else{
+								$scope.recoveryAry.push(this.mttr);
+								$scope.responseAry.push(this.mtta)
+								$scope.alarmCountNumAry.push(this.alarmCount);
+								$scope.XTime.push(this.combinDate);
+								//this.alarmRate=parseInt((this.incidentCount/this.eventCount)*100)
+							}
+
+						})
+						/*最大告警量*/
+						$scope.maxAlarmCountNumAry=Math.ceil(Math.max.apply(Math, $scope.alarmCountNumAry)/5)*5;
+						//console.log(maxAlarmCountNumAry)
+						var maxRecoveryAry=Math.ceil(Math.max.apply(Math, $scope.recoveryAry)/5)*5;
+						var maxResponseAry=Math.ceil(Math.max.apply(Math, $scope.responseAry)/5)*5;
+						$scope.timeMaxM=Math.max(maxRecoveryAry,maxResponseAry);
+						$scope.recoveryLineChart();
+
+
+					}
+				})
+				.error(function(err){console.error(err)})
+		}
+		/*告警恢复时长图*/
+		$scope.recoveryLineChart=function(){
+			/*折线图*/
+			$scope.myLineChart = echarts.init(document.getElementById('timeMain'));
+			var option = {
+				tooltip : {
+					trigger: 'axis',
+					textStyle:{
+						align:'left',
+					},
+					extraCssText: 'background: #000000;border-radius: 0;padding: 10px 10px;',
+					formatter: function(params) {
+						//console.log(params)
+						var result = '';
+						params.forEach(function (item,index) {
+							result += '<span style="font-size: 12px;color: #E4E4E4">'+item.seriesName.split('（')[0]+'</span>'+'：'+'<span style="font-size: 16px;">'+item.value+'</span>'+'<br/>';
+						});
+						return result;
+					}
+				},
+				legend: {
+					right:46,
+					top:10,
+					legendHoverLink:false,
+					data:[L.get('EMV_AVERAGE_RECOVERY_MINUTE'),L.get('EMV_AVERAGE_RESPONSE_MINUTE'),L.get('EMV_ALARM_AMOUNT')],
+				},
+				grid: {
+					top: 50,
+					right: '50',
+					left: '20',
+					bottom: '40',
+					containLabel: true
+				},
+				//calculable : true,
+				xAxis : [
+					{
+						type : 'category',
+						//boundaryGap: false,
+						data : $scope.XTime,
+						axisLine:{
+							lineStyle:{
+								color:'#A7AAB0'
+							}
+
+						},
+					}
+				],
+				yAxis : [
+					{
+						type: 'value',
+						//name: '恢复时长',
+						position: 'left',
+						axisLine:{
+							lineStyle:{
+								color:'#A7AAB0'
+							},
+							axisLabel: {
+								formatter: '{value}min'
+							}
+
+						},
+						minInterval:1,
+						//splitNumber:5,
+						min:0,
+						//max:$scope.timeMaxM,
+					},
+					{
+						type: 'value',
+						//name: '告警量',
+						position: 'right',
+						axisLabel: {
+							formatter: '{value}'
+						},
+						minInterval:1,
+						splitLine:{
+							show:false
+						},
+						min:0,
+						//max:$scope.maxAlarmCountNumAry,
+						//splitNumber:5,
+						axisLine:{
+							lineStyle:{
+								color:'#A7AAB0'
+							}
+
+						},
+						//minInterval:1
+					},
+				],
+				series : [
+					{
+						name:L.get('EMV_AVERAGE_RECOVERY_MINUTE'),
+						type:'line',
+						symbol:'circle',
+						symbolSize:6,
+						yAxisIndex:0,
+						smooth: true,
+						data:$scope.recoveryAry
+					},
+					{
+						name:L.get('EMV_AVERAGE_RESPONSE_MINUTE'),
+						type:'line',
+						symbol:'circle',
+						symbolSize:6,
+						yAxisIndex:0,
+						smooth: true,
+						data:$scope.responseAry
+					},
+					{
+						name:L.get('EMV_ALARM_AMOUNT'),
+						type:'bar',
+						barWidth: '20%',
+						//yAxis: 1,
+						yAxisIndex:1,
+						itemStyle:{
+							emphasis:{
+								color:'#F8F8F8'
+							}
+						},
+						data:$scope.alarmCountNumAry
+					},
+
+				],
+				color: ['#47A6DC','#FDD2D2','#EFEFEF'],
+			};
+			$scope.myLineChart.setOption(option);
+		}
+		
+		$('#savehtml').click(function(){
+		//事件报告统计下载   开始
+		//$(window).load(function(){
+			//$scope.downloadReport = function(){
+				$('body').height(4000);
+				$('#pdf').height(4000);
+				$('#savehtml')[0].style.display = 'none';
+				html2canvas(
+					document.getElementById('pdf'),
+					{
+						//背景设为白色（默认为黑色）
+						background: "#fff"  ,
+						onrendered: function (canvas) {
+							var contentWidth = canvas.width;
+							var contentHeight = canvas.height;
+							//html页面生成的canvas在pdf中图片的宽高（a4纸的尺寸[595.28,841.89]）
+							var imgWidth = 595.28;
+							var imgHeight = 592.28 / contentWidth * contentHeight;
+							var pageData = canvas.toDataURL('image/jpeg', 1.0);
+							var pdf = new jsPDF('', 'pt', 'a4');
+							pdf.addImage(pageData, 'JPEG', 0, 0, imgWidth, imgHeight);
+							pdf.save(L.get('EMV_ALARM_STATISTICS_REPORT')+'.pdf');
+						}
+					});
+					$('body').height('100%');
+					$('#pdf').height('100%');
+					$('#savehtml')[0].style.display = 'inline';
+				//})
+				//事件报告统计下载   结束
+		})
+		
+
+	}]);
+})(nameSpace.reg('graph'), nameSpace.reg('monitor.current'));

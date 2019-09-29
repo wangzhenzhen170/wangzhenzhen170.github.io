@@ -1,0 +1,142 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('autoInspectionTimeSettingCtrl', ['$uibModal','$scope','$uibModalInstance','Unit','MonitoringService','$timeout', 'AutoStatus', function($uibModal, $scope, $uibModalInstance, Unit, MonitoringService, $timeout, AutoStatus){
+		
+		//自动巡检开始时间
+		$scope.startTime = 0;
+		$scope.dateString = '';
+		//用于循环周期（小时）选项
+		$scope.hours = new Array(24);
+		//周期选择下拉列表是否显示
+		$scope.showHoursDropDownListFlag = false;
+		//选择周期(小时)，默认2小时
+		$scope.selHourItem = 2;
+		//自动巡检状态
+		$scope.autoStatus = 0;
+		
+		
+		// //初始化自动巡检开始时间
+		// $scope.initStartTime = function () {
+		// 	var date = new Date();
+		// 	$scope.startTime = date.getTime();
+		// 	$scope.dateString = date.getFullYear()+'-'+((parseInt(date.getMonth())+1)>10?(parseInt(date.getMonth())+1):'0'+(parseInt(date.getMonth())+1))+'-'+
+		// 	(parseInt(date.getDate())>10?parseInt(date.getDate()):'0'+parseInt(date.getDate()))+' '+(parseInt(date.getHours())>10?parseInt(date.getHours()):'0'+parseInt(date.getHours()))+':'+
+		// 	(parseInt(date.getMinutes())>10?parseInt(date.getMinutes()):'0'+parseInt(date.getMinutes()))+':'+(parseInt(date.getSeconds())>10?parseInt(date.getSeconds()):'0'+parseInt(date.getSeconds()));
+		// 	console.log($scope.dateString);
+		// };
+
+		//初始化自动巡检开始时间
+		$scope.initStartTime = function () {
+			//通过巡检状态判断是否初始化开始巡检及周期数据
+			if(AutoStatus){
+				MonitoringService.queryInspTime().success(function(result){
+					if(result.data){
+						var startTime = result.data.startTime;
+						$scope.startTime = startTime;
+						$scope.timeToStr(startTime);
+						var duration = result.data.cycleLength;
+						$scope.selHourItem = duration/3600000;
+					}
+				})
+			}
+
+		};
+		$scope.initStartTime();
+
+		$scope.timeToStr = function (time) {
+			var date = new Date(time);
+			$scope.startTime = date.getTime();
+			$scope.dateString = date.getFullYear()+'-'+((parseInt(date.getMonth())+1)>9?(parseInt(date.getMonth())+1):'0'+(parseInt(date.getMonth())+1))+'-'+
+			(parseInt(date.getDate())>9?parseInt(date.getDate()):'0'+parseInt(date.getDate()))+' '+(parseInt(date.getHours())>9?parseInt(date.getHours()):'0'+parseInt(date.getHours()))+':'+
+			(parseInt(date.getMinutes())>9?parseInt(date.getMinutes()):'0'+parseInt(date.getMinutes()))+':'+(parseInt(date.getSeconds())>9?parseInt(date.getSeconds()):'0'+parseInt(date.getSeconds()));
+		};
+ 
+		$scope.initStartTime();
+		$scope.clickHoursItem =  function (hour) {
+			$scope.selHourItem = hour;
+			$scope.showHoursDropDownListFlag = false;
+		};
+
+		$scope.showHoursDropDownList =  function () {
+			$scope.showHoursDropDownListFlag = !$scope.showHoursDropDownListFlag;
+		};
+
+		$scope.cancel = function(){
+			$uibModalInstance.close();
+		};
+
+		$scope.ok = function(){
+			if($scope.startTime <= 0 || $scope.dateString === ''){
+				Unit.error('请选择巡检开始时间！');
+			} else{
+				if($scope.startTime - new Date().getTime() < 0){
+					Unit.error('巡检开始时间不可小于当前时间！');
+				} else {
+					MonitoringService.startAutoInsp({startTime:$scope.startTime,cyclePeriod:$scope.selHourItem*60*60*1000}).success(function(result){
+						if(result.success){
+							var mess = result.data;
+							Unit.success(mess);
+							$timeout(function(){
+								$scope.cancel();
+							},500);
+						}
+					}).error(function(error){
+						console.log(error);
+					});	
+				}
+			}
+		};
+
+		// //开始巡检
+		// $scope.startAutoInsp = function () {
+		// 	MonitoringService.startAutoInsp().success(function(result){
+		// 		if(result.success){
+		// 			var mess = result.data;
+		// 			$scope.autoStatus = 1;
+		// 			$uibModalInstance.close($scope.autoStatus);
+		// 			Unit.success(mess);
+		// 		}
+		// 	}).error(function(error){
+		// 		console.log(error);
+		// 	});	
+		// };
+
+		//停止巡检
+		$scope.stopAutoInsp = function () {
+			MonitoringService.stopAutoInsp().success(function(result){
+				if(result.success){
+					var mess = result.data;
+					Unit.success(mess);
+					$scope.cancel();
+				}
+			}).error(function(error){
+				console.log(error);
+			});	
+		};
+
+
+		//获取开始巡检时间
+		$scope.onTimeSet = function (newDate) {
+            $scope.dateString = newDate;
+            var date = new Date($scope.dateString.substr(0, 4), parseInt($scope.dateString.substr(5, 2)) - 1, $scope.dateString.substr(8, 2), parseInt($scope.dateString.substr(11, 2)), parseInt($scope.dateString.substr(14, 2)));
+            $scope.dateEndCom = newDate.substr(0, 4).toString() + newDate.substr(5, 2).toString() + newDate.substr(8, 2).toString() + newDate.substr(11, 2).toString() + newDate.substr(14, 2).toString() + newDate.substr(17, 2).toString() + newDate.substr(20, 2).toString();
+			$scope.startTime = date.getTime();
+		};
+
+		//点击空白收起下拉列表
+		document.onclick = function(e) {
+			var className = e.target.className;
+			if(className.indexOf('timeInput')<0 && className.indexOf('hoursItem')<0 && className.indexOf('hoursDropDown')<0){
+				$scope.showHoursDropDownListFlag = false;
+				$scope.$apply();
+			}
+		};
+
+
+		
+	}]);
+
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,695 @@
+(function(graph) {
+
+    'use strict';
+
+    graph.app.factory('GeoLayout', ['KeyTable', function(KeyTable) {
+
+
+
+        /**************************************************/
+
+        /**
+         * 当节点元素宽高增加后，为了不遮挡其他元素，
+         * 需要使其他元素进行移动
+         *
+         */
+
+        /**
+         * 元素位置宽高表格
+         *
+         *
+         */
+        var GeoTable = KeyTable.extend({
+
+            /**
+             * 获取列在父容器中的位置
+             *
+             * @return {Object} - {left: xxx, right: xxx}
+             */
+            getColPos: function(col) {
+                var col = this.table[col],
+                    item,
+                    x1, x2, left, right;
+
+                if (!col) return null;
+
+                for (var i in col) {
+                    item = col[i];
+                    for (var j in item) {
+                        x1 = item[j].x;
+                        x2 = x1 + item[j].width;
+                        left = (left === void 0 || x1 < left) ? x1 : left;
+                        right = (right === void 0 || x2 > right) ? x2 : right;
+                    }
+                }
+
+                return {
+                    left: left,
+                    right: right
+                };
+            },
+
+            /**
+             * 获取指定列的当前宽度
+             * 即获取该列中最宽元素的宽度值
+             *
+             * @param {Number|String} col - 列号
+             *
+             * @return {Number} - 当该列无数据时返回 0
+             */
+            getColWidth: function(col) {
+                var pos = this.getColPos(col);
+
+                return pos ? pos.right - pos.left : 0;
+            },
+
+            /**
+             * 获取行在父容器中的位置
+             *
+             * @return {Object} - {top: xxx, bottom: xxx}
+             */
+            getRowPos: function(row) {
+                var item, y1, y2, top, bottom;
+
+                if (!this.keies.rows[row]) return null;
+
+                for (var i in this.table) {
+                    item = this.get(i, row);
+                    if (!item) continue;
+
+                    for (var j in item) {
+                        y1 = item[j].y;
+                        y2 = y1 + item[j].height;
+                        top = (top === void 0 || y1 < top) ? y1 : top;
+                        bottom = (bottom === void 0 || y2 > bottom) ? y2 : bottom;
+                    }
+                }
+
+                return {
+                    top: top,
+                    bottom: bottom
+                };
+            },
+
+            /**
+             * 获取指定行的高度
+             * 即获取该行中最高的元素高度
+             *
+             * @param {Number|String} row - 行号
+             */
+            getRowHeight: function(row) {
+                var pos = this.getRowPos(row);
+
+                return pos ? pos.bottom - pos.top : 0;
+            },
+
+            /**
+             * 获取整个Table的宽度
+             */
+            getTableWidth: function() {
+                var w = 0,
+                    cols = this.keies.cols;
+                for (var i in cols) {
+                    w += this.getColWidth(i);
+                }
+
+                return w;
+            },
+
+            /**
+             * 获取整个Table的高度
+             */
+            getTableHeight: function() {
+                var h = 0,
+                    rows = this.keies.rows;
+
+                for (var i in rows) {
+                    h += this.getRowHeight(i);
+                }
+
+                return h;
+            },
+
+            /**
+             * 获取Table的坐标宽高信息
+             *
+             * @return {Object} - {x: xxx, y: xxx, width: xxx, height: xxx}
+             */
+            getTableGeo: function()　 {
+                var cols = [],
+                    rows = [],
+                    leftCol, rightCol,
+                    topRow, bottomRow,
+                    x, y, w, h;
+
+
+                for (var i in this.keies.cols) {
+                    cols.push(i);
+                }
+                leftCol = Math.min.apply(null, cols);
+                rightCol = Math.max.apply(null, cols);
+
+                for (var i in this.keies.rows) {
+                    rows.push(i);
+                }
+                topRow = Math.min.apply(null, rows);
+                bottomRow = Math.max.apply(null, rows);
+
+                x = this.getColPos(leftCol).left;
+                y = this.getRowPos(topRow).top;
+                w = this.getColPos(rightCol).right - x;
+                h = this.getRowPos(bottomRow).bottom - y;
+
+                return {
+                    x: x,
+                    y: y,
+                    width: w,
+                    height: h
+                };
+
+            },
+
+            put: function(col, row, cell, geo) {
+                var item = this.get(col, row) || this._super(col, row, {});
+
+                item[cell.id] = geo;
+
+                return item;
+            },
+
+            get: function(col, row, cell) {
+                var item = this._super(col, row);
+
+                return item && cell ? item[cell.id] : item;
+            }
+
+        });
+
+
+        // 布局对象
+        var GeoLayout = Class.extend({
+            /**
+             * 默认列宽
+             * 由于目前图标都是80x80的，所以取其一半
+             * 即每个图标占两列
+             */
+            COLWIDTH: 40,
+
+            /**
+             * 默认行高
+             * 目前图标都为80x80的，取其一半
+             * 即每个图标默认占两行
+             */
+            ROWHEIGHT: 40,
+
+            /**
+             * 初始化
+             * @param {mxGraph} mxg
+             * @param {Number} colWidth - 指定列宽
+             * @param {Number} rowHeight - 指定行高
+             */
+            init: function(mxg, colWidth, rowHeight) {
+                this.mxg = mxg;
+                this.colW = colWidth || this.COLWIDTH;
+                this.rowH = rowHeight || this.ROWHEIGHT;
+
+                // 容器下直接子元素的几何改变
+                this.changes = {};
+
+                // 记录图的初始状态
+                this.initOriGeo();
+
+                // 全图状态
+                this.syncGeoState();
+            },
+
+            /**
+             * 记录图的初始状态
+             */
+            initOriGeo: function() {
+                var model = this.mxg.model,
+                    cell, geo;
+
+                for (var i in model.cells) {
+                    cell = model.cells[i];
+                    if ((!model.isVertex(cell) && !model.isEdge(cell)) || cell.assistItem) continue;
+
+                    cell.ugview || (cell.ugview = {});
+
+                    geo = model.getGeometry(cell);
+                    cell.ugview.oriGeo = geo.clone(); // new mxGeometry(geo.x, geo.y, geo.width, geo.height);
+                }
+            },
+
+            /**
+             * 同步全图状态
+             */
+            syncGeoState: function(cells) {
+                var model = this.mxg.model,
+                    cell, pos, geo;
+
+                if (!cells) delete this.geoState;
+                this.geoState || (this.geoState = {});
+                cells = cells || model.cells;
+
+                for (var i in cells) {
+                    cell = cells[i];
+                    if (!cell || !model.isVertex(cell)) continue;
+
+                    geo = model.getGeometry(cell);
+                    pos = this.getCellPos(cell);
+                    this.geoState[cell.parent.id] || (this.geoState[cell.parent.id] = new GeoTable);
+                    this.geoState[cell.parent.id].put(pos.col, pos.row, cell, geo.clone());
+                    // new mxGeometry(geo.x, geo.y, geo.width, geo.height));
+                }
+            },
+
+            getOriGeo: function(cell) {
+
+                cell.ugview || (cell.ugview = {});
+
+                if (!cell.ugview.oriGeo) {
+                    var geo = this.mxg.model.getGeometry(cell);
+                    cell.ugview.oriGeo = geo.clone(); // new mxGeometry(geo.x, geo.y, geo.width, geo.height);
+                }
+
+                return cell.ugview.oriGeo;
+            },
+
+            getCellPos: function(cell) {
+                var origeo = this.getOriGeo(cell);
+
+                var col = Math.round((origeo.x + origeo.width) / this.colW);
+                var row = Math.round((origeo.y + origeo.height) / this.rowH);
+
+                var leftCol = Math.round(origeo.x / this.colW);
+                var topRow = Math.round(origeo.y / this.rowH);
+
+                return {
+                    col: col,
+                    row: row,
+                    leftCol: leftCol,
+                    topRow: topRow
+                };
+            },
+
+            /**
+             * 获取点在table中的行列位置
+             * @param {mxPoint} point - mxPoint实例，即点坐标
+             */
+            getPointPos: function(point) {
+                var col = Math.round((point.x + this.colW) / this.colW);
+                var row = Math.round((point.y + this.rowH) / this.rowH);
+
+                return {
+                    col: col,
+                    row: row,
+                    leftCol: col,
+                    topRow: row
+                };
+            },
+
+            /**
+             * 复制状态的列到变化表
+             */
+            _copyStateColToChg: function(parentId, col) {
+                var state = this.geoState[parentId],
+                    model = this.mxg.model,
+                    cell, chg, item, rows, geo;
+
+                if (!state) return false;
+
+                rows = state.getRowKeies();
+                chg = this.changes[parentId] || (this.changes[parentId] = new GeoTable);
+
+
+                for (var i in rows) {
+                    item = state.get(col, rows[i]);
+                    for (var cellId in item) {
+                        cell = model.cells[cellId];
+                        geo = item[cellId];
+                        chg.put(col, rows[i], cell, geo.clone()); // new mxGeometry(geo.x, geo.y, geo.width, geo.height));
+                    }
+                }
+
+                return true;
+            },
+
+            /**
+             * 复制状态的行到变化表
+             */
+            _copyStateRowToChg: function(parentId, row) {
+                var state = this.geoState[parentId],
+                    model = this.mxg.model,
+                    cell, chg, cols, item, geo;
+
+                if (!state) return false;
+
+                cols = state.getColKeies();
+                chg = this.changes[parentId] || (this.changes[parentId] = new GeoTable);
+
+
+                for (var i in cols) {
+                    item = state.get(cols[i], row);
+                    for (var cellId in item) {
+                        cell = model.cells[cellId];
+                        geo = item[cellId];
+                        chg.put(cols[i], row, cell, geo.clone()); // new mxGeometry(geo.x, geo.y, geo.width, geo.height));
+                    }
+                }
+
+                return true;
+            },
+
+            /**
+             * 设置变更元素尺寸并重新布局
+             *
+             * @param {mxCell} cell - 需要变更的元素
+             * @param {mxGeometry} geo - 变化目标
+             */
+            setCellGeo: function(cell, geo) {
+                var model = this.mxg.model,
+                    pos, curgeo, origeo, chg;
+
+                model.beginUpdate();
+                try {
+                    model.setGeometry(cell, geo);
+                    this.layout(cell);
+                } finally {
+                    model.endUpdate();
+                }
+            },
+
+            /**
+             * 设置变更元素
+             *
+             * @param {mxCell} cell - 需要变更的元素
+             * @param {mxGeometry} geo - 变化目标
+             * @param {mxGeometry} curgeo - 当前状态，用于与变化目标做对比
+             */
+            _addChangeCell: function(cell) {
+                var pos, curgeo, chggeo, chg, copyC, copyR;
+
+                pos = this.getCellPos(cell);
+                curgeo = this.mxg.model.getGeometry(cell);
+                chggeo = curgeo.clone(); // new mxGeometry(curgeo.x, curgeo.y, curgeo.width, curgeo.height);
+
+                //        this.geoState[cell.parent.id] || (this.geoState[cell.parent.id] = new GeoTable);
+                //        this.geoState[cell.parent.id].put(pos.col, pos.row, cell, curgeo);
+
+                this.changes[cell.parent.id] || (this.changes[cell.parent.id] = new GeoTable);
+                chg = this.changes[cell.parent.id];
+                chg.copiedCols || (chg.copiedCols = {});
+                chg.copiedRows || (chg.copiedRows = {});
+
+                copyC = !chg.keies.cols[pos.col];
+                copyR = !chg.keies.rows[pos.row];
+                // 复制列
+                if (!chg.copiedCols[pos.col]) {
+                    this._copyStateColToChg(cell.parent.id, pos.col);
+                    chg.copiedCols[pos.col] = true;
+                }
+                // 复制行
+                if (!chg.copiedRows[pos.row]) {
+                    this._copyStateRowToChg(cell.parent.id, pos.row);
+                    chg.copiedRows[pos.row] = true;
+                }
+                chg.put(pos.col, pos.row, cell, chggeo);
+
+                this.changes.cellIds || (this.changes.cellIds = {});
+                this.changes.cellIds[cell.id] = true;
+
+                chg.changedCols || (chg.changedCols = {});
+                chg.changedCols[pos.col] = true;
+
+                chg.changedRows || (chg.changedRows = {});
+                chg.changedRows[pos.row] = true;
+            },
+
+
+            /**
+             * 按照布局移动连线
+             * @param {mxCell}   edge    - 需要移动的边元素
+             * @param {GeoTable} changes - 元素改变后的geotable对象
+             */
+            _moveEdge: function(edge, changes) {
+                var model = this.mxg.model,
+                    pos, state,
+                    geo, newGeo, origeo;
+
+                state = this.geoState[edge.parent.id];
+
+                origeo = this.getOriGeo(edge);
+                geo = model.getGeometry(edge);
+
+                newGeo = geo.clone();
+
+                if (newGeo.points) {
+                    var points = newGeo.points;
+                    for (var i in points) {
+                        var newp = points[i];
+                        var orip = origeo.points[i];
+
+                        pos = this.getPointPos(orip);
+
+                        // 根据变宽的元素变化横向移动
+                        for (var c in changes.changedCols) {
+                            if (c >= pos.col) continue;
+                            newp.x += changes.getColWidth(c) - state.getColWidth(c);
+                        }
+
+                        newp.x = Math.max(newp.x, orip.x);
+
+                        // 纵向移动
+                        for (var r in changes.changedRows) {
+                            if (r >= pos.row) continue;
+                            newp.y += changes.getRowHeight(r) - state.getRowHeight(r);
+                        }
+
+                        newp.y = Math.max(newp.y, orip.y);
+                    }
+
+                    model.setGeometry(edge, newGeo);
+                }
+            },
+
+            /**
+             * 按照布局移动节点元素
+             * @param {mxCell}   cell - 需要移动的mxCell
+             * @param {GeoTable} changes - 元素改变后的geotable对象
+             *
+             */
+            _moveVertex: function(cell, changes) {
+                var model = this.mxg.model,
+                    pos, state,
+                    geo, newGeo, origeo;
+
+                state = this.geoState[cell.parent.id];
+
+                origeo = this.getOriGeo(cell);
+                pos = this.getCellPos(cell);
+                geo = model.getGeometry(cell);
+
+                newGeo = geo.clone(); // new mxGeometry(geo.x, geo.y, geo.width, geo.height);
+                //                if (geo.alternateBounds) {
+                //                    newGeo.alternateBounds = new mxRectangle(geo.alternateBounds.x,
+                //                                                             geo.alternateBounds.y,
+                //                                                             geo.alternateBounds.width,
+                //                                                             geo.alternateBounds.height);
+                //                }
+
+                // 根据变宽的元素变化横向移动
+                for (var c in changes.changedCols) {
+                    if (c >= pos.col) continue;
+                    newGeo.x += changes.getColWidth(c) - state.getColWidth(c);
+                }
+
+                newGeo.x = Math.max(newGeo.x, origeo.x);
+
+                // 纵向移动
+                for (var r in changes.changedRows) {
+                    if (r >= pos.row) continue;
+                    newGeo.y += changes.getRowHeight(r) - state.getRowHeight(r);
+                }
+
+                newGeo.y = Math.max(newGeo.y, origeo.y);
+
+                //                newGeo = new mxGeometry(newGeo.x, newGeo.y, newGeo.width, newGeo.height);
+                model.setGeometry(cell, newGeo);
+            },
+
+            /**
+             * 实际执行移动操作
+             * To-Do: 左边与上边的扩展需要改善
+             */
+            _doLayout: function() {
+                var model = this.mxg.model,
+                    root = this.mxg.getDefaultParent(),
+                    chGeos = {},
+                    chCells = [],
+                    pos, chgs, state,
+                    geo, newGeo, origeo,
+                    cell, tmp;
+
+                for (var i in model.cells) {
+                    cell = model.cells[i];
+                    if ((!cell.isVertex() && !cell.isEdge()) || cell.assistItem) continue;
+
+                    try {
+                        chgs = this.changes[cell.parent.id];
+                        // 如果没有兄弟节点变化则不移动
+                        if (!chgs) continue;
+
+                        cell.isVertex() && this._moveVertex(cell, chgs);
+                        cell.isEdge() && this._moveEdge(cell, chgs);
+
+                        chCells.push(cell);
+
+                    } catch (e) {
+                        console.log(e);
+                    }
+
+                }
+
+                return chCells;
+            },
+
+            /**
+             * 重新布局前记录内部元素有变化的容器的状态
+             * 为自动扩展容器提供比较值
+             */
+            _recordCtnGeo: function() {
+                // 如果不需要自动扩展容器或根本不存在变化则不需要记录
+                if (!this.changes) return;
+
+                var root = this.mxg.getDefaultParent(),
+                    model = this.mxg.model,
+                    changes = this.changes,
+                    state, ctnId, ctn;
+                // 清空原记录
+                delete this.ctnGeos;
+                this.ctnGeos = {};
+
+                for (ctnId in changes) {
+                    ctn = model.cells[ctnId];
+                    state = this.geoState[ctnId];
+                    if (state && ctn && ctn !== root) {
+                        this.ctnGeos[ctnId] = state.getTableGeo();
+                    }
+                }
+            },
+
+            /**
+             * 根据变化扩展
+             */
+            _expandCtnGeo: function() {
+                // 如果不需要自动扩展容器或根本不存在变化则不需要改变
+                if (!this.ctnGeos) return;
+                var model = this.mxg.model,
+                    ctns = [],
+                    ctn, state, preState, newGeo, geo,
+                    w, h, dw, dh;
+
+                for (var i in this.ctnGeos) {
+                    preState = this.ctnGeos[i];
+                    state = this.geoState[i];
+                    if (!state || !preState) continue;
+
+                    ctn = model.cells[i];
+                    geo = model.getGeometry(ctn);
+                    state = state.getTableGeo();
+                    dw = state.width - preState.width;
+                    dh = state.height - preState.height;
+
+                    if (ctn.collapsed) {
+                        // 如果当前容器是折合的状态
+                        if (geo.alternateBounds) {
+                            geo.alternateBounds.width += dw;
+                            geo.alternateBounds.height += dh;
+                        } else {
+                            geo.alternateBounds = new mxRectangle(geo.x, geo.y,
+                                dw + geo.width,
+                                dh + geo.height
+                            );
+                        }
+                    } else {
+                        w = dw + geo.width;
+                        h = dh + geo.height;
+                        newGeo = geo.clone(); //new mxGeometry(geo.x, geo.y, w, h);
+                        newGeo.width = w;
+                        newGeo.height = h;
+                        //                if (geo.alternateBounds) {
+                        //                    newGeo.alternateBounds = new mxRectangle(geo.alternateBounds.x,
+                        //                                                             geo.alternateBounds.y,
+                        //                                                             geo.alternateBounds.width,
+                        //                                                             geo.alternateBounds.height);
+                        //                }
+                        model.setGeometry(ctn, newGeo);
+                    }
+
+                    ctns.push(ctn);
+                }
+                // 递归调用布局
+                if (ctns.length > 0)
+                    this.layout(ctns, true);
+            },
+
+
+            /**
+             * 布局
+             *
+             * @param {mxCell|Array<mxCell>} cells
+             * @param {Boolean} autoCtn - 是否自动扩展容器
+             */
+            layout: function(cells, autoCtn) {
+
+                var model = this.mxg.model,
+                    root = this.mxg.getDefaultParent(),
+                    cell, w, h, geo, origeo;
+
+                // 清空原数据
+                delete this.changes;
+                this.changes = {};
+
+                autoCtn = autoCtn === void 0 ? true : !!autoCtn;
+
+                cells = cells instanceof Array ? cells : [cells];
+                for (var i in cells) {
+                    this._addChangeCell(cells[i]);
+                }
+
+
+                model.beginUpdate();
+                try {
+                    // 自动扩展容器
+                    if (autoCtn) {
+
+                        this._recordCtnGeo();
+
+                        this.syncGeoState(this._doLayout());
+
+                        this._expandCtnGeo();
+                    } else {
+                        this.syncGeoState(this._doLayout());
+                    }
+
+                    //            this.mxg.refresh();
+                } catch (e) {
+                    console.log(e);
+                } finally {
+                    model.endUpdate();
+                }
+
+
+
+                // 清空变动信息
+                delete this.changes;
+                this.changes = {};
+            }
+        });
+
+
+
+        return GeoLayout;
+    }]);
+})(nameSpace.reg('graph'));

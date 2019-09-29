@@ -1,0 +1,26 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('SearchService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+
+		o.fuzzy = function(keyWord){
+			return $http.post(Unit.api('/view/fuzzysearch'), {
+				keyWord: keyWord
+			});
+		};
+
+		o.ciInIds = function(keyWord, ids){
+			return $http.post(Unit.api('/ci/findciincis'), {
+				ids: ids,
+				like: keyWord
+			});
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

@@ -1,0 +1,163 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('experienceBaseCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', '$filter', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams, $filter) {
+        $scope.loadBusy = true;
+        $scope.pageSize = 20;
+        $scope.pageSizeOption = [20, 50, 100, 150];
+        $scope.currentPage = 1;
+        /*获取经验列表*/
+        $scope.parm = {}
+        $scope.loadData = function () {
+            $scope.experienceData = [];
+            $scope.parm.pageNum = $scope.currentPage;
+            $scope.parm.pageSize = $scope.pageSize;
+
+            MonitoringService.experienceSelectPage($scope.parm).success(function (result) {
+                $scope.loadBusy = false;
+                if (result.success == true) {
+                    $scope.experienceData = result.data.data || [];
+                    $.each($scope.experienceData, function () {
+                        this.experience.split('\n');
+                        this.experienceAry = this.experience.split('\n')
+
+                    })
+                    $scope.totalRows = result.data.totalRows;
+                } else {
+
+                }
+            }).error(function () {
+
+            });
+        };
+        $scope.loadData();
+        $scope.enterSeachFlag = false;
+        $scope.seachExprent = function (e) {
+            if (e.keyCode == "13") {
+                $scope.parm.cdt = {
+                    keyLike: $scope.keyLikeVal
+                }
+                $scope.enterSeachFlag = true;
+                $scope.loadData();
+            }
+
+        }
+        $scope.noSearch = function () {
+            if (!$scope.keyLikeVal) {
+                if ($scope.parm.cdt && $scope.parm.cdt.keyLike) {
+                    delete $scope.parm.cdt.keyLike;
+                }
+                $scope.enterSeachFlag = false;
+                $scope.loadData();
+            }
+        }
+        /*增加经验*/
+        $scope.goRecord = function (e, item) {
+            $uibModal.open({
+                size: 'goRecord',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/goRecord.html',
+                controller: 'goRecordCtrl',
+                resolve: {
+                    item: function () {
+                        return item;
+                    },
+                    isOsreen: function () {
+                        return 0;
+                    },
+                    fn: function () {
+                        return function () {
+                            $scope.loadData();
+                        }
+                    }
+
+                }
+            });
+        }
+        /*删除*/
+        $scope.fnDelete = function (item) {
+            var dialog = uDialog.confirm({
+                title: L.get('COMMON_OK'),
+                content: L.get('EMV_PLEASE_CONFIRM_WHETHER_TO_DELETE') + '?',
+                confirm: function () {
+                    MonitoringService.delExperience([item.id])
+                        .success(function (result) {
+                            $scope.loadData();
+                            Unit.success(L.get('COMMON_SUCCESSFULLY_DELETED'))
+
+                        }).error(function (err) {
+                            console.error(err)
+                        });
+                }
+            })
+
+        }
+        /*选择对象*/
+        $scope.addEventObj = function (item, mailName) {
+            var type = 'add';
+            $uibModal.open({
+                size: 'addEventObj',
+                animation: true,
+                backdrop: 'static',
+                templateUrl: 'app/modal/manageAlert/addEventObj.html',
+                controller: 'addEventObjCtrl',
+                resolve: {
+                    type: function () {
+                        return type;
+                    },
+                    fn: function () {
+                        return function (d) {
+                            if (type == 'add') {
+                                $scope.getFocusData();
+                            }
+                            if (type == 'get') {
+                                var getOjName = d;
+                            }
+
+                        }
+                    }
+                }
+            });
+        }
+        $scope.selectDefTimeFlag = false;
+        $scope.toShowAll = function (e, item) {
+            e && e.stopPropagation();
+            item.selectFlag = !item.selectFlag;
+        }
+        /*分页*/
+        $scope.paging = function (data) {
+            $scope.pageSize = data.pageSize;
+            $scope.currentPage = data.currentPage;
+            if ($scope.parm.cdt && $scope.parm.cdt.keyLike && !$scope.enterSeachFlag) {
+                delete $scope.parm.cdt.keyLike;
+            }
+
+            $scope.loadData();
+        }
+        $(document).on('click', function () {
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+            $scope.selectDefTimeFlag = false;
+        });
+
+
+
+
+
+
+
+
+
+
+
+    }]);
+
+
+})(nameSpace.reg('graph'));

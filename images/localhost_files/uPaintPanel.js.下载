@@ -1,0 +1,140 @@
+/**
+ * 绘图时设置画板的功能
+ */
+
+(function(Graph){
+    /**
+     * 初始化画板
+     */
+    Graph.prototype.uGetPaintPanel = function () {
+
+        // uSetting用于放置自己对图的扩展设置
+        !this.uSetting && (this.uSetting = {});
+
+        var setting = this.uSetting;
+
+        // 设置画板属性
+        if (!setting.paintPanel) {
+            setting.paintPanel = {
+                width: 800,
+                height: 600
+            };
+        }
+
+        return this.uSetting.paintPanel;
+    };
+
+    /**
+     * 设置画板
+     * @param {number} width  - 画板宽度
+     * @param {number} height - 画板高度
+     */
+    Graph.prototype.uSetPaintPanelSize = function (width, height) {
+        var panel = this.uGetPaintPanel();
+
+        panel.width = +width;
+        panel.height = +height;
+
+        this.uUpdatePaintPanel();
+    };
+
+
+    /**
+     * 启用画板
+     */
+    Graph.prototype.uEnablePaintPanel = function () {
+        var panel = this.uGetPaintPanel();
+
+        // 如果已经启用则直接返回
+        if (panel.enabled) return;
+
+        // 标记已经启用
+        panel.enabled = true;
+
+        panel.width || (panel.width = 800);
+        panel.height || (panel.height = 600);
+
+        // 生成面板元素
+        this.uCreatePaintPanel();
+        this.uUpdatePaintPanel();
+
+        var that = this;
+        function doTransform (view, evt) {
+
+            that.uUpdatePaintPanel();
+        }
+
+        // To-Do 注册事件同步及绘制画板
+        // 拖动画布移动时
+        this.view.addListener(mxEvent.TRANSLATE, doTransform);
+        // 缩放时
+        this.view.addListener(mxEvent.SCALE, doTransform);
+        this.view.addListener(mxEvent.SCALE_AND_TRANSLATE, doTransform);
+    };
+
+    /**
+     * 创建画板元素
+     */
+    Graph.prototype.uCreatePaintPanel = function () {
+        var panel = this.uGetPaintPanel();
+
+        // 如果已经创建则直接返回
+        if (panel.ele) return;
+
+        var canvas = this.view.getCanvas();
+        var svgEl = canvas.parentNode;
+
+        // 创建一个组用于放置画板内容
+        var g = document.createElementNS(mxConstants.NS_SVG, 'g');
+        g.setAttribute('class', 'uPaintPanel');
+
+        // 画板
+        // To-Do 换成path以实现更好的效果
+        var rect = document.createElementNS(mxConstants.NS_SVG, 'rect');
+        rect.setAttribute('width', panel.width || 800);
+        rect.setAttribute('height', panel.height || 600);
+        rect.setAttribute('pointer-events', 'none');
+        // To-Do 根据设置更新颜色
+        rect.setAttribute('fill', 'rgba(70, 130, 180, 0.2)');
+
+        g.appendChild(rect);
+        canvas.insertBefore(g, canvas.firstChild);
+
+        // 把元素保存到面板中
+        panel.ele = g;
+    };
+
+    /**
+     * 更新画板元素
+     */
+    Graph.prototype.uUpdatePaintPanel = function () {
+        var panel = this.uGetPaintPanel();
+
+        // 如果还未生成画板元素则不做任何操作
+        if (!panel.ele) return ;
+
+        var view = this.view;
+        var rect = panel.ele.querySelector('rect');
+
+        // 位移
+        rect.setAttribute('x', view.translate.x * view.scale);
+        rect.setAttribute('y', view.translate.y * view.scale);
+
+        // 缩放
+        rect.setAttribute('width', (panel.width || 800) * view.scale);
+        rect.setAttribute('height', (panel.height || 600) * view.scale);
+    };
+
+    // 清除画板
+    Graph.prototype.uClearPaintPanel = function () {
+        var panel = this.uGetPaintPanel();
+
+        if (panel.ele) {
+            panel.ele.remove();
+            delete panel.ele;
+        }
+
+        panel.enabled = false;
+    };
+
+})(Graph);

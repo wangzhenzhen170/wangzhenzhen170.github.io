@@ -1,0 +1,28 @@
+(function(self){
+    'use strict';
+    self.app.directive('myWatchClass', ['$timeout', function($timeout) {
+        return {
+            restrict: 'A',
+            require: '?^uibDropdown',
+            scope: {
+            },
+            link: function(scope, elements, attrs, dropdownCtrl){
+
+                if (!dropdownCtrl) {
+                    return;
+                }
+
+                scope.$watch(dropdownCtrl.isOpen, function(isOpen) {
+                    if(!!isOpen){
+                        elements.addClass('disabled');
+                        $timeout(function(){
+                            elements.popover('hide');
+                        }, 100);
+                    }else {
+                        elements.removeClass('disabled');
+                    }
+                });
+            }
+        };
+    }]);
+})(nameSpace.reg('graph'));

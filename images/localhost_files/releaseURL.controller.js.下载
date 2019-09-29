@@ -1,0 +1,26 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('ModalreleaseURLCtrl', ['$scope', '$uibModalInstance', 'title','Unit', 'urlAddress',function($scope, $uibModalInstance, title,Unit,urlAddress){
+
+		$scope.ok = function(){
+			$uibModalInstance.close();
+            var url = angular.element('#copyUrl')
+            url.select(); // 选择对象
+            document.execCommand("Copy"); // 执行浏览器复制命令
+            Unit.success('复制成功！')
+		};
+
+        $scope.$modal = $uibModalInstance;
+		$scope.title = title;
+        $scope.urlAddress = 'http://localhost:3000/#/canvas/edit/mine//3203/mine/';
+        $scope.urlAddress = urlAddress;
+        $scope._refresh();
+	}]);
+
+
+})(nameSpace.reg('graph'));
+
+

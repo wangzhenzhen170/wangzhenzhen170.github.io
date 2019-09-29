@@ -1,0 +1,32 @@
+
+(function(graph){
+
+	'use strict';
+
+	var url = graph.stateUrl;
+
+	graph.app.config(function($stateProvider) {
+
+		$stateProvider
+			.state('home.view', {
+				url: 'view',
+				templateUrl: url('/main/view/view.html'),
+				controller: 'MainViewCtrl',
+				data: {
+					title: 'VIEW'
+				}
+			})
+
+			.state('home.view.id', {
+				url: '/:id',
+				templateUrl: url('/main/view/view.html'),
+				controller: 'MainViewCtrl',
+				data: {}
+			});
+
+	});
+
+
+})(nameSpace.reg('graph'));
+
+

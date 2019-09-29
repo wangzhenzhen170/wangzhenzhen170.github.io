@@ -1,0 +1,38 @@
+(function (graph) {
+    graph.app.controller('ModalPaintPanelCtrl', [
+        '$scope',
+        '$uibModalInstance',
+        'editor',
+        'Unit',
+        function ($scope, $uibModalInstance, editor,Unit) {
+
+            $scope.title = '绘画面板';
+
+            $scope.panel = editor.graph.uGetPaintPanel();
+
+            $scope.widthNumber = function (text) {
+                // var numberReg = /^[^[0-9]*[1-9][0-9]]*$/g;
+                $scope.panel.width = text.replace(/[^\d{1,}\d{1,}|\d{1,}]/g,'');
+            }
+
+            $scope.heightNumber = function (text) {
+                $scope.panel.height = text.replace(/[^\d{1,}\d{1,}|\d{1,}]/g,'');
+            }
+
+            $scope.ok = function () {
+                // var numberReg = /^[^[0-9]*[1-9][0-9]]*$/g;
+                if(!$scope.panel.width || !$scope.panel.height){
+                    Unit.error('请输入绘画面板宽高');
+                    return;
+                }
+                // console.log(numberReg.test($scope.panel.width+''));
+                editor.graph.uEnablePaintPanel();
+                //                editor.graph.uUpdatePaintPanel();
+                $uibModalInstance.close();
+            };
+            $scope.cancel = function () {
+                $uibModalInstance.dismiss({ ok: false });
+            };
+
+        }]);
+})(nameSpace.reg('graph'));

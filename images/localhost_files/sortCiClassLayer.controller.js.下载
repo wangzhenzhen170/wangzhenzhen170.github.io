@@ -1,0 +1,28 @@
+/**
+ * Created by uinnova on 2017/11/14.
+ */
+(function (graph) {
+
+    'use strict';
+    graph.app.controller('sortCiClassLayerCtrl', ['$uibModal', 'fn', '$scope', '$uibModalInstance', 'classAryList', 'MonitoringService', 'OScreenService', 'Unit', function ($uibModal, fn, $scope, $uibModalInstance, classAryList, MonitoringService, OScreenService, Unit) {
+        $scope.newClassAryList = classAryList.concat([]);
+        $scope.classAryList = classAryList;
+        /*默认列表拖动排序*/
+        $scope.sortOptions = {
+            stop: function () {
+            }
+        };
+        //将屏蔽事件关闭
+        $scope.ok = function () {
+            fn($scope.classAryList);
+            $uibModalInstance.close({ ok: false });
+        };
+
+        // 取消按钮
+        $scope.cancel = function () {
+            fn($scope.newClassAryList);
+            $uibModalInstance.close({ ok: false });
+        };
+
+    }])
+})(nameSpace.reg('graph'));

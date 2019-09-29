@@ -1,0 +1,32 @@
+/*
+(function(graph){
+
+	'use strict';
+
+	graph.app.factory('getObjectURL', function(){
+
+        var imgobj = {};
+//        var formData = new FormData();
+        function () {
+            var file, img, imgName, src, src2, reader;
+            if ((file = this.files[0])) {
+                //生成图片唯一名字 方便删除
+                imgName = "file" + (new Date).getTime();
+                console.log(imgName);
+                //把图片内容放到formdata中保存，key/value形式
+                formData.append(imgName, file);//formData对象
+                //获取img的src用于展示
+                src = _URL.createObjectURL(file);//把这个url放到上面展示
+                console.log(src)
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    console.log(this.result);
+                    imgobj[imgName] = this.result;//存储图片到对象中
+                }
+                reader.readAsDataURL(file);
+            }
+        };
+
+})(nameSpace.reg('graph'));
+*/

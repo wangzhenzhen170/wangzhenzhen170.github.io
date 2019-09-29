@@ -1,0 +1,101 @@
+(function (graph) {
+
+    'use strict';
+    //右侧浮动层
+    graph.app.directive('ruleRightListTitle', function () {
+        return {
+            restrict: 'AE',
+            replace: true,
+            scope: {
+
+                ruleTitleName: '@newName',
+                cancelFun: '=cancelFun',
+                removeType: '@removeButton'
+
+
+
+            },
+            templateUrl: 'app/directive/ruleRightListTitle/ruleRightListTitle.html',
+            controller: ['$scope', '$timeout', '$state', 'DefinedEventsService', 'Unit', 'uDialog', 'MonitoringService', '$uibModal', function ($scope, $timeout, $state, DefinedEventsService, Unit, uDialog, MonitoringService, $uibModal) {
+                $scope.objs = {};
+                $scope.$watch($scope.removeType, function (res) {
+                    $scope.removeType1 = res;
+                });
+                $scope.ruleTitleNameFun = function () {
+                    $scope.$emit('ruleTitleName', $scope.ruleTitleName)
+                }
+                $scope.$on('removeButton', function (event, data) {
+                    $scope.removeType1 = data;
+                })
+                $scope.L = L;
+                //删除规则
+                $scope.$on('newName', function (event, data) {
+                    $scope.newRuleFatherName = data;
+
+                })
+                $scope.$on('ruleId', function (event, data) {
+                    $scope.ruleId = data;
+                })
+                $scope.$on('freshFlag', function (event, data) {
+                    console.log(data)
+                    $scope.freshFlag = !data;//接受值
+
+                });
+                $scope.$on('copyFlag', function (event, data) {
+                    $scope.copyFlag = data;//接受值
+
+                });
+                //复制规则
+                $scope.copyRuleFun = function () {
+
+                    var dlg = uDialog.confirm({
+                        title: L.get('COMMON_CONFIRM'),
+                        content: L.get('EMV_PLEASE_CONFIRM_THE_COPY_OF_THE_RULE'),
+                        size: 'mine',
+                        confirm: function (ret) {
+                            if (ret.ok) {
+                                MonitoringService.copyRule({ id: $scope.ruleId }
+
+                                ).success(function (result) {
+                                    $scope.freshFlag = true;
+                                    $scope.$emit('saveCopyId', result.data);
+                                    $scope.$emit('copyFlag', !$scope.copyFlag);
+
+                                }).error(function () {
+                                    //Unit.error('删除失败！');
+                                });
+                            }
+                        }
+                    });
+
+                }
+                //删除规则
+                $scope.removeRule = function () {
+
+
+                    var dlg = uDialog.confirm({
+                        title: L.get('EMV_RULE_DELETION_CONFIRMATION'),
+                        content: L.get('COMMON_PLEASE_CONFIRM_WHETHER_TO_DELETE'),
+                        size: 'mine',
+                        confirm: function (ret) {
+                            if (ret.ok) {
+                                MonitoringService.deleteRule([
+                                    $scope.ruleId
+                                ]).success(function (result) {
+                                    Unit.success(L.get('COMMON_SUCCESSFULLY_DELETED'));
+                                    $scope.cancelFun();
+                                    //$scope.freshFlag = true;
+                                    $scope.$emit('freshFlag', $scope.freshFlag)
+                                }).error(function () {
+                                    Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+                                });
+                            }
+                        }
+                    });
+
+                }
+            }]
+        };
+    });
+
+})(nameSpace.reg('graph'));

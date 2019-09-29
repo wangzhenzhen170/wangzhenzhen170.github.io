@@ -1,0 +1,316 @@
+
+(function(){
+
+	'use strict';
+
+	var app = angular.module('graphInfo', []);
+
+	app.factory('GraphInfo', ['Unit', 'CiService', '$rootScope', 'Event', 'UserInfo', '$state', '$timeout', function(Unit, CiService, $rootScope, Event, UserInfo, $state, $timeout){
+		return function(editor){
+	
+			this.showFlag = false;
+
+			this.view = function(data){
+
+				this.type = 'view';
+				this.data = data;
+
+				var deleteHandle = function(){
+					$rootScope.$broadcast(Event.VIEW_DELETE_BEFORE, Unit.eventData(data));
+				};
+
+				var editHandle = function(){
+					$state.go('home.edit.id', {id: data.id});
+				};
+
+				this.out.title = 'VIEW_INFO';
+
+				var userInfo = UserInfo.get();
+
+
+				this.out.btns = [];
+
+				if(userInfo && userInfo.loginName === data.userName){
+					if(!this.editor.state.disabled){
+						this.out.btns.push({btnClass: 'btn-danger', label: 'DELETE', clickHandle: deleteHandle });
+						this.out.btns.push({ btnClass: 'btn-primary', label: 'EDIT', clickHandle: editHandle });
+						this.out.btns.push({ btnClass: 'btn-primary', label: 'DATA_CONFIG', clickHandle: editor.action.threshold });
+						this.out.btns.push({ btnClass: 'btn-primary', label: 'SAVEAS', clickHandle: editor.action.save });
+					}
+
+
+					if(!this.editor.state.view.open){
+						this.out.btns.push({ btnClass: 'btn-primary', label: 'PUBLISH', clickHandle: editor.action.publish });
+					}
+				}
+
+			};
+
+			this.ci = function(data){
+				var _this = this;
+
+				_this.type = 'ci';
+				_this.data = data;
+				_this.out.title = 'CI_INFO';
+				_this.out.btns = [
+					// {btnClass: 'btn-info', label: '基础设施', clickHandle: function(){
+					// 	// $state.go('home.citree.id', {id: _this.data.config.id, type: 'use'});
+					// 	var url = $state.href('home.citree.id', {id: _this.data.config.id, type: 'use'});
+					// 	window.open(url,'_blank');
+					// }}
+					// {btnClass: 'btn-primary', label: '数据集成', clickHandle: function(){
+					// 	$state.go('home.citree.id', {id: _this.data.config.id, type: 'eip'});
+					// }},
+					// {btnClass: 'btn-warning', label: '交易可视', clickHandle: function(){
+					// 	$state.go('home.citree.id', {id: _this.data.config.id, type: 'transcation'});
+					// }}
+				];
+			};
+
+			this.searchNode = function(data){
+				var _this = this;
+
+				_this.type = 'searchNode';
+				_this.data = data;
+				_this.out.title = 'SEARCH';
+				_this.out.btns = [
+					{
+						btnClass: 'btn-danger',
+						label: 'CLEARN',
+						clickHandle: function(){
+							_this.editor.graph.removeLight();
+							_this.data.ci = [];
+							_this.data.node = [];
+
+							$rootScope.$broadcast(Event.GRAPH_SEARCH_CLEAR);
+						}
+					}
+					//{ btnClass: 'btn-primary', label: '编辑', clickHandle: function(){} }
+				];
+
+				$timeout(function(){
+					angular.element('#info_search_node_input').focus();
+				});
+			};
+
+			$rootScope.generateHTML = function(key, v) {
+				if (typeof v === 'string') {
+					return v.replace(key, '<em>' + key + '</em>');
+				} else {
+					return '';
+				}
+			};
+
+			this.update = function(type, data){
+				this.out.rows.splice(0);
+				this.out.btns = [];
+				this.out.title = '';
+
+				if(this[type]){
+					this[type](data);
+				}
+
+				this.show();
+				$rootScope._refresh();
+			};
+
+			this.custom = function(obj){
+				this.out = obj;
+			};
+
+			this.hide = function(){
+				if(this.showFlag){
+					this.toggle();
+				}
+			};
+
+			this.show = function(){
+				if(!this.showFlag){
+					this.toggle();
+				}
+			};
+
+			this.toggle = function(){
+				this.showFlag = !this.showFlag;
+				$rootScope.$broadcast(Event.GRAPH_INFO_TOGGLE, this);
+				$rootScope.$emit(Event.GRAPH_INFO_TOGGLE, this);
+			};
+
+			this.out = {
+				title: '',
+				rows: [],
+				btns: []
+			};
+
+			if(editor){
+				this.editor = editor;
+			}
+		};
+	}]);
+
+	app.controller('DirectiveGraphInfoCtrl', ['$scope', 'GraphInfo', '$parse', 'Event', 'CiService', 'CiMonitorService',
+		'Unit', 'Const', '$window', '$uibModal', '$state', function($scope, GraphInfo, $parse, Event, CiService, CiMonitorService,
+													  Unit, Const, $window, $uibModal, $state){
+
+		if(!$scope.hasOwnProperty('params')){
+			$scope.params = new GraphInfo();
+		}
+
+		this.setupBindingsToInternalScope = function(infoParamsExpr){
+			var infoParamsGetter = $parse(infoParamsExpr);
+
+			$scope.$watch(infoParamsGetter, function(params){
+				if(angular.isUndefined(params)){
+					return;
+				}
+
+				$scope.params = params;
+			}, false);
+		};
+
+		$scope.static = Unit.static;
+
+		$scope.callapse = {};
+
+		$scope.searchCollection = {};
+
+		$scope.search = function(){
+			if($scope.searchCollection.keyword){
+				$scope.params.editor.action.searchCell($scope.searchCollection.keyword, function(result){
+					$scope.params.update('searchNode', result);
+				});
+			}
+		};
+
+		$scope.hoverCell = function(obj, hover){
+			var color = hover ? 'red' : '#FFD700';
+			obj.highlight.hide();
+			obj.highlight.setHighlightColor(color);
+			obj.highlight.highlight($scope.params.editor.graph.view.getState(obj.cell));
+			if (!Array.isArray($scope.params.editor.graph.lights)) {
+				$scope.params.editor.graph.lights = [];
+			}
+			$scope.params.editor.graph.lights.push(obj.highlight);
+
+		};
+
+		$scope.formatBool = function(bool){
+			return bool ? 'YES' : 'NO';
+		};
+
+		$scope.formatDate = function(unix){
+			return Unit.unixToDatetime(unix).substr(0, 10);
+		};
+
+		$scope.updateCiInfo = function(){
+			if($scope.params.type === 'ci' && $scope.params.data.config){
+
+			}
+		};
+
+		$scope.$on(Event.TIMELINE_POINT_CLICK, $scope.updateCiInfo);
+		$scope.$on(Event.GRAPH_MONITOR_UPDATE, $scope.updateCiInfo);
+
+		$scope.$on(Event.VIEW_SET_PUBLIC, function(){
+			$scope.params.update('view', $scope.params.editor.state.view);
+		});
+
+		$scope.$on(Event.VIEW_SET_UNPUBLIC, function(){
+			$scope.params.update('view', $scope.params.editor.state.view);
+		});
+
+		$scope.$on(Event.VIEW_SUBSCRIPTION_AFTER, function(){
+			$scope.params.update('view', $scope.params.editor.state.view);
+		});
+
+		$scope.$on(Event.VIEW_UNSUBSCRIPTION_AFTER, function(){
+			$scope.params.update('view', $scope.params.editor.state.view);
+		});
+
+		$scope.$on(Event.GRAPH_SEARCH_CLEAR, function(){
+			$scope.searchCollection.keyword = '';
+		});
+
+
+		// 视图模块显示某个CI的曲线图
+		$scope.historyPerf = function(result, row) {
+			var indicatorTypeText = L.get('EMV_INDICATOR_TYPE');
+			var indicatorText = L.get('COMMON_INDICATOR');
+			result.title = row[indicatorTypeText] + '-' + row[indicatorText];
+			$uibModal.open({
+				size: 'lg',
+				animation: true,
+				backdrop: 'static',
+				templateUrl: 'app/modal/ciMonitor/ciMonitor.html',
+				controller: 'ModalCiMonitorCtrl',
+				resolve: {
+					result: function () {
+						return result;
+					}
+				}
+			});
+
+		};
+
+		// 视图模块显示某个CI的列表形式的事件
+		$scope.showEventForList = function(eventInfo) {
+			$uibModal.open({
+				size: 'lg',
+				animation: true,
+				backdrop: 'static',
+				templateUrl: 'app/modal/ciMonitor/ciEvent.html',
+				controller: 'ModalCiEventCtrl',
+				resolve: {
+					result: function () {
+						return eventInfo;
+					}
+				}
+			});
+		};
+
+		// 视图模块显示某个CI的列表形式的监控
+		$scope.showPerfForList = function(perfInfo) {
+			$uibModal.open({
+				size: 'lg',
+				animation: true,
+				backdrop: 'static',
+				templateUrl: 'app/modal/ciMonitor/ciPerf.html',
+				controller: 'ModalCiPerfCtrl',
+				resolve: {
+					result: function () {
+						return perfInfo;
+					}
+				}
+			});
+		};
+
+		// 跳转到用户空间
+		$scope.toUserRoor = function(userInfo) {
+			$state.go('home.userroom.overview', {userLoginName: $scope.params.data.author.loginName, userInfo: userInfo});
+		};
+
+		$scope.filter = function(key){
+			return !key[0] === '_';
+		};
+
+		$scope.timestamp = new Date().getTime() + '';
+	}]);
+
+	app.directive('graphInfo', ['$q', '$parse', function(){
+
+		return {
+			restrict: 'A',
+			priority: 1001,
+			scope: true,
+			templateUrl: 'app/directive/info/info.html',
+			controller: 'DirectiveGraphInfoCtrl',
+			compile: function(){
+				return function(scope, element, attrs, controller){
+					controller.setupBindingsToInternalScope(attrs.graphInfo);
+				};
+			}
+		};
+
+	}]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

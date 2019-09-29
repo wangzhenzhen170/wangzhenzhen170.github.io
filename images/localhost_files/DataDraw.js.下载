@@ -1,0 +1,339 @@
+/* global mxUtils */
+/* global mxDragSource */
+
+(function(graph){
+
+	'use strict';
+
+
+	var factory = function(CiRelationService, Unit, Const, $rootScope, Event){
+
+		var F = function(options){
+			this.options = options;
+			this.editor = options.editor;
+			this.$table = options.$table;
+			this.isSelectMore = false;
+			this.heightLightCell = null;
+			this.utils = graph.utils;
+
+			this.binding();
+		};
+
+
+		F.prototype.binding = function(){
+			var _this = this;
+			_this.$table.find('tbody tr').each(function() {
+				if($(this).attr('data-id')){
+
+					_this.createDragSource(
+						this,
+						_this.createDropHandler(this, true),
+						_this.createDragPreview(
+							Const.GRAPH_DRAG_WIDTH,
+							Const.GRAPH_DRAG_HEIGHT
+						)
+					);
+				}
+			});
+		};
+
+
+		F.prototype.createCell = function(g, parent, cateid, id, value, x, y, image){
+			return g.insertVertex(
+				parent,
+				Const.CI_PREFIX + id,
+				value,
+				x,
+				y,
+				Const.GRAPH_DRAG_WIDTH,
+				Const.GRAPH_DRAG_HEIGHT,
+				'image;image=' + image
+			);
+		};
+
+		F.prototype.createDragSource = function(elt, dropHandler, preview) {
+			var _this = this,
+				dragSource,
+				edgeStyle = 'strokeColor=#0066FF;strokeWidth=4;fillColor=none;';
+
+			dragSource = mxUtils.makeDraggable(elt, _this.editor.graph, dropHandler, preview, 0, 0, _this.editor.graph.autoscroll, true, true);
+
+			dragSource.getDropTarget = function(g, x, y) {
+				var target, upTarget, loop, style = '';
+
+				upTarget = mxDragSource.prototype.getDropTarget.apply(this, arguments);
+
+				loop = function(parent){
+					var vertex;
+
+					vertex = g.getCellAt(x, y, parent, true, true);
+
+					if(vertex && vertex.children && vertex.children.length>=1 ){
+						vertex = loop(vertex);
+					}
+
+					return vertex;
+				};
+
+				target = loop(g.getDefaultParent());
+				target = target ? target : upTarget;
+
+
+				if((target && target.vertex && !_this.heightLightCell) ||
+					(target && target.vertex && _this.heightLightCell.state.x !== target.geometry.x) ||
+					(target && target.vertex && _this.heightLightCell.state.y !== target.geometry.y)){
+
+					if(_this.heightLightCell){
+						_this.heightLightCell.destroy();
+					}
+					_this.lastTargetCell = target;
+					_this.heightLightCell = g.addLight(target, null, 4);
+
+				}else if(!target && _this.heightLightCell){
+					_this.heightLightCell.destroy();
+					_this.heightLightCell = null;
+					_this.lastTargetCell = null;
+				}
+
+				if(target && target.edge && !_this.lastTargetEdge){
+					_this.lastTargetEdge = target;
+					g.setOriStyle(target, target.getStyle());
+					target.setStyle(edgeStyle);
+					g.refresh(target);
+				}else if(!target && _this.lastTargetEdge){
+					style = g.getOriStyle(_this.lastTargetEdge);
+					g.setOriStyle(_this.lastTargetEdge, '');
+					_this.lastTargetEdge.setStyle(style);
+					g.refresh(_this.lastTargetEdge);
+					_this.lastTargetEdge = null;
+				}
+
+				if (!g.isValidRoot(target)) {
+					target = null;
+				}
+
+				return target;
+			};
+
+			return dragSource;
+		};
+
+		F.prototype.getDataById = function(id){
+			var _this = this, o = {};
+
+			$.each(_this.options.ciData, function(){
+				if(this.id === id){
+					o.name = this.client;
+					o.cate = this.categoryId;
+					o.image = Unit.static(this.icon);
+				}
+			});
+
+			return o;
+		};
+
+		F.prototype.handle = function(list, x, y){
+			var _this = this, i, obj, id, name = '', cate = '', parent, style, cell, model, g, ids=[], o;
+
+			g = _this.editor.graph;
+
+			parent = g.getDefaultParent();
+			model = g.getModel();
+			model.beginUpdate();
+
+			try {
+				for(i=0; i<list.length; i++) {
+					obj = list[i];
+					id = obj.attr('data-id');
+
+					o = _this.getDataById(id);
+
+					name = o.name;
+					cate = o.cate;
+
+					if(!g.getCellById([Const.CI_PREFIX, id].join(''))){
+						if(!_this.isSelectMore && _this.lastTargetCell && !_this.lastTargetCell.collapsed &&
+							(!_this.lastTargetCell.style || _this.lastTargetCell.style.indexOf('swimlane') === -1)){
+
+							// No change ico
+							//g.setCellStyles(mxConstants.STYLE_IMAGE, _this.options.lib[cate], [_this.lastTargetCell]);
+							_this.lastTargetCell.setId([_this.options.prefix, id].join(''));
+							_this.lastTargetCell.setValue(name);
+							g.refresh(_this.lastTargetCell);
+							_this.lastTargetCell = null;
+
+						}else if(!_this.isSelectMore && _this.lastTargetCell && _this.lastTargetCell.collapsed){
+
+							//g.setCellStyles(mxConstants.STYLE_IMAGE, _this.options.lib[cate], [_this.lastTargetCell]);
+							if(_this.options.lib && _this.options.lib[cate]){
+								g.setCellAttr(_this.lastTargetCell, 'collapsed', _this.options.lib[cate]);
+							}
+							g.setCellAttr(_this.lastTargetCell, 'label', name);
+							_this.lastTargetCell.setId([_this.options.prefix, id].join(''));
+							g.refresh();
+							_this.lastTargetCell = null;
+
+						}else if(!_this.isSelectMore && _this.lastTargetCell &&
+							(!_this.lastTargetCell.style || _this.lastTargetCell.style.indexOf('swimlane') === -1)){
+							_this.lastTargetCell.setId([_this.options.prefix, id].join(''));
+							style = g.getOriStyle(_this.lastTargetCell);
+							g.setOriStyle(_this.lastTargetCell, '');
+							_this.lastTargetCell.setStyle(style);
+							g.refresh(_this.lastTargetCell);
+							_this.lastTargetCell = null;
+						}else{
+
+							if(_this.lastTargetCell && _this.lastTargetCell.style.indexOf('swimlane') >= 0){
+								x -= _this.lastTargetCell.geometry.x;
+								y -= _this.lastTargetCell.geometry.y;
+								parent = _this.lastTargetCell;
+							}
+
+							if(_this.lastTargetEdge){
+								style = g.getOriStyle(_this.lastTargetEdge);
+								_this.lastTargetEdge.setStyle(style);
+								g.refresh(_this.lastTargetEdge);
+							}
+
+							cell = _this.createCell(g, parent, cate, id, name, x, y, o.image);
+							ids.push(id);
+							g.refresh(cell);
+						}
+					}else if(_this.lastTargetCell){
+						_this.lastTargetCell.setValue(name);
+						g.refresh(_this.lastTargetCell);
+					}
+				}
+			} finally {
+				model.endUpdate();
+			}
+
+			return ids;
+		};
+
+		F.prototype.createDropHandler = function(sCell) {
+			var _this = this
+
+			return function(g, evt, target, x, y) {
+				var selects;
+
+				if(_this.heightLightCell){
+					_this.heightLightCell.destroy();
+					_this.heightLightCell = null;
+				}
+
+				selects = _this.getSelectTr();
+				_this.isSelectMore = selects.length >= 2;
+				selects = selects.length >= 1 ? selects : [$(sCell)];
+				_this.handle(selects, x, y);
+
+
+				// 创建关系
+				// isCreateRelation 是否创建关系
+				if(_this.editor.state.isAutoLine){
+					_this.autoCreateRelation(function(isCreateRelation){
+						if(_this.editor.state.isAutoLayout && (isCreateRelation || _this.isSelectMore)){
+							_this.editor.action.layoutVertical();
+							g.refresh();
+							g.zoomToCenter();
+						}
+					});
+				}else if(_this.editor.state.isAutoLayout && _this.isSelectMore){
+					_this.editor.action.layoutVertical();
+					g.refresh();
+					g.zoomToCenter();
+				}
+
+				// 取消多选
+				$rootScope.$broadcast(Event.CI_TABLE_UNCHECKED);
+			};
+		};
+
+		F.prototype.createDragPreview = function(width, height, html) {
+			var elt = document.createElement('div');
+			elt.style.border = '1px dashed black';
+			elt.style.width = width + 'px';
+			elt.style.height = height + 'px';
+			elt.innerHTML = html ? html : '';
+			return elt;
+		};
+
+		F.prototype.getSelectTr = function(){
+			var arr = [], _this = this;
+			_this.$table.find('tbody tr').each(function(){
+				if($(this).find('input').is(':checked')){
+					arr.push($(this));
+				}
+			});
+
+			return arr;
+		};
+
+		F.prototype.autoCreateRelation = function(fn){
+			var _this = this;
+
+			CiRelationService.get({cis: _this.editor.action.getCisId()})
+				.success(function(result){
+
+					if(!result.data){
+						return;
+					}
+
+					var model, parent, isLayout = false;
+
+					parent = _this.editor.graph.getDefaultParent();
+					model = _this.editor.graph.getModel();
+					model.beginUpdate();
+
+
+					$.each(result.data, function(){
+						var v1 = _this.editor.graph.getCellById([Const.CI_PREFIX, this.startCi].join(''));
+						var v2 = _this.editor.graph.getCellById([Const.CI_PREFIX, this.endCi].join(''));
+						_this.clearEdges(v1, v2);
+					});
+
+					try{
+						$.each(result.data, function(){
+							var v1 = _this.editor.graph.getCellById([Const.CI_PREFIX, this.startCi].join(''));
+							var v2 = _this.editor.graph.getCellById([Const.CI_PREFIX, this.endCi].join(''));
+
+							if(v1 && v2){
+								var edgeId = [Const.RELATION_PREFIX, this.relCateName].join('');
+								_this.editor.graph.insertEdge(parent, edgeId, this.relCateName, v1, v2);
+								isLayout = true;
+							}
+						});
+					}finally{
+						model.endUpdate();
+					}
+
+					if(angular.isFunction(fn)){
+						fn(isLayout);
+					}
+
+				});
+		};
+
+
+		F.prototype.clearEdges = function(v1, v2){
+			var _this = this, i, removeCells = [];
+
+			if(v1 && v2 && Array.isArray(v1.edges)){
+				for(i=0; i<v1.edges.length; i++){
+					if(v1.edges[i].source.id === v2.id || v1.edges[i].target.id === v2.id){
+						removeCells.push(v1.edges[i]);
+					}
+				}
+			}
+
+			_this.editor.graph.removeCells(removeCells);
+			_this.editor.graph.refresh();
+		};
+
+		return F;
+
+	};
+
+	graph.app.factory('DataDraw', factory);
+
+})(nameSpace.reg('graph'));

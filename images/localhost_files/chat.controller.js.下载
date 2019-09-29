@@ -1,0 +1,768 @@
+(function(graph){
+
+	'use strict';
+	/*
+	 * 接口：
+	 * at列表
+	 * 最后消息列表
+	 * 发送消息接口
+	 * 上传图片、文件接口
+	 * 接收消息接口
+	 * 自动化命令接口
+	 */
+
+	graph.app.controller('chatRoomCtrl',['$scope','$state','Upload','MonitoringService', '$timeout','UserAuth',function($scope,$state,Upload,MonitoringService,$timeout,UserAuth){
+		$scope.$on('getCiKpiData', function(event, data) {
+			$scope.CIList = uniqueArray(data.ciInfo,'id');
+		});
+
+		$scope.showChatRoom = false;
+		$scope.showHint = {
+			atList: false,
+			commandList : false,
+			secondList: false,
+			thirdList: false,
+			help: false
+		};
+		$scope.showAlert = false;
+		$scope.showZoomImage = "";
+		$scope.fullChatRoom = false;
+		$scope.imageZoomed = false;
+		$scope.selectedCommand = {};//用户所选择的提示信息
+		$scope.loginUser = {
+			name: UserAuth.fetchUserInfo().userName,
+			avatar: 'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=3008922891,3881394430&fm=23&gp=0.jpg'
+		};
+		// 聊天信息列表
+		$scope.conversation =[{
+			avatar: 'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=3008922891,3881394430&fm=23&gp=0.jpg',
+			name: '孔峰',
+			text: '交换机主备切换，执行完毕',
+			time: '2017年3月14日 14:35',
+			isReply: false,
+			isHistory: false
+		},{
+			avatar: 'assets/images/tarsier/small_logo1.png',
+			name: '机器猴',
+			text: '业务量观察无误，故障处理完毕',
+			time: '2017年3月31日 14:38',
+			isReply: true,
+			isHistory: true
+		}];
+		// at机器人列表
+		$scope.atList = [{name:'机器猴',avatar:'assets/images/tarsier/small_logo1.png'},
+			{name:'韩梅梅-运营',avatar: 'https://ss1.bdstatic.com/70cFuXSh_Q1YnxGkpoWK1HF6hhy/it/u=1740054198,520853075&fm=23&gp=0.jpg'},
+			{name:'李雷-核心交易',avatar: 'https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=2240400926,22599862&fm=23&gp=0.jpg'},
+			{name:'华龙-动环',avatar: 'https://ss1.bdstatic.com/70cFvXSh_Q1YnxGkpoWK1HF6hhy/it/u=1900829057,3900579864&fm=116&gp=0.jpg'},
+			{name:'李安-网络',avatar: 'https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3246706036,189986796&fm=23&gp=0.jpg'}
+		];
+		//命令列表
+		$scope.commandList = [{'hint':'/add @user','info':'添加成员到当前讨论组','command':'/add'},
+			{'hint':'/CI [text] @kpi','info':'获取 CIXX kpi指标或执行脚本','command':'/CI'},
+			{'hint':'/help','info':'查看全部命令','command':'/help'},
+			{'hint':'/kpi [text] @CI@CI', 'info':'获取多个CI的 KPI指标 ','command':'/kpi'},
+			{'hint':'/mail:xxx@qq.com','info':'当前记录转发','command':'/mail:'},
+			{'hint':'/save [text]','info':'保存当前讨论组','command':'/save'},
+			{'hint':'/script [text] @CI@CI','info':'脚本在批量CI上执行','command':'/script'},
+			{'hint':'/session @memberA @memberB','info': '创建临时讨论组','command':'/session'},
+			{'hint':'/top [1-10] @ KPI','info': '将指标中top x 的CI 列出','command':'/top'}
+		];
+
+		$scope.KpiList = [{'hint':'CPU利用率','kpiname':'CPU'},
+			{'hint': '接口流量', 'kpiname':'I/O'},
+			{'hint': '交易量', 'kpiname':'交易量'},
+			{'hint': '响应时间', 'kpiname':'响应时间'},
+			{'hint': '成功率', 'kpiname':'成功率'},
+			{'hint': '响应率', 'kpiname':'响应率'},
+			{'hint': '内存', 'kpiname':'Memory'},
+			{'hint': '丢包率', 'kpiname':'Lost'},
+			{'hint': '主备线路倒换', 'kpiname': '主备线路倒换'}];
+		// 回复逻辑
+		var replyList=[{
+			name: '李安-网络',
+			text: '运营商问题，估计短时间内无法恢复',
+			avatar: 'https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3246706036,189986796&fm=23&gp=0.jpg',
+			isReply: true
+		},{
+			name: '李安-网络',
+			text: '应该有吧你查下',
+			avatar: 'https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3246706036,189986796&fm=23&gp=0.jpg',
+			isReply: true
+		},{
+			name: '机器猴',
+			image: 'http://i1.piimg.com/567571/169085762dd0df82.png',
+			avatar: 'assets/images/tarsier/small_logo1.png',
+			isReply: true
+		},{
+			name: '李安-网络',
+			text: '看了，应该没问题，切换吧',
+			avatar: 'https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3246706036,189986796&fm=23&gp=0.jpg',
+			isReply: true
+		},
+			{
+				name: '机器猴',
+				text: '倒换执行中...',
+				avatar: 'assets/images/tarsier/small_logo1.png',
+				isReply: true
+			},
+			{
+				name: '机器猴',
+				text: '主备倒换成功',
+				avatar: 'assets/images/tarsier/small_logo1.png',
+				isReply: true
+			}];
+
+		// 演示用：发送列表
+		var sendList = ['@李安-网络 出口路由器故障处理的怎么样，多长时间能恢复。','已经开始影响我们的业务了，我准备启用备用预案。备用线路的流量压力怎么样,有没有空闲带宽？',
+			'/CI RTO4 @出口流量', '/CI RTO3 @主备线路倒换'];
+
+		$scope.avatarClass= function(array){
+			var length = array.length;
+			if(length>4){
+				length = 4;
+			}
+			return "avatar-" + length;
+		};
+		$scope.avatarSet = function(avatar){
+			if(avatar) {
+				return avatar;
+			} else {
+				return '../assets/images/tarsier/chatroom/avatar-default.png';
+			}
+		};
+		$scope.toggleShow = function(){
+			$scope.showChatRoom = !$scope.showChatRoom;
+		};
+		$scope.toggleFull = function(){
+			$scope.fullChatRoom = !$scope.fullChatRoom;
+			refreshChart();
+		};
+		$scope.toggleAlert = function(){
+			$scope.showAlert = !$scope.showAlert;
+		};
+		$scope.toggleShowHelp = function(){
+			$scope.showHint.help = !$scope.showHint.help;
+		};
+		$scope.zoomChatImage = function(imageUrl){
+			$scope.imageZoomed = true;
+			$scope.showZoomImage = imageUrl;
+		};
+		$scope.hideImageZoom = function() {
+			$scope.imageZoomed = false;
+		};
+		/*
+		 * 选择文本提示
+		 * @param: 当前显示的提示列表名称，对应$scope.showHint
+		 * @param: 选择的提示文本
+		 * @param: 选择对象的其他信息
+		 */
+		$scope.selectHint = function(hint_list, hint_text, hint_info){
+			var inputText = $scope.inputText;
+			switch (hint_list){
+				case 'atList':
+					$scope.inputText = inputText.replace(/@([^@\s]*)\s?/,"@"+hint_text+" ");
+					$scope.showHint.atList = false;
+					$scope.selectedCommand.atName = hint_text;
+					break;
+				case 'commandList':
+					$scope.inputText = inputText.replace(/\/([^\/\s]*)\s?/, hint_text + " ");
+					$scope.showHint.commandList = false;
+					$scope.selectedCommand.command = hint_text;
+					break;
+				case 'secondList':
+					$scope.inputText = inputText.replace(/\s\S+/," " + hint_text + " ");
+					$scope.showHint.secondList = false;
+					$scope.selectedCommand.ciId = hint_info;
+					break;
+				case 'thirdList':
+					$scope.inputText = inputText.replace(/@\S*$/,"@" + hint_text + " ");
+					$scope.showHint.thirdList = false;
+					$scope.selectedCommand.kpiName = hint_info;
+					break;
+				default:
+					break;
+			}
+			$("#userInput").focus();
+		};
+
+		var sendIndex = 0;
+		function autoSend(delay){
+			$scope.inputText = sendList[sendIndex];
+			$timeout(function(){
+				chatController();
+				sendIndex++;
+				initInput();
+			},delay);
+		}
+		function initInput(){
+			$scope.showHint.atList = false;
+			$scope.showHint.commandList = false;
+			$scope.showHint.secondList = false;
+			$scope.showHint.thirdList = false;
+			$scope.inputText = '';
+		}
+		$scope.writeConversation = function($event){
+			var ENTER = 13;  // 回车
+			var SPACE = 32; //回车
+			var UP_ARROW = 38;
+			var DOWN_ARROW = 40;
+			var hint_wrap = $(".chat-container ").find(".text-hint"),
+				hint_List = hint_wrap.find('li'),
+				hint_Active = hint_wrap.find('li.active');
+
+			// 输入空格快捷打出词语
+			if($event.keyCode === SPACE && !$scope.inputText && sendIndex<sendList.length) {
+				$event.preventDefault();
+
+				autoSend(1000);
+			}
+
+			if($event.keyCode === ENTER) {
+				$event.preventDefault();
+				if($scope.inputText && (!hint_wrap.length || !hint_List.length)) {
+					chatController();
+					// init
+					initInput();
+				} else if(hint_wrap && hint_wrap.length) {
+					var text = hint_Active.attr('hint');
+					var hint_info = hint_Active.attr('hint-info');
+					if(hint_wrap.hasClass('text-at')){
+						$scope.selectHint('atList', text );
+					} else if (hint_wrap.hasClass('second-command')){
+						$scope.selectHint('secondList', text, hint_info);
+					} else if (hint_wrap.hasClass('third-command')){
+						$scope.selectHint('thirdList', text,hint_info);
+					} else if (hint_wrap.hasClass('text-command')){
+						$scope.selectHint('commandList', text);
+					}
+				}
+			}
+			if($event.keyCode === UP_ARROW){
+				$event.preventDefault();
+				hintListCtrl(hint_wrap, 'UP');
+			} else if ($event.keyCode === DOWN_ARROW){
+				$event.preventDefault();
+				hintListCtrl(hint_wrap, 'DOWN');
+			}
+		};
+		$scope.tipList = function($event){
+			var AT = 50;  // @符
+			var SLASH = 191; // 斜杠
+			if($event.keyCode === AT && $event.shiftKey){
+				$scope.showHint.atList = true;
+			}
+			if($event.keyCode === SLASH){
+				$scope.showHint.commandList = true;
+			}
+			try{
+				if($scope.inputText.indexOf('@') === -1) {
+					$scope.showHint.atList = false;
+				}
+				if($scope.inputText.indexOf('/') === -1) {
+					$scope.showHint.commandList = false;
+				}
+				if($scope.inputText.toLowerCase().indexOf('/ci') !== -1){
+					$scope.showHint.atList = false;
+					// 展示二三级提示
+					var regSecond = /(\/[^\/\s]*\s)\S+?$/;
+					var regThird = /(\/[^\/\s]*\s)\S+?\s@\S*$/;
+					var inputText = $("#userInput").val();
+					if(regSecond.test(inputText)){
+						$scope.showHint.commandList = false;
+						$scope.showHint.secondList = true;
+					} else {
+						$scope.showHint.secondList = false;
+					}
+					if(regThird.test(inputText)){
+						$scope.showHint.commandList = false;
+						$scope.showHint.secondList = false;
+						$scope.showHint.thirdList = true;
+					} else {
+						$scope.showHint.thirdList = false;
+					}
+				}
+			}catch(e){}
+		};
+		// 聊天逻辑执行函数
+		function chatController(){
+			var text = $scope.inputText;
+			var post = {
+				name: $scope.loginUser.name,
+				avatar: $scope.loginUser.avatar,
+				text: $scope.inputText,
+				time: new Date().getTime()
+			};
+			pushConversation(post);
+			// 输入 /help 显示帮助列表
+			if(text.indexOf('/help') !== -1){
+				$scope.showHint.help = true;
+			}
+
+			if(!$scope.selectedCommand.ciId || !$scope.selectedCommand.kpiName){
+				var matchList = text.match(/(\/[^\/\s]*\s)(\S+)?\s?@(\S*)?/); //匹配输入命令返回数组。0：输入文本 1：命令 2：CI名 3：KPI名
+				if(matchList && matchList.length > 3){
+					// var match_command = matchList[1];
+					var match_ci = matchList[2];
+					var match_kpi = matchList[3];
+					$scope.selectedCommand.ciId = matchArrayByKey($scope.CIList, 'id', 'ciCode', match_ci);
+					$scope.selectedCommand.kpiName = matchArrayByKey($scope.KpiList, 'kpiname', 'hint', match_kpi);
+					console.log($scope.selectedCommand);
+				}
+			}
+
+			$timeout(function() {
+				// 回复逻辑
+				if(text.indexOf('故障') !== -1 && text.indexOf('恢复') !== -1){
+					pushConversation(replyList[0]);
+				}
+				if(text.indexOf('备用线路') !== -1 && text.indexOf('空闲带宽') !== -1){
+					pushConversation(replyList[1]);
+				}
+				if(text.toLowerCase().indexOf('ci') !== -1){
+					if(text.indexOf('流量') !== -1) {
+						pushConversation(replyList[2]);
+						$timeout(function() {
+							pushConversation(replyList[3]);
+						},5000);
+					} else if(text.indexOf('倒换') !== -1){
+						pushConversation(replyList[4]);
+						$timeout(function() {
+							pushConversation(replyList[5]);
+							closeEvent(); // 执行关闭故障脚本
+						},5000);
+					} else if($scope.selectedCommand.ciId && $scope.selectedCommand.kpiName){
+						var reply = {
+							name: '机器猴',
+							type: 'data',
+							avatar: 'assets/images/tarsier/small_logo1.png',
+							isReply: true,
+							data: ''
+						};
+						pushConversation(reply);
+						$timeout(function() {
+							var obj = "message-" + ($scope.conversation.length-1);
+							loadCharts(obj);
+						},0);
+					}
+				} else if(text.toLowerCase().indexOf('/script') !== -1){
+					var pwd = text.match(/\((.+)\)/);
+					if(text.indexOf('alert') && pwd){
+						var param = {shell: pwd[1]};
+						MonitoringService.genData(param).success(function(data) {
+							console.log(data)
+							var reply = {
+								name: '机器猴',
+								text: '推送告警成功',
+								avatar: 'assets/images/tarsier/small_logo1.png',
+								isReply: true
+							};
+							pushConversation(reply);
+						});
+					}
+				}
+			}, 2000);
+		}
+
+		// 添加消息到消息队列
+		function pushConversation (msg){
+			var content_body = $(".conversation-body");
+			$scope.conversation.push(msg);
+			$timeout(function() {
+				content_body.scrollTop(content_body[0].scrollHeight);
+			}, 0, false);
+		}
+
+		// 自动化脚本 关闭故障
+		function closeEvent(){
+			var params = {
+				sceneId: $state.params.id,
+				closeInfo: "",
+				eventType: 2
+			};
+
+			MonitoringService.closeEvent(params).success(function(data){
+				$scope.$emit('closeAlarm');
+			});
+		}
+		// 表格数据加载
+		function loadCharts(obj) {
+			var params = {
+				ciId: $scope.selectedCommand.ciId,
+				kpiName: $scope.selectedCommand.kpiName
+			};
+			// var data = {
+			// 	data: [
+			// 		{
+			// 			kpiName:"成功率",
+			// 			time:1490835326243,
+			// 			unit:"",
+			// 			val:"0.97"
+			// 		},{
+			// 			kpiName:"成功率",
+			// 			time:1490836226228,
+			// 			unit:"",
+			// 			val:"0.87"
+			// 		},{
+			// 			kpiName:"成功率",
+			// 			time:1490836526228,
+			// 			unit:"",
+			// 			val:"0.52"
+			// 		},
+			// 	]
+			// }
+
+			MonitoringService.getKpiDiagram(params).success(function(data) {
+				var dd = data.data;
+				var myChart;
+				if(dd.length){
+					$scope.conversation[$scope.conversation.length - 1].hasData = true;
+					$timeout(function(){
+						myChart = echarts.init(document.getElementById(obj));
+						var isPercent = false; // 是否是百分比数据
+						var chartData = [];
+						var xAxisData = []; // 时间轴数据
+						var seriesData = [];
+						var series = {
+							type: 'line',
+							smooth: true,
+							areaStyle: {normal: {}}
+						};
+						series.name = dd[0].kpiName;
+						$.each(dd, function() {
+							var val = '';
+							xAxisData.push(formateTime(this.time));
+
+							if (this.unit === '%') {
+								val = parseInt(this.val * 100);
+								isPercent = true;
+							} else {
+								val = parseFloat(this.val);
+								isPercent = false;
+							}
+							chartData.push(val);
+						});
+						series.data = chartData;
+						seriesData.push(series);
+
+						renderChart(myChart,seriesData,xAxisData,isPercent);
+					},10);
+				} else {
+					$scope.conversation[$scope.conversation.length - 1].hasData = false;
+				}
+			});
+		}
+		// 图表配置及生成
+		function renderChart(myChart,seriesData,xAxisData, isPercent){
+			var colors =  ['rgb(81, 184, 254)','rgb(89, 197, 167)'];
+			var tooltipFormatter,yAxisFormatter,gridLeft;
+			if(isPercent){
+				tooltipFormatter = '{b0}:<br />{a0}: {c0}%';
+				yAxisFormatter = '{value}%';
+				gridLeft = 35;
+			} else {
+				gridLeft = 25;
+			}
+			var option = {
+				color: colors,
+				title: {show: false},
+				tooltip: {
+					trigger: 'axis',
+					formatter: tooltipFormatter
+				},
+				toolbox: {
+					show: true,
+					feature: {
+						dataView: {
+							readOnly: true,
+							optionToContent: function(opt) {
+								var axisData = opt.xAxis[0].data;
+								var series = opt.series;
+								var table = '<table style="width:100%;text-align:center"><tbody><tr>'
+									+ '<td>时间</td>'
+									+ '<td>' + series[0].name + '</td>'
+									+ '</tr>';
+								for (var i = 0, l = axisData.length; i < l; i++) {
+									table += '<tr>'
+										+ '<td>' + axisData[i] + '</td>'
+										+ '<td>' + series[0].data[i] + '</td>'
+										+ '</tr>';
+								}
+								table += '</tbody></table>';
+								return table;
+							}},
+						magicType: {type: ['bar']},
+						restore: {},
+						saveAsImage: {}
+					}
+				},
+				legend: {
+					padding: 0,
+					data: ['In','Out']
+				},
+				xAxis: {
+					type: 'category',
+					data: xAxisData,
+					boundaryGap: false,
+					axisPointer: {
+						label: {padding: 0}
+					}
+				},
+				yAxis: {
+					axisLabel: {
+						formatter: yAxisFormatter
+					},
+					axisPointer: {
+						label: {padding: 0}
+					}
+				},
+				series: seriesData
+			};
+			var media = [{
+				query: {
+					maxWidth: 300
+				},
+				option: {
+					title:{show: false},
+					legend: {show: false},
+					toolbox:{show: false},
+					grid:{
+						left: gridLeft,
+						top:10,
+						right:15,
+						bottom:20
+					},
+					xAxis: {
+						axisLabel: {
+							// interval: 2,
+							margin: 5
+						}
+					},
+					yAxis: {
+						show: true,
+						axisLabel: {
+							margin: 5
+						}
+					}
+				}
+			},{
+				option: {
+					legend: {show: true},
+					toolbox:{show: true},
+					grid:{
+						left:35,
+						top:35,
+						right:15,
+						bottom:25
+					},
+					xAxis: {
+						axisLabel: {
+						}
+					}
+				}
+			}];
+			myChart.setOption({
+				baseOption: option,
+				media: media
+			});
+		}
+		// 图表刷新
+		function refreshChart() {
+			var chartsWrap = $(".chart-container");
+			if(chartsWrap.length){
+				chartsWrap.each(function(){
+					var id = $(this).attr('id');
+					var myChart = echarts.getInstanceByDom(document.getElementById(id));
+					$timeout(function() { // 延迟处理，等待DOM元素更新后处理
+						myChart.resize();
+					},100);
+				})
+			}
+		}
+		// 图表坐标轴时间格式化
+		function formateTime(time){
+			var date = new Date(time);
+			var year = date.getFullYear();
+			var mouth = date.getMonth() + 1;
+			var day = date.getDate();
+			var hour = date.getHours();
+			var minutes = date.getMinutes();
+			// return year+'-'+mouth+'-'+day+' '+hour+':'+minutes;
+			return hour+':'+minutes;
+		}
+		/*
+		 * 根据已知键值对返回数组未知键值(精确匹配)
+		 * @param: json Array
+		 * @param: 需要返回值的键名
+		 * @param: 已知的键名
+		 * @param: 已知的键名对应键值
+		 */
+		function matchArrayByKey(list, returnKey, key, value) {
+			for (var index in list) {
+				if(list[index][key].toLowerCase() === value.toLowerCase()) {
+					return list[index][returnKey];
+				}
+			}
+		}
+		/*
+		 * JSON数组去重
+		 * @param: json Array
+		 * @param: 唯一的key名，根据此进行去重
+		 */
+		function uniqueArray(array, key){
+			var result = [array[0]];
+			for(var i = 1; i < array.length; i++){
+				var item = array[i];
+				var repeat = false;
+				for (var j = 0; j < result.length; j++) {
+					if (item[key] === result[j][key]) {
+						repeat = true;
+						break;
+					}
+				}
+				if (!repeat) {
+					result.push(item);
+				}
+			}
+			return result;
+		}
+		/*
+		 * 提示列表上下快捷键选中操作
+		 * @param： 提示列表
+		 * @param： 方向('UP','DOWN')
+		 */
+		function hintListCtrl(hint_wrap, direction){
+			var hint_List = hint_wrap.find('li'),
+			    hint_Active = hint_wrap.find('li.active');
+			var wrapHeight = hint_wrap.height();
+			if(hint_List.hasClass('active')) {
+				var length = hint_List.length;
+				var index = hint_Active.index();
+				if(direction === 'UP'){
+					index === 0 ? index = length-1 : index--;
+				} else if(direction === 'DOWN') {
+					index === length-1 ? index = 0 : index++;
+				}
+				hint_List.removeClass('active');
+				var select_hint = hint_List.eq(index);
+				select_hint.addClass('active');
+				var posTop = select_hint.position().top;
+				var childrenHeight = hint_Active.height();
+				var srcollTop = hint_wrap.scrollTop();
+				posTop>=wrapHeight? hint_wrap.scrollTop(srcollTop+posTop-wrapHeight+childrenHeight): '';
+				posTop<=0? hint_wrap.scrollTop(srcollTop+posTop): '';
+			} else {
+				if(direction === 'UP'){
+					hint_List.last().addClass('active');
+				} else if(direction === 'DOWN') {
+					hint_List.first().addClass('active');
+				}
+			}
+		}
+
+		// 上传图片
+		$scope.uploadImage = function(file) {
+			$scope.f = file;
+			if (file) {
+				var imgMsg = {
+					name: '孔峰',
+					avatar: $scope.loginUser.avatar,
+					image: file.$ngfBlobUrl,
+					time: new Date().getTime()
+				};
+				pushConversation(imgMsg);
+//	            file.upload = Upload.upload({
+//	                url: 'http://webuploader.duapp.com/server/fileupload.php',
+//	                data: {file: file}
+//	            });
+//
+//	            file.upload.then(function (response) {
+//	            	// 成功
+//	                $timeout(function () {
+//	                    file.result = response.data;
+//	                });
+//	            }, function (response) {
+				// 失败
+//	            }, function (evt) {
+//	            	// 进度条
+//	                console.log(evt);
+//	            });
+			}
+		};
+
+		// 上传文件
+		$scope.uploadFiles = function(file) {
+			$scope.f = file;
+			if (file) {
+				var fileSize = parseFloat(file.size/1024).toFixed(2);
+				var fileMsg = {
+					name: '孔峰',
+					avatar: $scope.loginUser.avatar,
+					file: {
+						name: file.name,
+						size: fileSize + "KB",
+						url: 'http://img.mukewang.com/down/54361b6000018dcf00000000.zip'
+					},
+					time: new Date().getTime()
+				};
+				pushConversation(fileMsg);
+//	            file.upload = Upload.upload({
+//	                url: 'http://webuploader.duapp.com/server/fileupload.php',
+//	                data: {file: file}
+//	            });
+//
+//	            file.upload.then(function (response) {
+//	            	// 成功
+//	            	console.log('success:');
+//	            	console.log(response);
+//	                $timeout(function () {
+//	                    file.result = response.data;
+//	                });
+//	            }, function (response) {
+//	            	console.log('fail:');
+//	            	console.log(response);
+				// 失败
+//	                if (response.status > 0)
+//	                    $scope.errorMsg = response.status + ': ' + response.data;
+//	            }, function (evt) {
+//
+//	            });
+			}
+		};
+	}]);
+
+	graph.app.filter('queryUser', function(){
+		return function(collection, keyname, text){
+			var matchArr = text.match(/@(.*)\s?/);
+			if(!matchArr || !matchArr[1]) {
+				return collection;
+			} else {
+				text = matchArr[1];
+			}
+			var result = [];
+			angular.forEach(collection, function (item) {
+				if(item[keyname].toLowerCase().indexOf(text.toLowerCase()) !== -1){
+					result.push(item);
+				}
+			});
+			return result;
+		}
+	});
+
+	graph.app.filter('queryCmd', function(){
+		return function(collection, keyname, text, level){
+			var matchArr = text.match(/(\/\S+)\s?(\S+)?\s?@?(\S*)?/);
+			if(!matchArr || !matchArr[level]) {
+				return collection
+			} else {
+				text = matchArr[level];
+			}
+			var result = [];
+			angular.forEach(collection, function (item) {
+				if(item[keyname].toLowerCase().indexOf(text.toLowerCase()) !== -1){
+					result.push(item);
+				}
+			});
+			return result;
+		}
+	});
+})(nameSpace.reg('graph'));

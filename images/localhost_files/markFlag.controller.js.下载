@@ -1,0 +1,50 @@
+(function(graph) {
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, Unit, MonitoringService,OScreenService, item, fn) {
+        console.log(item);
+		$scope.cancel = function() {
+			$uibModalInstance.close();
+		};
+
+
+		$scope.ok = function() {
+			if (!$scope.ackInfo) {
+				Unit.error(L.get('COMMON_THE_TAG_NAME_CANNOT_BE_EMPTY'));
+				return;
+			}
+			if ($scope.ackInfo && $scope.ackInfo.length > 10) {
+				Unit.error(L.get('EMV_DESCRIPTION_CANNOT_EXCEED_100_WORDS'));
+				return;
+			}
+			OScreenService.addTag({
+				serial: item.SERIAL,
+				tagName: $scope.ackInfo
+			})
+				.success(function (result) {
+					if(result.success){
+						item.TAGNAME=$scope.ackInfo;
+						Unit.success(L.get('EMV_ADD_LABEL_SUCCESSFULLY'));
+						fn();
+						$uibModalInstance.close();
+					}else{
+						Unit.success(L.get('EMV_ADD_LABEL_FAILED'))
+					}
+
+				}).error(function (err) {
+					Unit.success(L.get('EMV_ADD_LABEL_FAILED'))
+				})
+
+
+
+		};
+
+
+
+	};
+
+	graph.app.controller('markFlagCtrl', ['$scope', '$uibModalInstance', 'Unit', 'MonitoringService','OScreenService', 'item', 'fn', controller]);
+
+
+})(nameSpace.reg('graph'));

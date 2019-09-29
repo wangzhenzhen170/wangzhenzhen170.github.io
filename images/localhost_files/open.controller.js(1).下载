@@ -1,0 +1,42 @@
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, fn, GraphViewtree, Unit){
+
+
+		$scope.$modal = $uibModalInstance;
+
+		$scope.cancel = function(){
+			$uibModalInstance.close();
+		};
+
+		$scope.ok = function(){
+			if($scope.view){
+				fn($scope.view);
+				$uibModalInstance.close();
+			}else{
+				Unit.error(graph.translate('ERROR_SELECT_THEN_CLICK'));
+			}
+		};
+
+		$scope.viewtreeParams = new GraphViewtree({
+			allowEdit: false,
+			queryView: true,
+			showForm: false,
+			maxHeight: 300,
+			allowShowPubview: true,
+			selectNode: function(node){
+				$scope.view = node;
+			}
+		});
+
+	};
+
+	graph.app.controller('ModalViewOpenCtrl', ['$scope', '$uibModalInstance', 'fn', 'GraphViewtree', 'Unit', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

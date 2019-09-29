@@ -1,0 +1,44 @@
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, selected, fn, OtherService){
+
+		$scope.roles = [];
+
+		$scope.cancel = function(){
+			$uibModalInstance.close();
+		};
+
+		$scope.ok = function(){
+			var arr = [];
+			$.each($scope.roles, function(){
+				if(this.checked){
+					arr.push(this.roleName);
+				}
+			});
+			$uibModalInstance.close();
+			fn(arr);
+		};
+
+		OtherService.getRoles()
+			.success(function(result){
+				$.each(result.data.datas, function(){
+
+					if(selected.indexOf(this.roleName) >= 0){
+						this.checked = true;
+					}
+
+					$scope.roles.push(this);
+				});
+			});
+
+	};
+
+	graph.app.controller('ModalRoleChooseCtrl', ['$scope', '$uibModalInstance', 'selected', 'fn', 'OtherService', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

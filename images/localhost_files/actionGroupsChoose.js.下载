@@ -1,0 +1,49 @@
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, selectedGroups, fn, OtherService){
+
+		$scope.groups = [];
+
+		$scope.cancel = function(){
+			$uibModalInstance.close();
+		};
+
+		$scope.ok = function(){
+			var arr = [];
+			$.each($scope.groups, function(){
+				if(this.checked){
+					arr.push({name: this.groupName, id: this.id});
+				}
+			});
+			$uibModalInstance.close();
+			fn(arr);
+		};
+
+		var ids = [];
+		$.each(selectedGroups, function(){
+			ids.push(this.id);
+		});
+
+		OtherService.getActionGroups()
+			.success(function(result){
+				$.each(result.data.datas, function(){
+
+					if(ids.indexOf(this.id) >= 0){
+						this.checked = true;
+					}
+
+					$scope.groups.push(this);
+				});
+			});
+
+	};
+
+	graph.app.controller('ModalActionGroupsChooseCtrl', ['$scope', '$uibModalInstance', 'selectedGroups', 'fn', 'OtherService', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

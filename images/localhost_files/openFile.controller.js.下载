@@ -1,0 +1,99 @@
+((function(){
+    'use strict';
+
+    var format = function(arr){
+        (function(list){
+            angular.forEach(list, function(item){
+                if(item.children && item.children.length){
+                    format(item.children);
+                }
+
+                if(!angular.isArray(item.children)){
+                    item.children = [];
+                }
+
+                if(angular.isArray(item.diagrams)){
+                    angular.forEach(item.diagrams, function(viewItem){
+                        var obj;
+                        obj = {
+                            dirName: viewItem.name,
+                            id: viewItem.id,
+                            label: viewItem.name,
+                            parentId: viewItem.dirId,
+                            viewInfo: viewItem
+                        };
+                        item.children.push(obj)
+                    });
+                }
+            });
+        })(arr);
+    };
+
+    var controller = function($scope, $uibModalInstance, editor, GraphViewtree, ViewService, Unit, UserInfo, $state, DiagramDiagramService, params, DiagramGroupService){
+
+        $scope.treeOptions = {
+            nodeChildren: "children",
+            dirSelectable: false,
+            isLeaf: function(node){
+                return angular.isObject(node.viewInfo);
+            },
+            injectClasses: {
+                iLeaf: 'icon-view'
+            }
+        };
+
+        $scope.position = {};
+
+        $scope.init = function(){
+            DiagramDiagramService.queryDiagramTree({}).success(function(res){
+                if(!angular.isArray(res.data.children)){
+                    res.data.children = [];
+                }
+
+                format(res.data.children);
+
+                if(angular.isArray(res.data.diagrams)){
+                    angular.forEach(res.data.diagrams, function(viewItem){
+						if(viewItem.diagramType == 'undefined' || viewItem.diagramType == '1'){
+							var obj;
+							obj = {
+								dirName: viewItem.name,
+								id: viewItem.id,
+								label: viewItem.name,
+								parentId: viewItem.dirId,
+								viewInfo: viewItem
+							};
+							res.data.children.push(obj)
+						}
+                    });
+                }
+
+                $scope.dataForTheTree = res.data.children;
+                console.log($scope.dataForTheTree);
+                if (!$scope.$$phase) {
+                    $scope.$apply();
+                }
+            });
+        };
+
+        $scope.ok = function(){
+            if(angular.isObject($scope.position.categoryNode)){
+                $scope.cancel();
+                $state.go('canvas.edit.id', {id: $scope.position.categoryNode.id, type: $state.params.type, teamid: $state.params.teamid}, {reload: true, inherit: true});
+            }else {
+                Unit.error('请选择视图 ! ');
+            }
+        };
+
+        $scope.cancel = function(){
+            $uibModalInstance.close();
+        };
+
+        $scope.init();
+    };
+
+    graph.app.controller('ModalOpenFileCtrl', ['$scope', '$uibModalInstance', 'editor', 'GraphViewtree', 'ViewService', 'Unit', 'UserInfo', '$state','DiagramDiagramService','params','DiagramGroupService', controller]);
+
+})(nameSpace.reg('graph')));
+
+

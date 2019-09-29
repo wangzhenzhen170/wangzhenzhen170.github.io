@@ -1,0 +1,234 @@
+(function() {
+    var emx = angular.module('ExtandMx');
+
+    //背景特效
+    emx.factory('emxBgEffect', ['_emxBaseSvg', function(_emxBaseSvg) {
+
+        /**
+         *
+         */
+
+        return _emxBaseSvg.extend({
+            init: function(mxg) {
+                this._super(mxg);
+
+                // 定义一个高斯模糊
+                this._blur4 = this._defGaussianBlur();
+                this._blur2 = this._defGaussianBlur(2);
+                //        this._regEventListener();
+            },
+
+            /**
+             * 放置SVG元素
+             * 该效果为背景效果，所以直接放到cell的后面
+             * @param {SVGElement} node - 被放置位置的svg元素
+             * @param {mxCell|String} cell - 相关的cell
+             */
+            _placeNode: function(node, cell) {
+                this.toCellBack(node, cell);
+            },
+
+            /**
+             * 生成效果
+             * @param {mxCell|String} cell - mxCell
+             * @param {String} color - 默认为绿色green
+             * @param {Number} padding - 超出cell的内边距
+             * @param {Number} r - 圆角半径,默认为0
+             *
+             * @return {SVGElement} 返回用于展示效果的svg元素
+             */
+            _createEffect: function(cell, color, padding, r) {
+                cell = this.getCell(cell);
+                var geo = this.getCellGeo(cell);
+                var node = this.cellEffects[cell.id];
+                if (!node) {
+                    color = color || 'green';
+                    padding = +padding || 0;
+                    r = +r || 0;
+                    node = this.createSvg('rect', {
+                        filter: 'url(#' + this._blur2 + ')'
+                    });
+                    this.cellEffects[cell.id] = node;
+
+                    this.attr(node, {
+                        width: geo.width + 2 * padding,
+                        height: geo.height + 2 * padding,
+                        x: geo.x - padding,
+                        y: geo.y - padding,
+                        fill: color,
+                        rx: r,
+                        ry: r,
+                        'data-effect-padding': padding
+                    });
+                } else {
+                    color && this.attr(node, 'fill', color);
+                    if (!isNaN(padding) && padding != null) {
+                        padding = +padding;
+                        this.attr(node, {
+                            width: geo.width + 2 * padding,
+                            height: geo.height + 2 * padding,
+                            x: geo.x - padding,
+                            y: geo.y - padding,
+                            'data-effect-padding': padding
+                        });
+                    }!isNaN(r) && r != null && this.attr(node, {
+                        rx: +r,
+                        ry: +r
+                    });
+                }
+
+                this._placeNode(node, cell);
+                this.pushToCell(cell);
+
+                if (cell) {
+                    this.syncEffect(cell);
+                }
+
+                return node;
+            },
+
+            /**
+             * 生成效果
+             * @param {mxCell|String|Array<mxCell|String>} cells - mxCell列表
+             * @param {String} color - 默认为绿色green
+             * @param {Number} padding - 超出cell的内边距
+             * @param {Number} r - 圆角半径,默认为0
+             *
+             * @return {SVGElement} 返回用于展示效果的svg元素
+             */
+            createEffect: function(cells, color, padding, r) {
+                cells = cells instanceof Array ? cells : [cells];
+                for (var i in cells) {
+                    this._createEffect(cells[i], color, padding, r);
+                    //给此节点的父节点添加svg特效
+                    if (cells[i].parent.id > 1) {
+                        this._createEffect(cells[i].parent, color, padding, r);
+                    }
+                }
+            },
+
+            /**
+             * 当cell改变时，同步改变效果
+             */
+            syncEffect: function(cell) {
+                this._super(cell);
+
+                cell = this.getCell(cell);
+                var node = this.cellEffects[cell.id],
+                    state = this.getCellState(cell);
+                if (cell && node && state) {
+                    //            this.attr(node, 'visibility', 'visible');
+                    var geo = this.getCellGeo(cell);
+                    var padding = +this.attr(node, 'data-effect-padding');
+                    this.attr(node, {
+                        width: geo.width + 2 * padding,
+                        height: geo.height + 2 * padding,
+                        x: geo.x - padding,
+                        y: geo.y - padding
+                    });
+
+                    this._placeNode(node, cell);
+                } else if (cell && node) {
+                    //            this.attr(node, 'visibility', 'hidden');
+                }
+                return node;
+            },
+
+            syncAllEffect: function() {
+                var efs = this.cellEffects;
+                for (var i in efs) {
+                    this.syncEffect(i);
+                }
+            },
+
+            onTransform: function() {
+                this.syncAllEffect();
+            },
+
+            onChange: function(changes) {
+                var change, cell,
+                    that = this;
+
+                // 递归更新
+                var dive = function(cell) {
+                    that.syncEffect(cell);
+                    if (cell.children) {
+                        for (var i in cell.children) {
+                            dive(cell.children[i]);
+                        }
+                    }
+                };
+
+                for (var i in changes) {
+                    change = changes[i];
+                    cell = change.cell;
+                    if (cell) {
+                        if (change instanceof mxCollapseChange) {
+                            dive(cell);
+                        } else {
+                            this.syncEffect(cell);
+                        }
+                    }
+
+                }
+            },
+
+            update: function(t) {
+                var w = this._animate_def_w_ || 5;
+                // 按照刷新频率为每秒60次计算，默认500ms完成动画
+                var d = w / (this._animate_duration_ * 60 / 1000);
+                this._animateW_ == null && (this._animateW_ = w, this._animateFlg_ = -1);
+
+                var width, height, x, y, node, cell, padding, geo;
+                var cefs = this.cellEffects;
+                for (var i in cefs) {
+                    node = cefs[i];
+                    width = +this.attr(node, 'width') + 2 * d * this._animateFlg_;
+                    height = +this.attr(node, 'height') + 2 * d * this._animateFlg_;
+                    x = +this.attr(node, 'x') - d * this._animateFlg_;
+                    y = +this.attr(node, 'y') - d * this._animateFlg_;
+                    this.attr(node, {
+                        width: width,
+                        height: height,
+                        x: x,
+                        y: y
+                    });
+                }
+                if (node) {
+                    padding = +this.attr(node, 'data-effect-padding');
+                    cell = this.getCell(i);
+                    geo = this.getCellGeo(cell);
+                    if (width >= geo.width + 2 * padding + w) {
+                        this._animateFlg_ = -1;
+                    } else if (width <= geo.width + 2 * padding - w) {
+                        this._animateFlg_ = 1;
+                    }
+                }
+            },
+            hide: function(cell) {
+                var node = this.getEffectNode(cell);
+                if (node) {
+                    this.attr(node, 'visibility', 'hidden');
+                }
+            },
+
+            show: function(cell) {
+                var node = this.getEffectNode(cell);
+                if (node) {
+                    this.attr(node, 'visibility', 'visible');
+                }
+            },
+            /**
+             * 执行动画效果
+             * @param {Number} duration - 执行动画的时间周期，单位为毫秒，默认值为500
+             */
+            runAnimate: function(duration) {
+                //        this._animate_duration_ = duration || 500;
+                this._animateW_ = null;
+                this._super(duration);
+            }
+
+        });
+
+    }]);
+})();

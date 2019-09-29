@@ -1,0 +1,60 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('PubliService', ['$http', '$q', 'Unit', 'MockPromise', function($http, $q, Unit, MockPromise){
+
+        this.queryTagList = function(tagName){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/tag/queryTagList'),
+                params: {
+                },
+                data: {
+                     "tagName": tagName,
+                }
+            })
+        };
+
+        this.queryOpenDiagram = function(pageNum,likes){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/diagram/queryOpenDiagram'),
+                params: {
+                },
+                "data": {
+                    pageNum:pageNum,
+                    pageSize:15,
+                    cdt:{
+                        likes: likes
+                        },
+                    orders: 'modify_Time desc'
+                }
+            })
+        }
+
+         //取消分享
+        this.shareDiagram = function(param){
+            return $http({
+                method: 'POST',
+                url: Unit.diagramApi('/diagram/shareDiagram'),
+                "data": {
+                    diagramId:param,
+                    isOpen:0
+                }
+            })
+        }
+
+
+         //获得当前用户
+		this.getCurUser = function(){
+			return $http({
+				method: 'post',
+				url: Unit.diagramApi('/integration/authority/getCurUser'),
+			})
+		};
+
+	}]);
+
+})(nameSpace.reg('graph'));

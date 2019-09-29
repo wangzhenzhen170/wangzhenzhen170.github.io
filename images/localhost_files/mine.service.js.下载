@@ -1,0 +1,76 @@
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('mineService', ['$http', 'Unit','$q', function($http, Unit,$q){
+		var o = {};
+
+		o.saveOrUpdateDir = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/saveOrUpdateDir'), params);
+		};
+		o.queryMyDirInfoByParentId = function(params) {
+			var deferred = $q.defer();
+
+			var $promise = $http.post(Unit.diagramApi('/comb/queryMyDirAndEventByParentId'), params, {timeout: deferred.promise});
+
+			$promise.cancel = function(){
+				deferred.resolve();
+			};
+			return $promise;
+			// return $http.post(Unit.diagramApi('/diagram/queryMyDirInfoByParentId'), params);
+		};
+		o.removeDirByIds = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/removeDirByIds'), params);
+		};
+		o.updateDiagramNameAndDirById = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/updateDiagramNameAndDirById'), params);
+		};
+		o.queryDiagramDirTree = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/queryDiagramDirTree'), params);
+		};
+		o.queryDirById = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/queryDirById'), params);
+		};
+		o.copyDiagramById = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/copyDiagramById'), params);
+		};
+		o.updateDiagramNameAndDirById = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/updateDiagramNameAndDirById'), params);
+		};
+		o.moveDirAndDiagram = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/moveDirAndDiagram'), params);
+		};
+		o.queryDirParentsByDirId = function(params) {
+			return $http.post(Unit.diagramApi('/diagram/queryDirParentsByDirId'), params);
+		};
+		o.queryDiagramVersionByDiagramId = function(params) {
+			return $http.post(Unit.diagramApi('/diagramVersion/queryDiagramVersionByDiagramId'), params);
+		};
+		o.restoreDiagramVersionById = function(params) {
+			return $http.post(Unit.diagramApi('/diagramVersion/restoreDiagramVersionById'), params);
+		};
+		o.removeDiagramVersionById = function(params) {
+			return $http.post(Unit.diagramApi('/diagramVersion/removeDiagramVersionById'), params);
+		};
+
+        //发布service方法
+        o.getTags = function(data) {
+			return $http.post(Unit.diagramApi('/group/queryGroupList'), data);
+		};
+        o.getTagNameslist = function(data) {
+        return $http.post(Unit.diagramApi('/tag/queryTagList'), data);
+		};
+
+        o.publishTags = function(data) {
+			return $http.post(Unit.diagramApi('/diagram/shareDiagram'), data);
+		};
+        //获取小组成员
+         o.getgroupListcy = function(data) {
+			return $http.post(Unit.diagramApi('/group/queryGroupInfoById'), data);
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));
+

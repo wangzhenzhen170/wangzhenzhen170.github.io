@@ -1,0 +1,89 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('teamListCtrl', ['$scope','$state','$timeout','MonitoringService','$uibModal','Unit','uDialog','$stateParams', function($scope,$state,$timeout,MonitoringService,$uibModal,Unit,uDialog,$stateParams){
+        $scope.firstImgUrl='assets/images/tarsier/team/group-image.png';
+        //获取管理范围字段
+		MonitoringService.queryDict({groupId:1}).success(function(result) {
+			$scope.source=result.data
+			 MonitoringService.queryAllGroup({}).success(function(result) {
+                $scope.data=result.data;
+                if($scope.data){
+                    $.each($scope.data,function(index,item){
+                        item.memberTitle='';
+                        if(item.member&&item.member.length){
+                            $.each(item.member,function(index,data){
+                                item.memberTitle+=data.name+','
+                            })
+                        }
+                        if(!item.groupImageUrl){
+                            item.groupImageUrl=$scope.firstImgUrl;
+                        }
+                        if(item.authRegion.sourceId==null){
+                            item.range=[];
+                        }else if(item.authRegion.sourceId.length==0){
+                            item.rangeTitel=''
+                            item.range=[];
+                            $.each($scope.source,function(index1,item1){
+                            item.range.push(item1.chineseName);
+                                item.rangeTitel+=item1.chineseName+','
+                            })
+                        }else if(item.authRegion.sourceId.length>0){
+                            //console.log(2)
+                            item.range=[];
+                            //console.log($scope.source);
+                           // console.log(item.authRegion.sourceId);
+                            item.rangeTitel=''
+                            $.each(item.authRegion.sourceId,function(index1,item1){
+                                $.each($scope.source,function(index2,item2){
+                                    if(parseInt(item1)==item2.code){
+                                        item.range.push(item2.chineseName);
+                                        item.rangeTitel+=item2.chineseName+','
+
+                                    }
+                                })
+                            })
+
+                        }
+
+                    })
+                     //console.log($scope.data);
+                }
+
+            })
+		}).error(function() {
+
+        });
+
+
+
+
+        $scope.creatTeamFun=function(){
+            $state.go('tarsier.monitoring.teamCreate',{title:L.get('EMV_CREATE_A_TEAM'),id:''})
+        }
+        $scope.editTeamFun=function(item){
+            $state.go('tarsier.monitoring.teamCreate',{title:L.get('EMV_EDITORIAL_TEAM'),id:item.id})
+        }
+
+
+
+
+
+	}]);
+	 graph.app.filter('teamDate', function() {
+        return function(input) {
+            var Date = input.toString();
+            var Datefotmadate;
+            Datefotmadate = Date.slice(0, 4) + '-' + Date.slice(4, 6) + '-' + Date.slice(6, 8) + ' ' ;
+            return Datefotmadate;
+        }
+    });
+
+})(nameSpace.reg('graph'));

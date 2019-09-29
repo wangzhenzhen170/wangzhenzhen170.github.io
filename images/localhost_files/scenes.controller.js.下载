@@ -1,0 +1,10 @@
+(function(graph) {
+
+	'use strict';
+
+	graph.app.controller('sceneCtrl', ['$scope', '$state', function($scope, $state) {
+
+
+	}]);
+
+})(nameSpace.reg('graph'));

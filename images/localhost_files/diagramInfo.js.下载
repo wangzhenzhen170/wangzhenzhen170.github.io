@@ -1,0 +1,12 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('diagramInfoModalCtrl', ['$uibModal','$scope', '$uibModalInstance','Unit','Const', function($uibModal,$scope, $uibModalInstance, Unit, Const){
+	    $scope.hadInfo = false;
+		$scope.close = function(){
+            $uibModalInstance.close();
+        };
+	}]);
+})(nameSpace.reg('graph'));

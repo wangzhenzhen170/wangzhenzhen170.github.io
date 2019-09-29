@@ -1,0 +1,110 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('CiMonitorService', ['$http', 'Unit', function($http, Unit){
+
+		var o = {};
+
+		o.getView = function(ids, startTime, endTime){
+			return $http.post(Unit.api('/view/getmonitorforview'), {
+				ids: ids,
+				startTime: startTime,
+				endTime: endTime
+			});
+		};
+
+		o.getCi = function(id, viewid, startTime, endTime){
+			return $http.post(Unit.api('/view/getwholeinfo'), {
+				id: id,
+				viewId: viewid,
+				startTime: startTime,
+				endTime: endTime
+			});
+		};
+
+
+		o.getPointStatus = function(points, viewids){
+			return $http.post(Unit.api('/view/gettimemachineforview'), {
+				timeDots: points,
+				ids: viewids
+			});
+		};
+
+		o.getPerformanceChart = function(data) {
+			return $http.post(Unit.api('/performance/chart'), data);
+		};
+
+		o.getPerformanceMyPerf = function(data) {
+			return $http.post(Unit.api('/performance/getmyperf'), data);
+		};
+
+		o.getPerformanceAll = function(data) {
+			return $http.post(Unit.api('/performance'), data);
+		};
+
+		o.getMyEvent = function(data) {
+			return $http.post(Unit.api('/eventview/geteventbyview'), data);
+		};
+
+		o.getSeverity = function() {
+			return $http.post(Unit.api('/eventview/getseverity'));
+		};
+
+		o.getEventTitle = function() {
+			return $http.post(Unit.api('/eventview/gettitle'));
+		};
+
+		o.getViewsByEvent = function(data) {
+			return $http.post(Unit.api('/event/getviewsbyevent'), data);
+		};
+
+		o.getEvent = function(serial) {
+			return $http.get(Unit.api('/event/' + serial));
+		};
+
+		o.getEventConfig = function(data) {
+			return $http.post(Unit.api('/event/getconfig'), data);
+		};
+
+		o.getPerf = function(data) {
+			return $http.post(Unit.api('/event/getperf'), data);
+		};
+
+		o.getOperation = function(data) {
+			return $http.post(Unit.api('/event/getoperation'), data);
+		};
+
+		o.getDuplicateEvent = function(data) {
+			return $http.post(Unit.api('/event/getduplicateevent'), data);
+		};
+
+		o.getthresholdline = function(data){
+			return $http.post(Unit.api('/kpi/getthresholdline'), data);
+		};
+
+		o.getMonitorByCis = function(ids, viewid){
+			var idArr = [];
+
+			ids.forEach(function(item){
+				if(item.dataid){
+					idArr.push(item.dataid);
+				}
+			});
+
+			return $http.post(Unit.api('/event/geteventbyview'), {ids: ids, viewid: viewid});
+		};
+
+		o.getWarningByCis = function(ids){
+			return $http.post(Unit.api('/currentperformance/kpi'), {ids: ids});
+		};
+
+		o.getAppCount = function(ids){
+			return $http.post(Unit.api('/app/app/count'), {cis: ids});
+		};
+
+		return o;
+	}]);
+
+})(nameSpace.reg('graph'));

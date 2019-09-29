@@ -1,0 +1,975 @@
+(function (graph) {
+
+    'use strict';
+    /**
+     * 视图面板，用于打开视图用
+     *
+     * 指令接收一个option对象:
+     *   option.config - 指定属性值，具体见代码里DEFAULT_CONFIG内容
+     *   option.viewData - 视图数据对象
+     *   option.actionParams - 创建action使用的参数
+     *
+     * 回调函数:
+     *   onWillOpenView(editor) - 在每次将要打开视图之前调用该方法
+     *   onOpenView(editor) - 每次打开视图时会调用该方法，传递一个Editor对象
+     *   onSelectCell(cellId) - 每次新选中（点击）一个元素时会调用该方法
+     *   onUnselectCell(cellId) - 取消选中某个元素时
+     *   onNoneSelect() - 从选中状态到未选中任何元素时
+     *   onSelectVertex(cellId) - 选中的元素是节点时回调该方法
+     *   onSelectEdge(cellId) - 选中的元素是连线时回调该方法
+     */
+    graph.app.directive('graphPanel1', [
+        'Editor',
+        'emxEffects',
+        'emxExpandMxShape',
+        'DiagramDiagramService',
+        'Unit',
+        '$timeout',
+        'DiagramCIService',
+        'DiagramCiRltService',
+        'Const',
+        '$rootScope',
+        'DiagramDiagramVersionService',
+        'FoldingShape',
+        function (Editor, emxEffects, emxExpandMxShape, DiagramDiagramService, Unit, $timeout, DiagramCIService, DiagramCiRltService, Const, $rootScope, DiagramDiagramVersionService, FoldingShape) {
+           $scope.L = L;
+            /**
+             * 编辑器默认属性
+             */
+            var DEFAULT_CONFIG = {
+                // 背景图片
+                backgroundImage: false,
+                // 是否允许移动元素
+                cellsMovable: false,
+                isFull: false,
+
+                // 容器背景颜色
+                swimlaneFillColor: 'white',
+                // 隐藏连线上的label
+                uHideEdgeLabel: 1,
+                // 开启动画效果
+                uEnableAnimate: false,
+                // 新建视图状态
+                createView: false,
+                // 允许点击事件
+                enableClick: true,
+                // 显示选中节点元素效果
+                selectEffect: true,
+                // 当鼠标拖动时自动改变大小
+                allowAutoPanning: true,
+                // 鼠标悬浮显示属性
+                moveInfo: false,
+                // 显示属性延迟
+                moveInfoTime: 200,
+                // 初始化标签
+                initTags: false,
+                // cmv跳过来时高亮ci
+                ciId: null,
+                // 更新ciName
+                refreshCiName: false,
+                // 把默认的线的样式改成张雨绮版
+                defaultEdgeStyle: true,
+                // 打开或关闭容器是否重新布局
+                foldCellLayout: false,
+                // 是否需要扩展形状
+                extendShape: false,
+                // 标签展示数字
+                tagsNumber: false,
+                // 容器控制点重新绘制
+                foldingShape: true
+            };
+
+
+            /**
+             * 通过分类id获取分类
+             * @param id {String|Number} 分类id
+             * @param scope {Object} scope
+             * @returns {Object} 分类
+             */
+            function getClassByClassId(id, scope){
+                if(!scope.ciClassList) return null;
+                var i,len = scope.ciClassList.length,res;
+                for(i = 0; i < len; i++){
+                    if(scope.ciClassList[i].ciClass.id === id){
+                        res = scope.ciClassList[i];
+                        break;
+                    }
+                }
+
+                return res;
+            }
+
+            /**
+             *  获取ci名称
+             * @param ciClass {Object} ci分类
+             * @param ci {Object} ci
+             * @returns {String} ci名称
+             */
+            function getCiNameByIndexByAttr(ciClass, ci) {
+                var resName = [];
+                if(!angular.isObject(ci.attrs)){
+                    ci.attrs = {};
+                }
+                angular.forEach(ciClass.attrDefs, function (x) {
+                    if (x.isCiDisp === 1) {
+
+                        if (ci.attrs[x.proStdName]) {
+                            resName.push(ci.attrs[x.proStdName]);
+                        }
+                    }
+                });
+
+                if (resName.length > 0) {
+                    resName = resName.join(',');
+                } else {
+                    resName = ci.ci.ciCode;
+                }
+
+                return resName;
+            }
+
+            /**
+             * 获取ci属性
+             * @param ciClass
+             * @param ci
+             * @returns {Array}
+             */
+            function getCiNameByIndexByAttr1(ciClass, ci){
+                var resName = [];
+                if(!angular.isObject(ci.attrs)){
+                    ci.attrs = {};
+                }
+                angular.forEach(ciClass.attrDefs, function (x) {
+                    if (x.isCiDisp === 1) {
+
+                        if (ci.attrs[x.proStdName]) {
+                            resName.push(ci.attrs[x.proStdName]);
+                        }
+                    }
+                });
+
+                if (resName.length > 0) {
+                    // resName = resName.join(',');
+                } else {
+                    resName.push(ci.ci.ciCode);
+                }
+
+                return resName;
+            }
+
+            /**
+             *  加载标签ci
+             * @param cis {Array} ci列表
+             * @param parent {mxCell} 标签
+             * @param editor {Object} editor
+             * @param scope {Object} scope
+             * @param cfg {Object} 配置
+             */
+            function initTagsByCiIcon(cis,  parent,editor, scope, cfg){
+
+                if(angular.isArray(cis)){
+                    var cells,columnLength,columnNum, rowNum, heightMax,heightNum,ciLen = cis.length;
+                    cells = [];
+                    columnNum = 0;
+                    rowNum = 0;
+                    columnLength = 4;
+                    heightMax = 0;
+                    heightNum = 0;
+                    editor.graph.model.beginUpdate();
+                    columnLength = Math.floor(Math.sqrt(ciLen));
+                    try {
+                        angular.forEach(cis, function(item){
+                            if(!item.attrs){
+                                item.attrs = {};
+                            }
+
+                            var cellItem,
+                                ciClass = getClassByClassId(item.ci.classId, scope),
+                                ciName = getCiNameByIndexByAttr(ciClass, item);
+
+                            var iconWidth, iconHeight;
+                            iconWidth = Const.GRAPH_DRAG_WIDTH;
+                            iconHeight = Const.GRAPH_DRAG_HEIGHT;
+
+                            var ciId = item.ci.id;
+                            var ciNameShow = ciName;
+                            var left,top;
+                            var height = (Const.GRAPH_DRAG_WIDTH * (iconHeight / iconWidth));
+                            left = (columnNum * Const.GRAPH_DRAG_WIDTH) + ((columnNum+1) * 10);
+                            top = (heightNum + 50) + (rowNum * 20);
+
+                            if(heightMax < height){
+                                heightMax = height;
+                            }
+
+                            cellItem = editor.graph.insertVertex(
+                                parent,
+                                Const.CI_PREFIX + ciId,
+                                ciNameShow || '',
+                                left,
+                                top,
+                                iconWidth,
+                                iconHeight,
+                                'image;image=' + ciClass.ciClass.icon
+                            );
+
+                            if(columnNum < columnLength - 1){
+                                columnNum++;
+                            }else {
+                                heightNum = heightNum + heightMax;
+                                columnNum = 0;
+                                heightMax = 0;
+                                rowNum++;
+                            }
+
+                            cells.push(cellItem);
+                        });
+                    }finally  {
+                        editor.graph.model.endUpdate();
+                    }
+
+                    if(cfg.foldCellLayout){
+                        editor.action.geoLayout.layout([parent]);
+                    }
+
+                    $timeout(function(){
+                        editor.graph.refresh();
+                    }, 500);
+
+                    refreshCiName(editor, scope);
+                }
+            }
+
+            /**
+             * 获取标签ci
+             * @param tagId {String|Number} 标签id
+             * @param parent {mxCell} 标签节点
+             * @param editor {Object} editor
+             * @param scope {Object} scope
+             * @param cfg {Object} 配置
+             */
+            function loadCi(tagId, parent, editor, scope, cfg){
+                DiagramCIService.queryListByTags({ciCdt:{}, tagIds: [tagId]}).success(function(result){
+                    initTagsByCiIcon(result.data, parent, editor, scope, cfg);
+                });
+            }
+
+            /**
+             * 监听标签打开关闭事件并加载ci
+             * @param editor {Object} editor
+             * @param scope {Object} scope
+             * @param cfg {Object} 配置
+             */
+            function watchFoldCells(editor, scope, cfg){
+                editor.graph.addListener(mxEvent.FOLD_CELLS, function(sender,evt){
+
+                    var cells = evt.getProperty('cells');
+
+                    if(!evt.getProperty('collapse')){
+                        var tagId = cells[0].id.split('_').pop();
+
+                        if(cells[0].style.indexOf('swimlane') !== -1){
+                            if(cells[0].geometry.width  < 200){
+                                cells[0].geometry.width = 200;
+                            }
+
+                            if(cells[0].geometry.height  < 200){
+                                cells[0].geometry.height = 200;
+                            }
+                        }
+
+                        if(cells[0].children && cells[0].children.length > 1){
+                            if(cfg.foldCellLayout){
+                                editor.action.geoLayout.layout(cells);
+                            }
+                        }else{
+                            loadCi(tagId, cells[0], editor, scope, cfg);
+                        }
+
+
+                    }else {
+                        if(cfg.foldCellLayout){
+                            editor.action.geoLayout.layout(cells);
+                        }
+                    }
+                });
+            }
+
+            /**
+             * 初始化标签 (默认把所有标签都改成容器)
+             * @param tagId {String|Number} 标签ID
+             * @param geometry {Object} 标签geometry
+             * @param name {String|Number} 标签名字
+             * @param tagsParent {mxCell} 标签的父节点
+             * @param style {String} 标签的style
+             * @param scope {Object} scope
+             * @param editor {Object} editor
+             * @param edges {Array} edges 当前标签所有线
+             * @param cfg {Object} cfg 配置
+             */
+            function initTag(tagId, geometry, name, tagsParent, style, scope, editor, edges, cfg) {
+                watchFoldCells(editor, scope, cfg);
+                var x, y, parent;
+                x = geometry.x;
+                y = geometry.y;
+
+                parent = editor.graph.insertVertex(tagsParent, Const.TAGS_PREFIX + tagId, name, x, y, 200, 200, 'swimlane');
+                if (style) {
+                    parent.setUtAttr('minstyle', 'shape=' + style + ';verticalLabelPosition=bottom;verticalAlign=top;');
+                    parent.setUtAttr('minwidth', geometry.width.toString());
+                    parent.setUtAttr('minheight', geometry.height.toString());
+                    editor.graph.setCellAttr(parent, 'minstyle', 'shape=' + style + ';verticalLabelPosition=bottom;verticalAlign=top;');
+                    editor.graph.setCellAttr(parent, 'minwidth', geometry.width.toString());
+                    editor.graph.setCellAttr(parent, 'minheight', geometry.height.toString());
+                }
+                editor.graph.model.setCollapsed(parent, true);
+                editor.graph.insertVertex(parent, null, '', 0, 0, 0, 0, 'rect');
+
+                if(edges){
+                    angular.forEach(edges, function(item){
+                        var v1,v2;
+                        if(item.source.id === parent.id){
+                            v1 = parent;
+                            v2 = editor.graph.getCellByDataId(item.target.id);
+                        }else {
+                            v1 = editor.graph.getCellByDataId(item.source.id);
+                            v2 = parent;
+                        }
+                        // self.editor.graph.insertEdge(parent, item.id, item.getValue(), v1, v2, item.getStyle());
+                        editor.graph.insertEdge(tagsParent, item.id, item.getValue(), v1, v2, item.getStyle());
+                    });
+                }
+
+                parent.$startGeometry = parent.geometry;
+
+//                DiagramCIService.queryPageByIndex({
+//                    pageNum: 1,
+//                    pageSize: 1,
+//                    cdt: {like: '', queryClass: 1}
+//                }).success(function (result) {
+//                    scope.ciClassList = result.data.classInfos;
+//
+//                    if (!angular.isArray(scope.ciClassList)) {
+//                        scope.ciClassList = [];
+//                    }
+//
+//                    // $scope.loadCi(tagId, parent);
+//                });
+            }
+
+            /**
+             * 设置标签的ci总数值 (标签右上角展示此数值)
+             * @param obj {Object} 标签ci总数
+             * @param editor {Object} editor
+             * @param scope {Object} scope
+             */
+            function setTagsCount(obj, editor, scope){
+                angular.forEach(obj, function(val, key){
+
+                    var cell = editor.graph.getCellByDataId(Const.TAGS_PREFIX + key);
+
+                    if(cell){
+                        scope.effects.script.createEffect(cell, '#77aee7', 'x' + val);
+                    }
+                });
+            }
+
+            /**
+             * 定时获取标签ci总数
+             * @param time {Number} 延迟获取时间 - 单位毫秒
+             * @param scope {Object} scope
+             * @param editor {Object} editor
+             */
+            function getTagsCount(time, scope, editor) {
+                if (!angular.isNumber(time)) {
+                    time = 60000;
+                }
+
+                if (scope.getTagsCountTime) {
+                    $timeout.cancel(scope.getTagsCountTime);
+                }
+
+                scope.getTagsCountTime = $timeout(function () {
+                    DiagramCIService.queryCiGroupCountByTagIds(editor.action.getTagsId()).success(function (result) {
+                        setTagsCount(result.data, editor, scope);
+                        getTagsCount(null, scope, editor);
+                    }).error(function () {
+                        getTagsCount(null, scope, editor);
+                    });
+                }, time);
+            }
+
+            /**
+             * 初始化全部标签 (把原来的标签删除并添加容器作为新的标签)
+             * @param scope {Object} scope
+             * @param editor {Object} editor
+             * @param cfg {Object} 配置
+             */
+            function initTags(scope, editor) {
+//                var cfg = scope.config;
+//                editor.graph.model.beginUpdate();
+//                try {
+//                    angular.forEach(editor.action.getTagsId(), function (tagId) {
+//                        var  parentTargetEdges;
+//                        var cell = editor.graph.getCellByDataId(Const.TAGS_PREFIX + tagId);
+//                        var parent = cell.getParent();
+//                        parentTargetEdges = angular.copy(cell.edges);
+//                        editor.graph.removeCells([cell]);
+//                        initTag(tagId, cell.geometry, cell.value, parent, cell.getStyle(), scope, editor, parentTargetEdges || [], cfg);
+//                    });
+//                } finally {
+//                    editor.graph.model.endUpdate();
+//                }
+
+                DiagramCIService.queryPageByIndex({
+                    pageNum: 1,
+                    pageSize: 1,
+                    cdt: {like: '', queryClass: 1}
+                }).success(function (result) {
+                    if(result.success && result.data && result.data.classInfos){
+                        scope.ciClassList = result.data.classInfos;
+                    }
+
+                    if (!angular.isArray(scope.ciClassList)) {
+                        scope.ciClassList = [];
+                    }
+
+                    // $scope.loadCi(tagId, parent);
+                });
+                // 定时获取标签数量
+                // getTagsCount(0, scope, editor);
+            }
+
+            /**
+             * 初始化悬浮框
+             * @param scope {Object} scope
+             * @param editor {Object} editor
+             * @param config {Object} config
+             */
+            function initTooltip(scope, editor, config) {
+                var state1;
+                var showTooltip1 = function () {
+                    if(scope.tooltipEvt.hideTooltipTimer){
+                        $timeout.cancel(scope.tooltipEvt.hideTooltipTimer);
+                    }
+                    scope.tooltipEvt.visibility = 'visible';
+                    var tooltipWidth, tooltipHeight;
+                    tooltipWidth = 230;
+                    tooltipHeight = document.querySelector('.graph-canvas-edit-tooltip').offsetHeight;
+                    if (scope.tooltipEvt.x + tooltipWidth > document.body.clientWidth) {
+                        scope.tooltipEvt.x = scope.tooltipEvt.x - tooltipWidth;
+                    }
+
+                    if (scope.tooltipEvt.y + tooltipHeight > document.body.clientHeight) {
+                        scope.tooltipEvt.y = scope.tooltipEvt.y - tooltipHeight;
+                    }
+                    // if (!scope.$$phase) {
+                    //     scope.$apply();
+                    // }
+                };
+
+                scope.initTagsList = function(pageNum){
+                    scope.tagsPageNum = pageNum;
+                    var params = {
+                        ciCdt: {},
+                        tagIds: [Unit.getTagsDataIdByCell(state1.cell)],
+                        pageNum: scope.tagsPageNum,
+                        pageSize: 50
+                    };
+                    scope.tooltipEvt.infoHttptimer = DiagramCIService.queryPageByTags(params).success(function(result){
+                        scope.tagsTotalPages = result.data.totalPages;
+                        if(!angular.isArray(scope.canvasTooltipTags)){
+                            scope.canvasTooltipTags = [];
+                        }
+                        angular.forEach(result.data.data, function(item){
+                            scope.canvasTooltipTags.push(item);
+                        });
+                        angular.forEach(scope.canvasTooltipTags, function(item){
+                            var ciClass = getClassByClassId(item.ci.classId, scope);
+                            if(ciClass){
+                                item.__className = ciClass.ciClass.className;
+                                item.__attrs = getCiNameByIndexByAttr1(ciClass, item);
+                            }
+                            showTooltip1();
+                        });
+                    });
+                };
+
+                var updateStyle1 = function (state, hover, e) {
+                    if (hover) {
+                        state1 = state;
+                        if(scope.tooltipEvt.hideTooltipTimer){
+                            $timeout.cancel(scope.tooltipEvt.hideTooltipTimer);
+                        }
+                        if (Unit.isCiCellByDataId(state.cell) || Unit.isTagsCellByDataId(state.cell)) {
+                            if (scope.tooltipEvt.timeout) {
+                                $timeout.cancel(scope.tooltipEvt.timeout);
+                            }
+                            scope.tooltipEvt.timeout = $timeout(function () {
+                                scope.tooltipEvt = {
+                                    x: e.x,
+                                    y: e.y,
+                                    // visibility: 'hidden'
+                                };
+
+                                if(Unit.isCiCellByDataId(state.cell)){
+                                    scope.tooltipEvt.typeInfo = 'ci';
+                                    if(scope.tooltipEvt.infoHttptimer){
+                                        scope.tooltipEvt.infoHttptimer.cancel();
+                                    }
+                                    scope.tooltipEvt.infoHttptimer = DiagramCIService.queryById(Unit.getCiDataIdByCell(state.cell)).success(function (result) {
+                                        if (result.data.attrs) {
+                                            showTooltip1();
+                                            scope.canvasTooltipAttr = result.data.attrs;
+                                        }
+
+                                    });
+                                }else if(Unit.isTagsCellByDataId(state.cell)){
+                                    scope.tooltipEvt.typeInfo = 'tags';
+                                    if(scope.tooltipEvt.infoHttptimer){
+                                        scope.tooltipEvt.infoHttptimer.cancel();
+                                    }
+
+                                    scope.canvasTooltipTags  = [];
+                                    scope.initTagsList(1);
+                                    // var params = {
+                                    //     ciCdt: {},
+                                    //     tagIds: [Unit.getTagsDataIdByCell(state.cell)],
+                                    //     pageNum: scope.tagsPageNum,
+                                    //     pageSize: 50
+                                    // };
+                                    // scope.tooltipEvt.infoHttptimer = DiagramCIService.queryPageByTags(params).success(function(result){
+                                    //     scope.canvasTooltipTags = result.data;
+                                    //     angular.forEach(scope.canvasTooltipTags, function(item){
+                                    //         var ciClass = getClassByClassId(item.ci.classId, scope);
+                                    //         if(ciClass){
+                                    //             item.__className = ciClass.ciClass.className;
+                                    //             item.__attrs = getCiNameByIndexByAttr1(ciClass, item);
+                                    //         }
+                                    //         showTooltip1();
+                                    //     });
+                                    // });
+                                }
+
+                                // if (Unit.isCiCellByDataId(state.cell)) {
+                                //     DiagramCIService.queryById(Unit.getCiDataIdByCell(state.cell)).success(function (result) {
+                                //         if (Object.keys(result.data.attrs).length) {
+                                //             showTooltip1(result);
+                                //         }
+                                //     });
+                                // } else {
+                                //     DiagramCiRltService.queryById(Unit.getRelationDataIdByCell(state.cell)).success(function (result) {
+                                //         if (Object.keys(result.data.attrs).length) {
+                                //             showTooltip1(result);
+                                //         }
+                                //     });
+                                // }
+                            }, config.moveInfoTime);
+                        }
+                        // state.style[mxConstants.STYLE_FILLCOLOR] = '#ff0000';
+                    } else {
+                        scope.tooltipCancelHidden(true);
+                    }
+                };
+                editor.graph.addMouseListener({
+                    currentState: null,
+                    previousStyle: null,
+                   mouseDown: function (sender, me) {
+                       // if (this.currentState != null) {
+                       //     this.dragLeave(me.getEvent(), this.currentState);
+                       //     this.currentState = null;
+                       // }
+                   },
+                    mouseMove: function (sender, me) {
+                        if (this.currentState != null && me.getState() == this.currentState) {
+                            return;
+                        }
+
+                        var tmp = editor.graph.view.getState(me.getCell());
+
+                        // Ignores everything but vertices
+                        if (editor.graph.isMouseDown || (tmp != null && !editor.graph.getModel().isVertex(tmp.cell) && !editor.graph.getModel().isEdge(tmp.cell))) {
+                            tmp = null;
+                        }
+
+                        if (tmp != this.currentState) {
+                            if (this.currentState != null) {
+                                this.dragLeave(me.getEvent(), this.currentState);
+                            }
+
+                            this.currentState = tmp;
+
+                            if (this.currentState != null) {
+                                this.dragEnter(me.getEvent(), this.currentState);
+                            }
+                        }
+                    },
+                    mouseUp: function (sender, me) {
+                    },
+                    dragEnter: function (evt, state) {
+                        if (state != null) {
+                            this.previousStyle = state.style;
+                            state.style = mxUtils.clone(state.style);
+                            updateStyle1(state, true, evt);
+                            state.shape.apply(state);
+                            state.shape.redraw();
+
+                            if (state.text != null) {
+                                state.text.apply(state);
+                                state.text.redraw();
+                            }
+                        }
+                    },
+                    dragLeave: function (evt, state) {
+                        if (state != null) {
+                            state.style = this.previousStyle;
+                            updateStyle1(state, false, evt);
+                            if (state.shape) {
+                                state.shape.apply(state);
+                                state.shape.redraw();
+                            }
+
+                            if (state.text != null) {
+                                state.text.apply(state);
+                                state.text.redraw();
+                            }
+                        }
+                    }
+                });
+            }
+
+            /**
+             * 刷新ci名称
+             * @param editor {Object} editor
+             * @param scope {Object} scope
+             */
+            function refreshCiName(editor, scope){
+                DiagramCIService.queryList({
+                    cdt: {
+                        ciQ: ["ATTR", "CLASS", "ATTR_DEF", "FIX_MAP"],
+                        ids: editor.action.getCisIdByCiId()
+                    }
+                }).success(function(result){
+                    if(angular.isArray(result.data)){
+                        editor.graph.model.beginUpdate();
+                        try {
+                            angular.forEach(result.data,  function(item){
+                                var ciName = [];
+                                angular.forEach(item.attrDefs, function(x){
+                                    if (x.isCiDisp === 1) {
+                                        if (item.attrs[x.proStdName]) {
+                                            ciName.push(item.attrs[x.proStdName]);
+                                        }
+                                    }
+                                });
+
+                                var cell = editor.graph.getCellByDataId([Const.CI_PREFIX, item.ci.id].join(''));
+                                if(angular.isObject(cell)){
+                                    cell.setValue(ciName.join(''));
+                                }
+                            });
+                        } finally {
+                            editor.graph.model.endUpdate();
+                        }
+                        editor.graph.view.refresh();
+                    }
+                });
+            }
+
+            /**
+             * 设置编辑器
+             * @param {object} editor - 编辑器对象
+             * @param {object} config - 配置内容
+             */
+            function configEditor(editor, config) {
+                editor.graph.allowAutoPanning = config.allowAutoPanning;
+
+                if (!config.createView) {
+                    editor.action.disabled();
+                }
+
+                editor.graph.container.style.backgroundImage = config.backgroundImage && editor.state.isShowGrid ? config.backgroundImage : 'none';
+                editor.graph.setCellsMovable(config.cellsMovable);
+                editor.isFull = config.isFull;
+
+
+                // 容器背景
+                var gss = editor.graph.getStylesheet();
+                gss.styles.swimlane &&
+                (gss.styles.swimlane[mxConstants.STYLE_SWIMLANE_FILLCOLOR] = config.swimlaneFillColor);
+                // 是否隐藏连线上的Label
+                if (gss.styles.defaultEdge) {
+                    gss.styles.defaultEdge[mxConstants.uSTYLE_HIDELABEL] = config.uHideEdgeLabel;
+                }
+
+                // 开启动画效果
+                if (config.uEnableAnimate) {
+                    editor.graph.getModel().addListener(mxEvent.CHANGE, function (sender, evt) {
+                        var changes = evt.getProperty('edit').changes;
+
+                        // 设置动画效果
+                        mxEffects.animateChanges(editor.graph, changes, function () {
+                            // 动画执行完后执行的内容
+
+                            // 触发完成变化动画的事件
+                            editor.graph.fireEvent(new mxEventObject('DONECHANGEANI', 'changes', changes));
+                        });
+                    });
+                }
+
+
+                editor.graph.addListener(mxEvent.CELLS_ADDED, function(sender, evt){
+                    var parent = evt.getProperty('parent');
+                    var children = parent.children;
+
+                    var func = function(parent){
+                        $timeout(function(){
+                            var cis = editor.action.getCisIdByCiId(parent);
+                            var val;
+                            if(cis.length){
+                                if(cis.length > 99){
+                                    val = '99+';
+                                }else {
+                                    val = 'x ' + cis.length;
+                                }
+                                parent.setUtAttr('child-num', cis.length);
+                                // editor.effects.script1.createEffect(parent, '#fff', val);
+                            }else {
+                                parent.setUtAttr('child-num', 0);
+                                // editor.effects.script1.clear(parent);
+                            }
+                            editor.graph.refresh();
+                        });
+                    };
+
+                    if(parent && parent.getStyle() && parent.getStyle().indexOf('swimlane') !== -1){
+                        func(parent);
+                    }else if(children && children.length){
+                        var i, len = children.length;
+                        for(i = 0; i < len; i++){
+                            if(children[i] && children[i].getStyle() && children[i].getStyle().indexOf('swimlane') !== -1){
+                                func(children[i]);
+                            }
+                        }
+                    }
+                });
+            }
+
+            /**
+             * 执行回调函数
+             * @param {function} fct  - 被执行的回调函数
+             * @param {Array}    [args] - 传递给回调函数的参数列表
+             * @param {object}   [ctx]  - 函数上下文
+             */
+            function runCallBack(fct, args, ctx) {
+                if (typeof fct !== 'function') return;
+
+                try {
+                    // 回调选中元素方法
+                    fct.apply(ctx, args);
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            /**
+             * 注册点击事件
+             * @param {object} editor - Editor对象
+             * @param {object} scope  - 指令的$scope对象
+             */
+            function regClickEvent(editor, scope) {
+                // 配置中未开启点击事件则什么都不错
+                if(!scope.config.enableClick) return;
+                var se = scope.config.selectEffect;
+                editor.graph.addListener(mxEvent.CLICK, function (sender, evt) {
+                    var e, cell, mxg;
+
+                    e = evt.getProperty('event');
+                    cell = evt.getProperty('cell');
+                    mxg = editor.graph;
+
+                    if (cell) {
+                        // 如果重新选择了一个元素
+                        if (e.which === 1 && cell.id !== scope._selectedCellId) {
+                            if (scope._selectedCellId) {
+                                se && scope.effects.sel.clear(scope._selectedCellId);
+                                runCallBack(scope.onUnselectCell, [scope._selectedCellId]);
+                            }
+
+                            runCallBack(scope.onSelectCell, [cell.id]);
+
+                            // 如果选中的是结点元素
+                            if (mxg.model.isVertex(cell)) {
+                                se && scope.effects.sel.createEffect(cell.id);
+                                runCallBack(scope.onSelectVertex, [cell.id]);
+                            } else if (mxg.model.isEdge(cell)) {
+                                runCallBack(scope.onSelectEdge, [cell.id]);
+                            }
+
+                            scope._selectedCellId = cell.id;
+                        }
+                    } else {
+                        if (scope._selectedCellId) {
+                            se && scope.effects.sel.clear(scope._selectedCellId);
+
+                            runCallBack(scope.onUnselectCell, [scope._selectedCellId]);
+
+                            runCallBack(scope.onNoneSelect);
+
+                            scope._selectedCellId = null;
+                        }
+                    }
+
+//                    evt.consume();
+                });
+            }
+
+
+            function openView(scope, viewData) {
+                var editor = scope.editor;
+                // 初始化一些与视图相关的状态
+                scope._selectedCellId = null;
+
+                if (typeof scope.onWillOpenView === 'function') {
+                    runCallBack(scope.onWillOpenView, [editor]);
+                }
+
+                editor.action.openView(viewData);
+                try {
+                    if (typeof scope.onOpenView === 'function') {
+                        runCallBack(scope.onOpenView, [editor]);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+
+                onOpenView(scope, editor);
+            }
+
+            function onOpenView(scope, editor) {
+                // if (scope.config.initTags) {
+                //     initTags(scope, editor);
+                // }
+
+                if(scope.config.refreshCiName){
+                    refreshCiName(editor, scope);
+                }
+
+                if(scope.config.ciId){
+                    var cell = editor.graph.getCellByDataId([Const.CI_PREFIX, cfg.ciId].join(''));
+                    if(cell){
+                        scope.effects.markci.createEffect(cell);
+                    }
+                }
+            }
+
+            return {
+                restrict: 'AE',
+                replace: true,
+                templateUrl: 'app/directive/graphPanel1/graphPanel.html',
+                scope: {
+                    'option': '=',
+                    'onOpenView': '=',
+                    'onWillOpenView': '=',
+                    'onSelectCell': '=',
+                    'onUnselectCell': '=',
+                    'onNoneSelect': '=',
+                    'onSelectVertex': '=',
+                    'onSelectEdge': '=',
+                    'onInit': '=',
+                    'viewId': '=',
+                    'viewInfo': '='
+                },
+                link: function (scope, ele, attrs) {
+                    ele[0].style.height = '100%';
+                    scope.tooltipEvt = {
+                        visibility: 'hidden'
+                    };
+                    var op = scope.option || {};
+                    var cfg = scope.config = angular.extend({}, DEFAULT_CONFIG, op.config);
+                    var editor = window.editor = scope.editor = new Editor(ele[0].querySelector('.graph-panel-content'), null, true, null, cfg.actionParams);
+                    editor.uvAttrShow = {};
+                    // 容器控制点重新绘制
+                    if(cfg.foldingShape){
+                        new FoldingShape(editor);
+                    }
+                    // 扩展形状
+                    if(cfg.extendShape) {
+                        new emxExpandMxShape(editor.graph, cfg.defaultEdgeStyle);
+                    }
+                    // 创建特效对象
+                    scope.effects = editor.effects = new emxEffects(editor.graph);
+
+                    if(angular.isFunction(scope.$parent.initEdit)){
+                        scope.$parent.initEdit(editor);
+                    }
+
+                    // 加载所有分类
+                    if (cfg.initTags) {
+                        initTags(scope, editor);
+                    }
+
+
+                    configEditor(editor, cfg);
+                    regClickEvent(editor, scope);
+
+                    if (cfg.moveInfo) {
+                        initTooltip(scope, editor, cfg);
+                    }
+
+                    scope.$watch('option.viewData', function (nv, ov) {
+                        if (nv) {
+                            openView(scope, nv);
+                        }
+                    });
+
+                    if (typeof scope.onInit === 'function') {
+                        runCallBack(scope.onInit, [editor, ele[0]]);
+                    }
+
+                    scope.tooltipCancelHidden = function(hidden){
+                        if(hidden){
+                            scope.tooltipEvt.hideTooltipTimer = $timeout(function(){
+                                scope.tooltipEvt.visibility = 'hidden';
+                                if (scope.tooltipEvt.timeout) {
+                                    $timeout.cancel(scope.tooltipEvt.timeout);
+                                }
+                                if (!scope.$$phase) {
+                                    scope.$apply();
+                                }
+                            }, 500);
+                        }else {
+                            if(scope.tooltipEvt.hideTooltipTimer){
+                                $timeout.cancel(scope.tooltipEvt.hideTooltipTimer);
+                            }
+                        }
+                    };
+
+                    // 打开图片时更新标签数量
+                    editor.graph.addListener(Const.CANVAS_TAGS_CHANGE, function(){
+                        DiagramCIService.queryCiGroupCountByTagIds(editor.action.getTagsId()).success(function (result) {
+                            angular.forEach(result.data, function(val, key){
+
+                                var cell = editor.graph.getCellByDataId(Const.TAGS_PREFIX + key);
+                                var valshow;
+                                if(cell){
+                                    if(Number(val) > 99){
+                                        valshow = '99+';
+                                    }else {
+                                        valshow = 'x ' + val;
+                                    }
+                                    cell.setUtAttr('child-num', val);
+                                    if(cfg.tagsNumber){
+                                        editor.effects.script1.createEffect(cell, '#fff', valshow);
+                                    }
+                                    editor.graph.refresh();
+                                    // editor.effects.script1.createEffect(cell, '#fff', valshow);
+                                }
+                            });
+                        })
+                    });
+                }
+            };
+        }]);
+
+})(nameSpace.reg('graph'));

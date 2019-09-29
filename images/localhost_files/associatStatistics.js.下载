@@ -1,0 +1,371 @@
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+/**
+ * Created by Administrator on 2017/6/6.
+ */
+(function(graph){
+
+	'use strict';
+
+	graph.app.controller('associatStatisticsCtrl', ['$scope','$state','$timeout','MonitoringService','$uibModal','Unit','uDialog','$stateParams','$filter', function($scope,$state,$timeout,MonitoringService,$uibModal,Unit,uDialog,$stateParams,$filter){
+        var oDate = new Date();
+        var intStartTime=oDate.getFullYear()+"/"+((oDate.getMonth()+1)>9?(oDate.getMonth()+1):'0'+(oDate.getMonth()+1))+"/"+oDate.getDate();
+        $scope.startD= intStartTime //获取系统的年；
+        var intEndTime=oDate.getFullYear()+"/"+((oDate.getMonth()+1)>9?(oDate.getMonth()+1):'0'+(oDate.getMonth()+1))+"/"+oDate.getDate()
+        $scope.endD=intEndTime;   //获取系统的年；
+        $scope.getBeforeDate=function(n){
+            var date={};
+            var n = n;
+            var d = new Date();
+            date.endtimeStamp=Date.parse(d);
+            //console.log(date.endtimeStamp)
+            var year = d.getFullYear();
+            var mon=d.getMonth()+1;
+            var day=d.getDate();
+            //date.endtime = year+L.get('COMMON_YEAR')+(mon<10?('0'+mon):mon)+L.get('COMMON_MONTH')+(day<10?('0'+day):day)+ L.get('COMMON_DAY_1');
+            date.endtime = year+'-'+(mon<10?('0'+mon):mon)+'-'+(day<10?('0'+day):day);
+
+            if(day <= n){
+                    if(mon>1) {
+                    mon=mon-1;
+                    }
+                else {
+                    year = year-1;
+                    mon = 12;
+                    }
+                }
+                d.setDate(d.getDate()-n);
+                year = d.getFullYear();
+                mon=d.getMonth()+1;
+                day=d.getDate();
+                date.starttimeStamp=Date.parse(d);
+
+                //date.starttime = year+L.get('COMMON_YEAR')+(mon<10?('0'+mon):mon)+L.get('COMMON_MONTH')+(day<10?('0'+day):day)+L.get('COMMON_DAY_1');
+                date.starttime = year+'-'+(mon<10?('0'+mon):mon)+'-'+(day<10?('0'+day):day);
+                return date;
+
+        }
+
+       //console.log($scope.getBeforeDate())
+
+
+       $scope.sourceId=0;
+       MonitoringService.getSelectorCodes({codeType :1,add:[{name:L.get('EMV_ALL_EVENT_SOURCES'),value:0,codeType: 1}]}).success(function(result) {
+            if(result.success==true){
+                console.log(result)
+                $scope.selectsourceIdArray=result.data;
+                console.log($scope.selectArray)
+
+                $scope.sourceId=0;
+
+                }else{
+
+                }
+        }).error(function() {
+
+        });
+        $scope.selectSourceId=function(item){
+            $scope.sourceId=item.value;
+            $scope.loadData($scope.type);
+            $scope.getData($scope.type);
+        }
+        $scope.dateRange={};
+        $scope.type=1;
+        $scope.dateRange.display=L.get('COMMON_LAST_DAY');
+		$scope.classList=[
+            {display:L.get('COMMON_LAST_DAY'),value:1},
+            {display:L.get('EMV_LAST_SEVEN_DAYS'),value:7},
+            {display:L.get('EMV_LAST_THIRTY_DAYS'),value:30},
+
+        ];
+        $scope.typeName='CI';
+        $scope.titleName=L.get('COMMON_OBJECT');
+        $scope.typeEnglishName="SOURCECINAME";
+        $scope.selectArray=[{'name':'CI '+L.get('COMMON_STATISTIC'),'value':1,'hover':true,'typeName':'CI','title':L.get('COMMON_OBJECT'),'typeEnglishName':'SOURCECINAME'},{'name':L.get('EMV_INDICATOR_STATISTICS'),'value':2,'typeName':L.get('COMMON_INDICATOR'),title:L.get('COMMON_INDICATOR'),'typeEnglishName':'SOURCEALERTKEY'}]
+        //$scope.pageSizeOption=[14,50,100,150];
+        $scope.getTypeData=function(item){
+            $scope.currentPage=1;
+            if(!$scope.flagTime){
+                var date={};
+                var n = n;
+                var d = new Date();
+                $scope.endtimeStamp=Date.parse(d);
+                console.log($scope.endtimeStamp)
+            }
+            $.each($scope.selectArray,function(index,item1){
+                item1.hover=false;
+            })
+            console.log($scope.selectArray)
+            if(item.typeName=='CI'){
+                $scope.btnCreateFlag=false
+            }else{
+                $scope.btnCreateFlag=true
+            }
+            item.hover=true;
+            $scope.type=item.value;
+            $scope.typeName=item.typeName;
+            $scope.titleName=item.title;
+            $scope.typeEnglishName=item.typeEnglishName;
+            $scope.getData($scope.type);
+            $scope.loadData($scope.type);
+        }
+        $scope.pageSize=20;
+        $scope.pageSizeOption = [$scope.pageSize,50,100,150];
+        $scope.currentPage=1;
+        $scope.starttimeStamp=$scope.getBeforeDate($scope.classList[0].value).starttimeStamp;
+        $scope.endtimeStamp=$scope.getBeforeDate($scope.classList[0].value).endtimeStamp;
+        $scope.starttime=$scope.getBeforeDate($scope.classList[0].value).starttime;
+        $scope.endtime=$scope.getBeforeDate($scope.classList[0].value).endtime;
+        //console.log($scope.starttime,$scope.endtime)
+        $scope.getData=function(type){
+            MonitoringService.needComplementEvent({startTime:$scope.starttimeStamp,endTime:$scope.endtimeStamp,configType:type,sourceId:$scope.sourceId}).success(function(result) {
+                if(result.success==true){
+                    $scope.alarmNum=result.data.alarmNum;
+                    $scope.needNum=result.data.needNum;
+                    //$scope.needPercent=result.data.needPercent;
+                    $scope.needPercent=$filter('number')(result.data.needPercent,2)
+                    //$scope.needPercent=$scope.needPercent.toFixed(2);
+                    $scope.relationPercent=100 - $scope.needPercent;
+                    $scope.relationPercent=$filter('number')($scope.relationPercent,2);
+                    $scope.needName = $scope.btnCreateFlag?L.get('COMMON_INDICATOR'):'CI'
+                }else{
+
+                }
+            }).error(function() {
+
+            });
+        }
+        $scope.getData($scope.type);
+
+        $scope.loadData=function(type){
+            $scope.totalRows="";
+            $scope.listData="";
+            $scope.busy=true;
+            MonitoringService.selectNeedComplementEvent({
+                startTime:$scope.starttimeStamp,
+                endTime:$scope.endtimeStamp,
+                pageSize: $scope.pageSize,
+                pageNum :$scope.currentPage,
+                sourceId:$scope.sourceId,
+                configType:type
+            }).success(function(result) {
+                $scope.busy=false;
+                if(result.success==true){
+                    if(result.data){
+                        $scope.totalRows=result.data.totalRows;
+                        $scope.pageSize=result.data.pageSize;
+                        $scope.listData=result.data.data;
+                    }
+
+                }else{
+
+                }
+            }).error(function() {
+
+            });
+        };
+        $scope.loadData($scope.type);
+        $scope.paging = function (data) {
+            $scope.pageSize=data.pageSize;
+            $scope.currentPage=data.currentPage;
+            $scope.loadData($scope.type);
+
+        }
+        $scope.compressDetail=function(serial){
+            //console.log(serial)
+            if(!$scope.flagTime){
+                var date={};
+                var n = n;
+                var d = new Date();
+                $scope.endtimeStamp=Date.parse(d);
+                console.log($scope.endtimeStamp)
+            }
+            uDialog.dialog({
+                    class: 'compressDetail',
+                    animation: true,
+                    backdrop: 'static',
+                    templateUrl: 'app/modal/manageAlert/compressDetailTwo.html',
+                    controller: 'compressDetailTwoCtrl',
+                    resolve: {
+                        serial: function() {
+                            return serial
+                        },
+                        css:function() {
+                            return true
+                        },
+                        type:function() {
+                            return $scope.typeEnglishName
+                        },
+                        startTime:function() {
+                            return $scope.starttimeStamp
+
+
+                        },
+                        endTime:function() {
+                            return $scope.endtimeStamp
+
+
+                        },
+                        sourceId:function() {
+                            return $scope.sourceId
+
+
+                        },
+
+                    }
+                });
+        }
+
+        $scope.createCIAtert=function(item){
+            //console.log(serial)
+            uDialog.dialog({
+                    class: 'createCI',
+                    animation: true,
+                    backdrop: 'static',
+                    templateUrl: 'app/modal/manageAlert/createCI.html',
+                    controller: 'createCICtrl',
+                    resolve: {
+                        ciCode:function() {
+                            return item.sourceciname
+                        },
+                        flag:function() {
+                            console.log()
+                            return function(){
+                                $scope.loadData($scope.type);
+                               // item.createAlert=true;
+                            }
+                        },
+
+                    }
+                });
+        }
+        $scope.createKPIAtert=function(item){
+            //console.log(serial)
+            uDialog.dialog({
+                    class: 'createCI',
+                    animation: true,
+                    backdrop: 'static',
+                    templateUrl: 'app/modal/manageAlert/createKpi.html',
+                    controller: 'createKPICtrl',
+                    resolve: {
+                        ciCode:function() {
+                            return item.sourceciname
+                        },
+                        flag:function() {
+                            return function(){
+                                $scope.loadData($scope.type);
+                               // item.createAlert=true;
+                            }
+                        },
+
+                    }
+                });
+        }
+        // $scope.$on('createAlert',function(event,data){
+        //     console.log(data)
+        // })
+        /*自定义时间确定*/
+		$scope.goToTimeSearch=function($event){
+            $scope.flagTime=true;
+            $event.stopPropagation();
+			if(!$("#startTime").val()){
+				Unit.error(L.get('EMV_PLEASE_SELECT_THE_START_TIME'));
+				return;
+			}
+			if(!$("#endTime").val()){
+				Unit.error(L.get('EMV_PLEASE_SELECT_THE_END_TIME'));
+				return;
+			}
+			var startTime=$("#startTime").val()+' '+'00:00:00';
+            var endTime=$("#endTime").val()+' '+'23:59:59';
+
+			$scope.startTime=Number((new Date(startTime)).getTime());
+			$scope.endTime=Number((new Date(endTime)).getTime());
+
+			if($scope.startTime>$scope.endTime){
+				Unit.error(L.get('EMV_THE_END_TIME_NOT_REASONABLE_SELECT_AGAIN'));
+				return;
+			}
+			$scope.startD=$("#startTime").val();
+			$scope.endD=$("#endTime").val();
+
+
+
+            //$scope.dateRange.display='自定义时间'
+            var startGetD=$scope.startD.split('/');
+			var endGetD=$scope.endD.split('/')
+			$scope.dateRange.display=startGetD[1]+"."+startGetD[2]+"-"+endGetD[1]+'.'+endGetD[2];
+			$scope.showTitleDefalt=$scope.startD+ '- '+$scope.endD;
+            $scope.starttimeStamp=Number((new Date(startTime)).getTime());
+            $scope.endtimeStamp=Number((new Date(endTime)).getTime());
+            //$scope.starttime=$scope.startD.substring(0,4)+L.get('COMMON_YEAR')+$scope.startD.substring(5,7)+L.get('COMMON_MONTH')+$scope.startD.substring(8,10)+L.get('COMMON_DAY_1');
+            //$scope.endtime=$scope.endD.substring(0,4)+L.get('COMMON_YEAR')+$scope.endD.substring(5,7)+L.get('COMMON_MONTH')+$scope.endD.substring(8,10)+L.get('COMMON_DAY_1');
+            $scope.starttime=$scope.startD.substring(0,4)+'-'+$scope.startD.substring(5,7)+'-'+$scope.startD.substring(8,10);
+            $scope.endtime=$scope.endD.substring(0,4)+'-'+$scope.endD.substring(5,7)+'-'+$scope.endD.substring(8,10);
+            $scope.loadData($scope.type);
+            $scope.getData($scope.type);
+            $scope.selectDefTimeFlag=false;
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+		}
+		$scope.selectDefTimeFlag=false;
+        $scope.goBack=function(){
+            $scope.selectDefTimeFlag=false;
+        }
+
+        $scope.selectClassify=function(item){
+            $scope.flagTime=false;
+            $scope.dateRange.display=item.display;
+            $scope.showTitleDefalt=item.display;
+            $scope.starttimeStamp=$scope.getBeforeDate(item.value).starttimeStamp;
+            $scope.endtimeStamp=$scope.getBeforeDate(item.value).endtimeStamp;
+            $scope.starttime=$scope.getBeforeDate(item.value).starttime;
+            $scope.endtime=$scope.getBeforeDate(item.value).endtime;
+            //$scope.getBeforeDate(item.value);
+            $scope.loadData($scope.type);
+            $scope.getData($scope.type);
+            $scope.selectDefTimeFlag=false;
+        }
+
+
+
+
+
+
+
+        $('.select-wrap').on('click', function(event){
+			event.stopPropagation();
+			// $(this).toggleClass('active');
+			$(this).find('.drop-menu').stop().slideToggle(150);
+
+        });
+        $(document).on('click', function() {
+            //console.log(232)
+			$('.select-wrap').find('.drop-menu').stop().slideUp(150);
+			$scope.selectDefTimeFlag=false;
+		});
+
+
+
+
+
+
+
+
+
+
+
+	}]);
+	graph.app.filter('select',function(){
+		return function(input,arr){
+			var name="";
+			angular.forEach(arr, function(item,index){
+				if(item.value==input){
+					name=item.name;
+				}
+			});
+			return name
+		}
+	})
+
+})(nameSpace.reg('graph'));

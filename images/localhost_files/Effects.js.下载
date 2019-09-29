@@ -1,0 +1,45 @@
+(function(){
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxEffects', ['emxBgEffect',
+                               'emxFgEffect',
+                               'emxAlarmEffect',
+                               'emxLineLightEffect',
+                               'emxScriptEffect',
+                               'emxSelRainEffect',
+                               'emxReqeatEffect',
+                               'emxMarkCIEffect',
+                               'emxDeleteCIEffect',
+                               'emxScriptByDataEffect',
+                               'emxImageColorEffect',
+                               'emxSearchEffect',
+                               function(bg, fg, alarm, lineLight, superScript, selected, emxReqeatEffect, emxMarkCIEffect, emxDeleteCIEffect, emxScriptByDataEffect, emxImageColorEffect, emxSearchEffect){
+
+        function effects(mxg) {
+            this.background = new bg(mxg);
+            this.frontground = new fg(mxg);
+            this.alarm = new alarm(mxg);
+            this.lineLight = new lineLight(mxg);
+            this.script = new superScript(mxg);
+            this.sel = new selected(mxg);
+            this.reqeat = new emxReqeatEffect(mxg);
+            this.markci = new emxMarkCIEffect(mxg);
+            this.deleteci = new emxDeleteCIEffect(mxg);
+            this.script1 = new emxScriptByDataEffect(mxg);
+            this.imageColor = new emxImageColorEffect(mxg);
+            this.search = new emxSearchEffect(mxg);
+
+            this._allEft = [this.background, this.frontground,
+                            this.alarm, this.lineLight,
+                            this.script, this.sel];
+        }
+
+        effects.prototype.clear = function () {
+            this._allEft.forEach(function (e) {
+                e.clear();
+            });
+        }
+
+        return effects;
+    }]);
+})();

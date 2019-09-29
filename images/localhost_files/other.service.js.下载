@@ -1,0 +1,32 @@
+
+(function(graph){
+
+	'use strict';
+
+	graph.app.service('OtherService', ['$http', 'Unit', '$q', function($http, Unit, $q){
+
+		return {
+			getSvgPath: function(){
+				return {
+					success: function(fn){
+						fn({data: 'resource/svg/blue'});
+					}
+				};
+			},
+
+			getMonitorUrl: function(){
+				return $http.post(Unit.api('/event/getEventMonitorUrl'));
+			},
+
+			getActionGroups: function(){
+				return $http.post(Unit.api('/auto/query'));
+			},
+
+			getRoles: function(){
+				return $http.post(Unit.api('/role/query'));
+			}
+		};
+
+	}]);
+
+})(nameSpace.reg('graph'));

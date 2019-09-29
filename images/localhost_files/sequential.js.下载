@@ -1,0 +1,121 @@
+(function(graph) {
+
+	'use strict';
+
+	graph.app.directive('sequential', ['Unit', function(Unit) {
+		return {
+			restrict: 'E',
+			replace: true,
+			template: '<div class="sequential"></div>',
+			scope: {
+				'data': '=',
+				'beginleft': '=',
+				'endleft': '=',
+				'firsttime': '=',
+				'ishistory': '='
+			},
+			link: function(scope, element, attrs) {
+
+				scope.$watch('beginleft', function(nv, ov) {
+					if (nv) {
+						updateSeq();
+					}
+				});
+
+				scope.$watch('endleft', function(nv, ov) {
+					if (nv) {
+						updateSeq();
+					}
+				});
+
+				// scope.$on('update', function() {
+				// 	updateSeq();
+				// });
+
+				scope.$watch('data', function(nv, ov) {
+					if (nv) {
+						updateSeq();
+					}
+				});
+
+				function updateSeq() {
+					//插入告警节点
+					var currentTime = scope.data.currentTime;
+					var history = scope.data.alertHistory;
+					var endTime = Unit.datetimeToUnix(currentTime);
+					var beginTime = scope.firsttime;
+					element.html('');
+					var beginLeft = scope.beginleft;
+					var endLeft = scope.endleft;
+					var isHistory = scope.ishistory;
+					var scale = (endLeft - beginLeft) / (endTime - beginTime);
+
+					for (var j = 0; j < history.length; j++) {
+						var circle = $('<span class="circle sequential-alert" rank="' + history[j].severity + '"></span>');
+						var begin = Unit.datetimeToUnix(history[j].firstOccurrence);
+						var end = Unit.datetimeToUnix(history[j].lastOccurrence);
+						var left = Math.round((begin - beginTime) * scale + beginLeft - 4);
+
+						circle.css('left', left);
+						circle.attr('info', history[j].firstOccurrence + ',' + history[j].summary);
+						element.append(circle);
+
+						//计算告警消除
+						if (j < history.length - 1 && end < Unit.datetimeToUnix(history[j + 1].firstOccurrence) || isHistory) {
+							var normal = $('<span class="circle sequential-normal"></span>');
+							var normalLeft = Math.round((end - beginTime) * scale + beginLeft - 4);
+							normal.css('left', normalLeft);
+							normal.attr('info', history[j].lastOccurrence);
+							element.append(normal);
+						}
+
+						//最早的时间点
+						if (history[j].isMin == 1) {
+							var time = history[j].firstOccurrence.substring(10);
+							element.append($('<span class="min" style="left:' + left + 'px">' + time + '</span>'));
+						}
+					}
+					//插入线并计算位置
+					element.children().each(function() {
+						if ($(this).hasClass('sequential-alert')) {
+							var line = $('<span class="line"></span>');
+							line.css('left', parseInt($(this).css('left')) + 10);
+							line.insertAfter($(this));
+						}
+					});
+
+					//计算线的长度
+					element.children().each(function() {
+						if ($(this).hasClass('line')) {
+							var prevCircleLeft = parseInt($(this).prev('.circle').css('left'));
+							var nextCircleLeft = parseInt($(this).next('.circle').css('left'));
+							var rank = $(this).prev('.circle').attr('rank');
+							$(this).width(nextCircleLeft - prevCircleLeft - 10);
+							$(this).attr('rank', rank);
+							//最后一条线直接到头
+							if (!$(this).next('.circle').length && !isHistory) {
+								$(this).width(parseInt(element.width() - parseInt($(this).css('left'))));
+								element.addClass('rank-' + $(this).attr('rank') + '');
+							}
+						}
+					});
+
+					//鼠标移上提示信息
+					element.find('.circle').hover(function() {
+						$('.sequential-tip').css({
+							left: $(this).offset().left,
+							top: $(this).offset().top - 30,
+							opacity: 1
+						});
+						$('.sequential-tip').html($(this).attr('info'));
+					}, function() {
+						$('.sequential-tip').css('opacity', 0);
+					});
+				}
+			}
+		}
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

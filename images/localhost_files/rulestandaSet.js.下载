@@ -1,0 +1,197 @@
+(function(graph){
+
+	'use strict';
+	//右侧浮动层
+	graph.app.directive('ruleStandaSet', function() {
+		return {
+			restrict : 'AE',
+			replace : true,
+            scope: {
+				ruleType : '@ruleType'
+			},
+			templateUrl: 'app/directive/ruleFilterEvent/rulestandaSet.html',
+			controller: ['$scope', '$timeout', '$state','Unit','uDialog','DefinedEventsService','MonitoringService','$uibModal',function($scope, $timeout,$state,Unit,uDialog,DefinedEventsService,MonitoringService,$uibModal){
+				MonitoringService.getModelCode({"function": true,ruleType:0}).success(function(result) {
+					console.log(result.data)
+					$scope.classList=result.data;
+				}).error(function() {
+
+				});
+				$scope.L = L;
+				$scope.objs = {};
+				MonitoringService.getSelectorCodes({"codeType":0,"add":[{"name":L.get('EMV_KEEP_THE_ORIGINAL_EVENT_LEVEL'),"value":-1,"codeType":0}]}).success(function(result) {
+					
+					$scope.level=result.data;
+					console.log($scope.level)
+				}).error(function() {
+		
+				});
+				// $scope.level=[
+				// 	{name:"保持原始事件级别",value:0},
+				// 	{name:"重定义为一级事件",value:1},
+				// 	{name:"重定义为二级事件",value:2},
+				// 	{name:"重定义为三级事件",value:3},
+				// 	{name:"重定义为四级事件",value:4},
+				// ];
+				$scope.defineTime=[
+					{name:L.get('EMV_EVENT_TABLE_ORIGINAL_TIME'),value:0},
+					{name:L.get('EMV_EVENT_STATION_RECEIVES_EVENT_TIME'),value:1},
+				];
+				$scope.standa={};
+				$scope.levelVal=-1;
+				$scope.defineTimeVal=0;
+				$scope.mailContentString="";
+				$scope.titleContentString="";
+				$scope.$emit('standalevelVal',$scope.levelVal);
+				$scope.$emit('standadefineTimeVal',$scope.defineTimeVal);
+				$scope.$emit('standaMailContentString',$scope.mailContentString);
+				$scope.$emit('standaTitleContentString',$scope.titleContentString);
+				$scope.$watch("mailContentString",function(){
+					$scope.$emit('standaMailContentString',$scope.mailContentString);
+				})
+				$scope.$watch("titleContentString",function(){
+					$scope.$emit('standaTitleContentString',$scope.titleContentString);
+				})
+				$scope.selectLevel=function(value){
+					$scope.levelVal=value.value;
+					$scope.$emit('standalevelVal',$scope.levelVal)
+					console.log($scope.levelVal)
+				}
+
+				$scope.selectdefineTime=function(value){
+					$scope.defineTimeVal=value.value;
+					$scope.$emit('standadefineTimeVal',$scope.defineTimeVal)
+				}
+				
+
+				$scope.mailContentString="";
+				$scope.mailContentFun=function(e,flag){
+					var keycode = window.event ? e.keyCode : e.which; //获取按键编码
+					if((window.event.shiftKey) && (keycode==52 || keycode==229)){
+						e.preventDefault();
+						if(flag=="mail"){
+							$scope.mailContentFlag= true;
+							$timeout(
+								function(){
+									$($('.set-standardization .mail-notice .mailContentli')[0]).addClass('active');
+								},2
+							)
+						}
+						if(flag=="title"){
+							$scope.titleContentFlag= true;
+							$timeout(
+								function(){
+									$($('.set-standardization .title-notice .mailContentli')[0]).addClass('active');
+								},2
+							)
+						}
+
+
+
+
+					}else{
+						if(keycode!=13 && keycode!=38 && keycode!=40 ){
+							if(flag=="mail"){
+								$scope.mailContentFlag=false;
+								$timeout(function(){
+									$scope.mailtextareaVal=$('.set-standardization .mail-notice .mailContent').val()
+									$scope.mailContentString=$scope.mailtextareaVal;
+								})
+							}
+							if(flag=="title"){
+								$scope.titleContentFlag=false;
+								$timeout(function(){
+									$scope.mailtextareaVal=$('.set-standardization .title-notice .mailContent').val()
+									$scope.titleContentString=$scope.mailtextareaVal;
+								})
+							}
+
+
+						}
+					}
+
+					if(keycode === 38){
+						e.preventDefault();
+						hintListCtrl($('.set-standardization .mail-notice .mailContentlist'), 'UP');
+						hintListCtrl($('.set-standardization .title-notice .mailContentlist'), 'UP');
+					} else if (keycode === 40){
+						e.preventDefault();
+						hintListCtrl($('.set-standardization .mail-notice .mailContentlist'), 'DOWN');
+						hintListCtrl($('.set-standardization .title-notice .mailContentlist'), 'DOWN');
+					}
+					if(keycode==13){
+						e.preventDefault();
+						if(flag=="mail"){
+							$scope.mailContentString+='${'+$('.set-standardization .mail-notice .mailContentlist .active span').text()+'}';
+							$('.set-standardization .mail-notice .mailContent').val($scope.mailContentString)
+							$(".set-standardization .mail-notice .mailContentli").removeClass("active")
+							$scope.$emit('standaMailContentString',$scope.mailContentString)
+							$scope.mailContentFlag=false;
+						}
+						if(flag=="title"){
+							$scope.titleContentString+='${'+$('.set-standardization .title-notice .mailContentlist .active span').text()+'}';
+							$('.set-standardization .title-notice .mailContent').val($scope.titleContentString)
+							$(".set-standardization .title-notice .mailContentli").removeClass("active")
+							$scope.$emit('standaTitleContentString',$scope.titleContentString)
+							$scope.titleContentFlag=false;
+						}
+
+					}
+
+				}
+				
+				$scope.checkedInforFun=function(li,flag){
+					if(flag=='mail'){
+						$scope.mailContentString+=li.display;
+						$('.set-standardization .mail-notice .mailContent').val($scope.mailContentString)
+						$(".set-standardization .mail-notice .mailContentli").removeClass("active")
+						$scope.mailContentFlag=false;
+						$scope.$emit('standaMailContentString',$scope.mailContentString)
+						console.log($scope.mailContentString)
+					}
+					if(flag=='title'){
+						$scope.titleContentString+=li.display;
+						$('.set-standardization .title-notice .mailContent').val($scope.titleContentString)
+						$(".set-standardization .title-notice .mailContentli").removeClass("active")
+						$scope.titleContentFlag=false;
+						$scope.$emit('standaTitleContentString',$scope.titleContentString)
+						console.log($scope.titleContentString)
+					}
+
+				}
+				function hintListCtrl(hint_wrap, direction){
+					var hint_List = hint_wrap.find('.mailContentli'),
+						hint_Active = hint_wrap.find('.mailContentli.active');
+					var wrapHeight = hint_wrap.height();
+					if(hint_List.hasClass('active')) {
+						var length = hint_List.length;
+						var index = hint_Active.index();
+						if(direction === 'UP'){
+							index === 0 ? index = length-1 : index--;
+						} else if(direction === 'DOWN') {
+							index === length-1 ? index = 0 : index++;
+						}
+						hint_List.removeClass('active');
+						var select_hint = hint_List.eq(index);
+						select_hint.addClass('active');
+						var posTop = select_hint.position().top;
+						var childrenHeight = hint_Active.height();
+						var srcollTop = hint_wrap.scrollTop();
+						posTop>=wrapHeight? hint_wrap.scrollTop(srcollTop+posTop-wrapHeight+childrenHeight): '';
+						posTop<=0? hint_wrap.scrollTop(srcollTop+posTop): '';
+					} else {
+						if(direction === 'UP'){
+							hint_List.last().addClass('active');
+						} else if(direction === 'DOWN') {
+							hint_List.first().addClass('active');
+						}
+					}
+				}
+
+				
+
+			}]
+		};
+	});
+
+})(nameSpace.reg('graph'));

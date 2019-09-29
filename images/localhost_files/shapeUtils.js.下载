@@ -1,0 +1,19 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxUtils', [function () {
+        var ugvBasePath = '.';
+        var ugvMediaPath = ugvBasePath + '/assets';
+        var ugvImagePath = ugvMediaPath + '/images';
+
+        var u = {};
+
+        // 获取图标路径
+        u.getIconUrl = function (img) {
+            return ugvImagePath + '/' + img;
+        }
+
+        return u;
+
+    }]);
+})();

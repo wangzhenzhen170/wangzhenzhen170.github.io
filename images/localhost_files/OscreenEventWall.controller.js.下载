@@ -1,0 +1,331 @@
+(function(graph){
+
+	'use strict';
+	graph.app.controller('OscreenEventWall', ['$uibModal','$scope','fn','getTime','backALL','ciApplication', '$uibModalInstance', 'MonitoringService','Unit','ciName','secondTabFlag','time',function($uibModal,$scope,fn,getTime,backALL,ciApplication, $uibModalInstance,MonitoringService,Unit,ciName,secondTabFlag,time) {
+		console.log(time);
+		/*初始化*/
+		$scope.startTime=time.startTime;
+		$scope.endTime=time.endTime;
+		$scope.selectTimeDefaul=time.selectTimeDefaul;
+		$scope.showTitleDefalt=time.showTitleDefalt;
+		$scope.startD=time.startD;
+		$scope.endD=time.endD;
+		$scope.startTimeHour=time.startTimeHour;
+		$scope.endTimeHour=time.endTimeHour;
+		/*返回给主页面的时间*/
+		$scope.getTimeFn=function(){
+			var time={};
+			time.startTime=$scope.startTime;
+			time.endTime=$scope.endTime;
+			time.selectTimeDefaul=$scope.selectTimeDefaul;
+			time.showTitleDefalt=$scope.showTitleDefalt;
+			time.startD=$scope.startD;
+			time.endD=$scope.endD;
+			time.startTimeHour=$scope.startTimeHour;
+			time.endTimeHour=$scope.endTimeHour;
+			getTime(time);
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+		/*应用事件墙*/
+		$scope.secondTabFlag=secondTabFlag;
+		$scope.ciApplication=ciApplication;
+		$scope.eventWall=function(){
+			var parms={}
+			parms.startTime=$scope.startTime;
+			parms.endTime=$scope.endTime;
+			MonitoringService.queryEventAppWall(parms).success(function(data) {
+				if (data.success) {
+					var edges=data.data&&data.data.relation;
+					var relationNodes=data.data&&data.data.relationApp;
+					$scope.noRelationNodes=data.data&&data.data.noRelationApp;
+					relationNodes&&$scope.creatForceGraph(relationNodes,edges)
+
+				}
+			});
+		}
+
+		$scope.backEventWall=function(){
+			$scope.ciApplication=''
+			$scope.secondTabFlag=false;
+			$scope.eventWall();
+			backALL();
+		}
+		/*点击单个应用*/
+		$scope.oneEventWall=function(ciName){
+			var oneParm={
+				ciname:ciName,
+				startTime:$scope.startTime,
+				endTime:$scope.endTime
+			}
+			MonitoringService.queryAppWallUpDown1Level(oneParm).success(function(data) {
+				if (data.success) {
+					//console.log(data)
+					$scope.toGetStartTime=$scope.startTime;
+					$scope.toGetEndTime=$scope.endTime;
+					var edges=data.data&&data.data.relation;
+					var relationNodes=data.data&&data.data.application;
+					relationNodes&&$scope.creatForceGraph(relationNodes,edges)
+
+				}
+			});
+		}
+		if($scope.secondTabFlag){
+			$scope.eventSecondName=ciName
+			$scope.oneEventWall($scope.ciApplication);
+		}else{
+			$scope.eventWall();
+		}
+		/*创建导向图*/
+		$scope.creatForceGraph=function(nodes,edges){
+			var svg = d3.select("#eventWll"),
+				width = $('#eventWll').width(),
+				height = $('#eventWll').height();
+			$("#eventWll").empty()
+			/*初始化force*/
+			var force = d3.forceSimulation(nodes)
+				.force("charge", d3.forceManyBody().strength(-60))
+				.force("link", d3.forceLink(edges).distance(100))
+				.force("center", d3.forceCenter(width/2,height/2)).restart();
+			/*箭头*/
+			svg.append("svg:defs").selectAll("marker")
+				.data(["suit"])
+				.enter().append("svg:marker")
+				.attr("id",'arrow1')
+				.attr("viewBox", "0 -5 10 10")
+				.attr("refX", 27)
+				.attr("refY", -0.8)
+				.attr("markerWidth", 10)
+				.attr("markerHeight", 10)
+				.attr("orient", "auto")
+				.append("svg:path")
+				.attr("d", "M0,-5L10,0L0,5");
+			var svg_edges = svg.append("svg:g").selectAll("path")
+				.data(edges)
+				.enter().append("svg:path")
+				.attr("marker-end", function(d) { return "url(#arrow1)"; }).attr('stroke','#616367').attr('stroke-width',1);
+			/*添加节点*/
+			var svg_nodes = svg.append("svg:g").selectAll("circle")
+				.data(nodes)
+				.enter()
+				.append("svg:circle")
+				.attr("r",function(d){
+					var r=18;
+					if(d.CIAPPLICATION==$scope.ciApplication){
+						r=24;
+						d.large=true
+					}
+					return r;
+				})
+				.style("fill",function(d,i){
+					return d.COLOR;
+				}).on('mouseover',function(d){
+					d3.select(this).transition().duration(250).attr("r",24)
+				}).on("mouseout",function(d){
+					if(!d.large){
+						d3.select(this).transition().duration(250).attr("r",18);
+					}
+				}).on("click",function(d){
+					//console.log(d);
+					fn(d);
+					$scope.eventSecondName= d.CIAPPLICATION;
+					$scope.secondTabFlag=true;
+					$scope.ciApplication=d.CIAPPLICATION;
+					$scope.oneEventWall($scope.ciApplication);
+				}).call(d3.drag()
+					.on("start", dragstarted)
+					.on("drag", dragged)
+					.on("end", dragended));
+			/*添加描述节点的文字*/
+			var svg_texts = svg.append("svg:g").selectAll("g")
+				.data(nodes)
+				.enter()
+				.append("svg:g");
+			svg_texts.append("svg:text")
+				.attr("class","svgTextName")
+				.attr("dx",-5)
+				.attr("dy",5)
+				.text(function(d,i){
+					return d.NUM;
+				})
+				.style("fill","white").on("click",function(d){
+					//console.log(d);
+					$scope.eventSecondName= d.CIAPPLICATION;
+					$scope.secondTabFlag=true;
+					$scope.ciApplication=d.CIAPPLICATION;
+					$scope.oneEventWall($scope.ciApplication);
+					fn(d)
+				});
+			svg_texts.append("svg:text")
+				.attr("class","svgTextName")
+				.attr("dx",-15)
+				.attr("dy",45)
+				.text(function(d,i){
+					return d.CIAPPLICATION;
+				})
+				.style("fill","#59606e");
+			function dragstarted(d) {
+				if (!d3.event.active) force.alphaTarget(0.3).restart();
+				d.fx = d.x;
+				d.fy = d.y;
+			}
+
+			function dragged(d) {
+				d.fx = d3.event.x;
+				d.fy = d3.event.y;
+			}
+
+			function dragended(d) {
+				if (!d3.event.active) force.alphaTarget(0);
+				d.fx = null;
+				d.fy = null;
+			}
+			force.on("tick", function(){ //对于每一个时间间隔  将之前通过force活着
+				//更新连线坐标
+				svg_edges.attr("d", function(d) {
+					return "M" + d.source.x + ","
+						+ d.source.y +","
+						+ d.target.x + ","
+						+ d.target.y;
+				});
+
+				//更新节点坐标
+				svg_nodes.attr("transform", function(d) {
+					return "translate(" + d.x + "," + d.y + ")";
+				});
+				//更新文字坐标
+				svg_texts.attr("transform", function(d) {
+					return "translate(" + d.x + "," + d.y + ")";
+				});
+
+			});
+		}
+
+		$scope.cancel = function () {
+			$uibModalInstance.close({ok: false});
+		};
+		/*点击没关系得应用*/
+		$scope.gotoSeachPage=function(item){
+			$scope.secondTabFlag=true;
+			$scope.eventSecondName= item.CIAPPLICATION;
+			$scope.ciApplication=item.CIAPPLICATION;
+			$scope.oneEventWall($scope.ciApplication);
+			/*noRelationFn(item)*/
+			fn(item)
+
+		}
+
+		var oDate = new Date();
+		var intStartTime=oDate.getFullYear()+"/"+((oDate.getMonth()+1)>9?(oDate.getMonth()+1):'0'+(oDate.getMonth()+1))+"/"+oDate.getDate();
+		var intEndTime=oDate.getFullYear()+"/"+((oDate.getMonth()+1)>9?(oDate.getMonth()+1):'0'+(oDate.getMonth()+1))+"/"+oDate.getDate()
+		$scope.$on('startTimeHour',function (event, msg) {
+			$scope.startTimeHour=msg;
+		});
+		$scope.$on('endTimeHour',function (event, msg) {
+			$scope.endTimeHour=msg;
+		});
+		$scope.selectTimeListAry=[
+			{'name':L.get('EMV_LAST_HOUR'), 'time':'1'},
+			{'name':L.get('EMV_LAST_TWELVE_HOURS'), 'time':'12'},
+			{'name':L.get('EMV_NEARLY_TWENTY_FOUR_HOURS'), 'time':'24'},
+			{'name':L.get('EMV_LAST_FORTY_EIGHT_HOUR'), 'time':'48'},
+		]
+		$scope.selectTimeListFlag=false;
+		$scope.goToSelectTime=function(e){
+			e.stopPropagation();
+			$scope.selectTimeListFlag=true;
+		}
+
+		$scope.selectTimeLi=function(item){
+			$scope.getStartAndEndTime(item.time);
+			if($scope.ciApplication){
+				$scope.oneEventWall($scope.ciApplication)
+			}else{
+				$scope.eventWall();
+			}
+			//$scope.eventWall();
+			$scope.selectTimeListFlag=false;
+			$scope.selectDefTimeFlag=false;
+			$scope.selectTimeDefaul=item.name;
+			$scope.showTitleDefalt=item.name;
+			$scope.startD=intStartTime;
+			$scope.endD=intEndTime;
+			$scope.startTimeHour='00:00:00';
+			$scope.endTimeHour='00:00:00';
+			$scope.getTimeFn();
+		}
+		$scope.selectDefTimeFlag=false;
+		$scope.selectDefTime=function (){
+			$scope.selectDefTimeFlag=true;
+		}
+		$scope.goBack=function(){
+			$scope.selectTimeListFlag=false
+			$scope.selectDefTimeFlag=false;
+		}
+		/*获取时间开始时间和结束时间*/
+		$scope.getStartAndEndTime=function(n){
+			$scope.endTime=new Date().getTime();
+			$scope.startTime=$scope.endTime-3600000*n;
+		}
+		/*自定义时间确定*/
+		$scope.goToTimeSearch=function(){
+			if(!$("#startTime").val()||!$scope.startTimeHour){
+				Unit.error(L.get('EMV_PLEASE_SELECT_THE_START_TIME'));
+				return;
+			}
+			if(!$("#endTime").val()||!$scope.endTimeHour){
+				Unit.error(L.get('EMV_PLEASE_SELECT_THE_END_TIME'));
+				return;
+			}
+			var startTime=($("#startTime").val()+" "+$scope.startTimeHour);
+			var endTime=$("#endTime").val()+' '+$scope.endTimeHour;
+			$scope.startTime=Number((new Date(startTime)).getTime());
+			$scope.endTime=Number((new Date(endTime)).getTime());
+			if($scope.startTime>$scope.endTime){
+				Unit.error(L.get('EMV_THE_END_TIME_NOT_REASONABLE_SELECT_AGAIN'));
+				return;
+			}
+			$scope.startD=$("#startTime").val();
+			$scope.endD=$("#endTime").val();
+			$scope.startTimeHour=$scope.startTimeHour;
+			$scope.endTimeHour=$scope.endTimeHour;
+			if($scope.ciApplication){
+				$scope.oneEventWall($scope.ciApplication)
+			}else{
+				$scope.eventWall();
+			}
+			/*自定义时间显示*/
+			var startGetD=$scope.startD.split('/');
+			var endGetD=$scope.endD.split('/')
+			$scope.selectTimeDefaul=startGetD[1]+"/"+startGetD[2]+"-"+endGetD[1]+'/'+endGetD[2];
+			$scope.showTitleDefalt=$scope.startD+" "+$scope.startTimeHour+" - "+$scope.endD+' '+$scope.endTimeHour;
+			$scope.selectTimeListFlag=false;
+			$scope.selectDefTimeFlag=false;
+			$scope.getTimeFn();
+		}
+		$(document).on('click', function(ev) {
+			var ev =ev ||window.event;
+			var target =ev.target||ev.srcElement;
+			if(!$(target).parents('.selectTime').length&&!$(target).hasClass("selectSpan")){
+				$scope.selectTimeListFlag=false;
+			}
+			if(!$(target).parents('.selectTime').length&&!$(target).hasClass("definedT")){
+				$scope.selectDefTimeFlag=false;
+			}
+			if(!$(target).parents('.public-select-time').length&&!$(target).hasClass("timeInput")){
+				$(".select-time").hide();
+			}
+		});
+
+	}])
+})(nameSpace.reg('graph'));

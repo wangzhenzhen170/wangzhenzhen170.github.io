@@ -1,0 +1,335 @@
+(function (graph) {
+
+    'use strict';
+
+    var app = graph.app;
+
+    // us means Uinnova Graph
+    app.directive('ugLineChart', ['$timeout', function ($timeout) {
+
+        return {
+            restrict: 'AE',
+            scope: {
+                chartData: '='
+            },
+            link: function (scope, ele, attrs) {
+
+                scope.container = ele[0];
+
+                var ctnW = scope.container.offsetWidth;
+                var ctnH = scope.container.offsetHeight;
+                var margin = {
+                    top: 40,
+                    right: 20,
+                    bottom: 30,
+                    left: 40
+                };
+
+                var svg = d3.select(ele[0])
+                    .append('svg')
+                        .attr('width', '100%')
+                        .attr('height', '100%');
+
+                // 用于绘制数据内容
+                var dg = svg.append('g')
+                        .attr('class', 'data')
+                        ;
+
+
+
+                var title = svg.append('text')
+                        .attr('class', 'title');
+
+                // 创建数据点的tip
+                var tips = dg.append('g')
+                        .attr('class', 'tips');
+
+
+                // 用于绘制数据连线
+                var line = d3.line();
+
+                var yscale = d3.scaleLinear();
+                var yaxis = d3.axisLeft(yscale)
+                        .ticks(5);
+
+                var xscale = window.xscale = d3.scaleTime();
+                var xaxis = d3.axisBottom(xscale);
+
+
+                function label2Date (l) {
+                    return new Date(l.replace(/-/g, '/'));
+                }
+
+                // 为数据点显示详细数据
+                function showTip (item) {
+                    var d = item.datum();
+                    var f = d3.timeFormat('%m-%d %H:%M');
+
+                    dg.selectAll('circle.data')
+                        .attr('stroke-width', 0);
+
+                    item.attr('stroke-width', 4);
+
+                    var texts = tips.selectAll('.tip-text')
+                            .data([d.value, f(d.time)]);
+
+                    texts.exit().remove();
+
+                    texts.enter()
+                        .append('text')
+                            .attr('class', 'tip-text')
+                            .classed('tip-value', function (d, i) { return i == 0})
+                            .classed('tip-label', function (d, i) { return i == 1})
+                            .attr('x', 5)
+                            .attr('y', function (d, i) { return i * 20})
+                        .merge(texts)
+                            .text(String)
+                            ;
+
+                    tips.interrupt()
+                        .transition()
+                        .attr('opacity', 1)
+                        .attr('transform', ['translate(', xscale(d.time), ',', yscale(d.value), ')'].join(''))
+                        ;
+                }
+
+                // 隐藏数据点的tip信息
+                function hideTip () {
+                    dg.selectAll('circle.data')
+                        .attr('stroke-width', 0);
+
+                    tips.interrupt()
+                        .transition()
+                        .attr('opacity', 0)
+                        ;
+                }
+
+                // 显示辅助线
+                function showHLine (x) {
+                    var line = dg.selectAll('line.guide-line')
+                            .data([x]);
+
+                    line.exit().remove();
+                    line.enter()
+                        .append('line')
+                        .attr('class', 'guide-line')
+                        .attr('y1', margin.top)
+                        .attr('y2', ctnH - margin.bottom)
+                        .attr('stroke', 'green')
+                        .attr('stroke-width', 0.5)
+                    .merge(line)
+                        .attr('x1', x)
+                        .attr('x2', x)
+                        ;
+
+                }
+
+                function hideHLine () {
+                    dg.select('line.guide-line').remove();
+                }
+
+                // 监听鼠标移动
+                svg.on('mousemove', function () {
+                    var point = d3.mouse(dg.node());
+                    var covers = [];
+
+                    // 如果鼠标在坐标轴范围外则隐藏辅助线
+                    if (point[0] > ctnW - margin.right || point[0] < margin.left) {
+                        hideHLine();
+                        return ;
+                    }
+
+                    showHLine(point[0]);
+
+                    dg.selectAll('circle.data')
+                        .each(function (d, i) {
+                            var x = xscale(d.time);
+                            if (Math.abs(x - point[0]) <= 3) {
+                                covers.push(d3.select(this));
+                            }
+                        });
+
+                    var circle = null;
+
+                    if (covers.length > 0) {
+
+                        circle = covers.reduce(function (p, v) {
+                                    var dp = Math.abs(yscale(p.datum().value) - point[1]);
+                                    var dv = Math.abs(yscale(v.datum().value) - point[1]);
+
+                                    return dp < dv ? p : v;
+                                });
+
+                    }
+
+                    if (circle) {
+                        showTip(circle);
+                    } else {
+                        hideTip();
+                    }
+                })
+                .on('mouseout', function () {
+                    hideHLine();
+                });
+
+                // 绘制数据
+                function drawData(data) {
+
+                    // 画点
+                    var points = dg.selectAll('circle.point')
+                            .data(data.items);
+//                            .data(values);
+
+                    points.exit().remove();
+                    points.enter()
+                        .append('circle')
+                            .attr('class', 'data point')
+                            .attr('r', 2)
+                            .attr('fill', 'green')
+                            .attr('stroke', 'steelblue')
+                            .attr('stroke-width', 0)
+                        .merge(points)
+                            .attr('cx', function (d, i) { return xscale(d.time); })
+//                            .on('mouseover', showTip)
+//                            .on('mouseout', hideTip)
+//                            .attr('cy', ctnH - margin.bottom)
+                            .transition()
+                                .attr('cy', function (d, i) { return yscale(d.value)})
+                            ;
+
+
+                    // 画线
+                    line.x(function (d) {
+                        return xscale(d.time);
+                    })
+                    .y(function (d) {
+                        return yscale(d.value);
+                    });
+
+                    // 实际上应该只用一个path,为了方便直接使用data的方式绑定
+                    var path = dg.selectAll('path.line')
+                            .data(data.items.length > 0 ? [data.items] : []);
+
+                    path.exit().remove();
+                    path.enter()
+                        .insert('path', '.point')
+                        .attr('class', 'data line')
+                        .attr('fill', 'none')
+                        .attr('stroke', 'steelblue')
+                        .merge(path)
+                            .transition()
+                            .attrTween('d', function (d) {
+                                return function (t) {
+                                    var tmpV = [];
+                                    angular.forEach(d, function (item) {
+                                        tmpV.push({value: item.value * t, time: item.time});
+                                    });
+
+                                    return line(tmpV);
+                                };
+                            });
+                }
+
+
+                // 绘制label、坐标轴等信息
+                function drawLabel (chartData) {
+
+                    // 删除原纵坐标
+                    svg.selectAll('g.axis').remove();
+
+                    // 绘制纵坐标
+                    svg.append('g')
+                        .attr('class', 'axis y-axis')
+                        .attr('transform', ['translate(', margin.left, ', ', 0, ')'].join(''))
+                        .call(yaxis);
+
+
+                    svg.append('g')
+                        .attr('class', 'axis x-axis')
+                        .attr('transform', ['translate(', 0, ',', ctnH - margin.bottom, ')'].join(''))
+                        .call(xaxis);
+
+                }
+
+
+                function drawChart (chartData) {
+
+                    var items = chartData.items;
+
+                    ctnW = scope.container.offsetWidth;
+                    ctnH = scope.container.offsetHeight;
+
+                    yscale.range([ctnH - margin.bottom, margin.top])
+                        .domain([0, d3.max(items, function (d) { return d.value})]);
+
+                    xscale.range([margin.left, ctnW - margin.right])
+                        .domain([d3.min(items, function (d) {return d.time}),
+                                 d3.max(items, function (d) {return d.time})])
+                        .nice()
+                        ;
+
+                    xaxis.ticks(d3.min([10, items.length]), '%m-%d %H:%M')
+//                        .tickFormat(d3.timeFormat('%m-%d %H:%M'))
+                        ;
+
+                    title.attr('x', ctnW / 2 + margin.left)
+                        .attr('y', margin.top / 2)
+                        .text(chartData.title)
+                        ;
+
+                    dg.selectAll('.data').interrupt();
+
+                    drawLabel(chartData);
+                    drawData(chartData);
+                }
+
+                // 监视scope.chartData的数据变化
+                var cancelWatchData = scope.$watch('chartData', function (nv, ov) {
+                    if (nv) {
+
+//                        drawChart(nv);
+                        scope._needRedraw = true;
+
+                    }
+                });
+
+                function watchDisplay() {
+                    if (scope._watchDisplayTimeout) {
+
+                        $timeout.cancel(scope._watchDisplayTimeout);
+
+                    }
+
+
+                    if (ele.is(':visible') && scope._needRedraw) {
+
+                        scope._needRedraw = false;
+                        if (scope.chartData) {
+
+                            drawChart(scope.chartData);
+
+                        }
+
+                    } else if (!ele.is(':visible') && !scope._needRedraw) {
+//                        scope._needRedraw = true;
+////                        svg.selectAll('circle.point')
+////                            .attr('cy', yscale.range()[1]);
+//                        dg.selectAll('.data').remove();
+                    }
+
+                    scope._watchDisplayTimeout = $timeout(watchDisplay, 500);
+                }
+
+                watchDisplay();
+
+                ele.on('$destory', function () {
+                    console.log('remove ug-line-chart');
+                    $timeout.cancel(scope._watchDisplayTimeout);
+                    cancelWatchData();
+                });
+            }
+        };
+
+    }]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('graph.page'));

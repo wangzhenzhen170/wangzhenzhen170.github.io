@@ -1,0 +1,145 @@
+(function () {
+    var emx = angular.module('ExtandMx');
+
+    emx.factory('emxExtandMxSvgCanvas', [function () {
+
+        /************************************************************************************/
+
+        /* 扩展mxSvgCanvas2D */
+
+        /**
+         * 绘制圆角矩形，可具体指定4个角中哪些需要圆角
+         *
+         * @param {Object} corners - 指定哪个角需要圆角 {tl: true, br: true}
+         *  全部属性如下：
+         *  tl - topleft
+         *  tr - topright
+         *  bl - bottomleft
+         *  br - bottomright
+         */
+        mxSvgCanvas2D.prototype.uRadiusRect = function (x, y, w, h, dx, dy, corners) {
+            if (!corners || corners.tl && corners.tr && corners.bl && corners.br) {
+                return this.roundrect(x, y, w, h, dx, dy);
+            }
+
+            var s = this.state;
+            this.begin();
+            // 从左上角开始
+            if (corners.tl) this.moveTo(x + dx, y);
+            else this.moveTo(x, y);
+
+            // 右上角
+            if (corners.tr) {
+                this.lineTo(x + w - dx, y);
+                this.quadTo(x + w, y, x + w, y + dy);
+            } else {
+                this.lineTo(x + w, y);
+            }
+
+            // 右下角
+            if (corners.br) {
+                this.lineTo(x + w, y + h - dy);
+                this.quadTo(x + w, y + h, x + w - dx, y + h);
+            } else {
+                this.lineTo(x + w, y + h);
+            }
+
+            // 左下角
+            if (corners.bl) {
+                this.lineTo(x + dx, y + h);
+                this.quadTo(x, y + h, x, y + h - dy);
+            } else {
+                this.lineTo(x, y + h);
+            }
+
+            // 左上角
+            if (corners.tl) {
+                this.lineTo(x, y + dy);
+                this.quadTo(x, y, x + dx, y);
+            }
+
+            this.close();
+        };
+
+
+        /**
+         * 生成高斯模糊元素ID
+         */
+        mxSvgCanvas2D.prototype.uCreateGaussBlurID = function (dev) {
+            return 'celleffect_blur_gauss_' + dev;
+        }
+
+        /**
+         * 创建高斯模糊元素
+         */
+        mxSvgCanvas2D.prototype.uCreateGaussBlur = function (dev) {
+            var filter, blur;
+            filter = this.createElement('filter');
+            filter.setAttribute("filterUnits", "userSpaceOnUse");
+
+            blur = this.createElement("feGaussianBlur");
+            blur.setAttribute('stdDeviation', dev);
+
+            filter.appendChild(blur);
+
+            return filter;
+        };
+
+        /**
+         * 获取高斯模糊
+         */
+        mxSvgCanvas2D.prototype.uGetGaussBlur = function (dev) {
+            var fid = this.uCreateGaussBlurID(dev),
+                blur, rootEl;
+
+            // 保留全部对高斯模糊元素的引用
+            this.uGaussBlurs || (this.uGaussBlurs = {});
+
+            // 如果已经存在则直接返回其ID
+            if (this.uGaussBlurs[fid]) return fid;
+
+            rootEl = this.root.ownerSVGElement;
+
+            // 查看文档中是否已经有定义
+            blur = rootEl && rootEl.ownerDocument.getElementById(fid);
+
+            // 当前文档中不存在则创建
+            if (!blur) {
+                blur = this.uCreateGaussBlur(dev);
+                blur.setAttribute('id', fid);
+                // 把元素添加到文档中
+                // 参考getSvgGradient方法的实现
+                // defs和rootEl什么时候为空尚未明确
+                this.defs ? this.defs.appendChild(blur) : rootEl && rootEl.appendChild(blur);
+            }
+
+            this.uGaussBlurs[fid] = blur;
+            return fid;
+        };
+
+        /**
+         * 绘制阴影
+         * @param {Number} x
+         * @param {Number} y
+         * @param {Number} w
+         * @param {Number} h
+         * @param {Number} rx - 圆角水平半径，默认为0
+         * @param {Number} ry - 圆角垂直半径，默认为0
+         * @param {Number} blur - 模糊值，默认为2
+         * @param {String} color - 阴影颜色
+         */
+        mxSvgCanvas2D.prototype.uDrawShadow = function (x, y, w, h, rx, ry, blur, color) {
+            rx = rx || 0;
+            ry = ry || 0;
+            blur = blur || 2;
+            color = color || "black";
+
+            this.setFillColor(color);
+            this.roundrect(x, y, w, h, rx, ry);
+            this.node.setAttribute('filter', 'url(#' + this.uGetGaussBlur(blur) + ')');
+            this.fill();
+        }
+
+        return mxSvgCanvas2D;
+    }]);
+})();

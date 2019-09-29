@@ -1,0 +1,49 @@
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, ci, fn, CiService){
+
+		$scope.kpis = [];
+		$scope.ci = ci;
+
+
+		$scope.cancel = function(){
+			$uibModalInstance.close();
+		};
+
+		$scope.ok = function(){
+			var arr = [];
+			$.each($scope.kpis, function(){
+				if(this.checked){
+					arr.push(this);
+				}
+			});
+
+			$uibModalInstance.close();
+			fn(arr);
+		};
+
+		CiService.getKpi(ci.ciId)
+			.success(function(result){
+				$.each(result.data, function(){
+					for(var i=0; i<ci.kpis.length; i++){
+						if(ci.kpis[i].kpiId === this.kpiId){
+							this.checked = true;
+							break;
+						}
+					}
+
+					$scope.kpis.push(this);
+				});
+			});
+
+	};
+
+	graph.app.controller('ModalKpiChooseCtrl', ['$scope', '$uibModalInstance', 'ci', 'fn', 'CiService', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

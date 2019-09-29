@@ -1,0 +1,133 @@
+(function (graph) {
+
+	'use strict';
+
+	graph.app.controller('printOnDutyReportCtrl', ['$scope', '$state', '$timeout', 'MonitoringService', '$uibModal', 'Unit', 'uDialog', '$stateParams', '$compile', '$interval', 'Dialog', function ($scope, $state, $timeout, MonitoringService, $uibModal, Unit, uDialog, $stateParams, $compile, $interval, Dialog) {
+
+		$scope.reportId = $state.params.reportId;
+		$scope.reportContentShowFlag = false;
+
+		$scope.dataCenterName = "";
+		$scope.reportData = {};
+		$scope.report = {};
+		$scope.activeEvents = [];
+		$scope.closedEvents = [];
+		$scope.concerns = [];
+		$scope.newConcerns = [];
+
+        //时间格式转换(用于值班周期显示)
+		$scope.dateStrFormat = function (date) {
+			var year = date.getFullYear().toString();
+			if (year.length < 4) {
+				var i = 4 - year.length;
+				for (; i > 0; i--) {
+					year = '0' + year;
+				}
+			}
+			var month = (date.getMonth() + 1).toString();
+			if (month.length < 2) {
+				var i = 2 - month.length;
+				for (; i > 0; i--) {
+					month = '0' + month;
+				}
+			}
+			var day = date.getDate().toString();
+			if (day.length < 2) {
+				var i = 2 - day.length;
+				for (; i > 0; i--) {
+					day = '0' + day;
+				}
+			}
+			var hour = date.getHours().toString();
+			if (hour.length < 2) {
+				var i = 2 - hour.length;
+				for (; i > 0; i--) {
+					hour = '0' + hour;
+				}
+			}
+			var minute = date.getMinutes().toString();
+			if (minute.length < 2) {
+				var i = 2 - minute.length;
+				for (; i > 0; i--) {
+					minute = '0' + minute;
+				}
+			}
+			var time = year + '/' + month + '/' + day + ' ' + hour + ':' + minute;
+			return time;
+		};
+
+        //处理数据
+		$scope.handleData = function (reportData) {
+			$scope.report = reportData.onDutyReportInfo;
+			//更新时间
+			var time = $scope.report.updateTime;
+			if(time){
+				var date = new Date(time);
+				$scope.report.updateTime = $scope.dateStrFormat(date);
+			} else {
+				$scope.report.updateTime = '';
+			}
+
+			$scope.activeEvents = reportData.activeEvents;
+			$scope.closedEvents = reportData.closedEvents;
+			reportData.summaries.forEach(function(concern){
+				var concernsTimeStr = concern.concernsTime + '';
+				concern.concernsTime = concernsTimeStr.substring(4, 6)+'/'+concernsTimeStr.substring(6, 8)+' '+concernsTimeStr.substring(8, 10)+':'+concernsTimeStr.substring(10, 12);
+				concern.roomDefault = concern.roomCode;
+				concern.equipmentDefault = concern.equipment;
+			});
+			$scope.concerns = reportData.summaries;
+			reportData.newSummaries.forEach(function(concern){
+				var concernsTimeStr = concern.concernsTime + '';
+				concern.concernsTime = concernsTimeStr.substring(4, 6)+'/'+concernsTimeStr.substring(6, 8)+' '+concernsTimeStr.substring(8, 10)+':'+concernsTimeStr.substring(10, 12);
+				concern.roomDefault = concern.roomCode;
+				concern.equipmentDefault = concern.equipment;
+			});
+			$scope.newConcerns = reportData.newSummaries;
+        };
+
+        $scope.showReportContent = function () {
+
+			//点击报告
+			MonitoringService.queryReportById({ reportId: $state.params.reportId }).success(function (res) {
+				$scope.handleData(res.data);
+			}).error(function (error) {
+				console.log(error);
+			});
+			document.getElementById('printData').scrollTo(0,0);
+        };
+
+        $scope.showReportContent();
+        
+        //获取数据中心名称
+		$scope.getDataCenterName = function () {
+			MonitoringService.getName().success(function(result){
+				if(result.success){
+					$scope.dataCenterName = result.data;
+				}
+			}).error(function(error){
+				console.log(error)
+			});
+		};
+
+        $scope.getDataCenterName();
+        
+
+		$scope.printData = function () {	
+			var headstr = '<html><head><title></title></head><body>';
+			var footstr = '</body>';
+			var newstr = document.all.item('printData').innerHTML;
+			var oldstr = document.body.innerHTML;
+			document.body.innerHTML = headstr+newstr+footstr;
+			window.print(); 
+			document.body.innerHTML = oldstr;
+			//重新绑定事件	
+			document.getElementById('printClick').onclick = function () {
+				$scope.printData();
+            };
+		};
+
+	}]);
+
+
+})(nameSpace.reg('graph'));

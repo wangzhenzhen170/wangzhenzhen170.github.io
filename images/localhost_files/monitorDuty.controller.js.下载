@@ -1,0 +1,296 @@
+(function (graph, self) {
+
+	'use strict';
+
+	graph.app.controller('monitorDutyCtrl', ['$scope','$cookies', '$rootScope','MonitoringService', '$state', 'OScreenService', 'uDialog', 'Unit', '$timeout', '$uibModal', '$interval','$filter', function ($scope,$cookies, $rootScope, MonitoringService,$state, OScreenService, uDialog, Unit, $timeout, $uibModal, $interval,$filter) {
+
+		// $interval(function () {
+        //     $scope.loadDataFun();
+        // }, 10000);
+
+
+		/*可选择页码*/
+        $scope.timer = $interval(function () {
+            $scope.loadDataFun();
+        }, 10000);
+        $scope.dataListArray=[];
+        $scope.leveArray=[{name:L.get('EMV_ALL_LEVELS'),value:''}]
+		MonitoringService.getSelectorCodes({"codeType":0}).success(function(result) {
+            if(result.success){
+                $scope.leveArray=$scope.leveArray.concat(result.data);
+                $scope.level=$scope.leveArray[0].name;
+                $scope.levelValue=$scope.leveArray[0].value;
+            }
+
+        })
+        $scope.downLoadFun=function(){
+            OScreenService.eventLogexport({
+                startTime:$scope.starttimeStamp,
+                endTime:$scope.endtimeStamp,
+                pageSize: $scope.pageSize,
+                pageNum :$scope.currentPage,
+                search:$scope.searchName,
+                severity: parseInt($scope.levelValue) || '',
+            }).success(function(result) {
+                //var date = $filter('date')(new Date(), "yyyy-MM-dd h:mm:ss");
+                var date=Unit.unixToDatetime(new Date().getTime())
+                var blob = new Blob([result], {
+                    type: "application/vnd.ms-excel"
+                });
+                var objectUrl = URL.createObjectURL(blob);
+                //console.log(objectUrl)
+                var aForExcel = $("<a><span class='forExcel'></span></a>").attr("href", objectUrl);
+                aForExcel.attr('downLoad',L.get('EMV_MONITOR_DUTY_LOG')+date)
+                $("body").append(aForExcel);
+                $(".forExcel").click();
+                aForExcel.remove();
+
+
+            })
+            // var form = $("<form>");
+            // form.attr('style','display:none');
+            // form.attr('target','');
+            // form.attr('method','post');
+            // form.attr('action',Unit.monitorApi('/eventLog/export'));
+            // $('body').append(form);
+            // form.submit();
+            // form.remove();
+        }
+        $scope.loadDataFun=function(){
+            if($scope.dateRange.value){
+                $scope.getBeforeDate($scope.dateRange.value);
+                $scope.starttimeStamp= $scope.getBeforeDate($scope.dateRange.value).starttimeStamp;
+                $scope.endtimeStamp= $scope.getBeforeDate($scope.dateRange.value).endtimeStamp;
+                $scope.starttime= $scope.getBeforeDate($scope.dateRange.value).starttime;
+                $scope.endtime= $scope.getBeforeDate($scope.dateRange.value).endtime;
+            }
+
+            OScreenService.eventLogQueryPageList({
+                startTime:$scope.starttimeStamp,
+                endTime:$scope.endtimeStamp,
+                pageSize: $scope.pageSize,
+                pageNum :$scope.currentPage,
+                search:$scope.searchName,
+                severity: parseInt($scope.levelValue) || '',
+            }).success(function(result) {
+                $scope.hasData=false;
+
+                if(result.success){
+                   $scope.totalRows=result.data.totalRows;
+                   $scope.hasData=true;
+                   $scope.dataListArray=result.data.data;
+                   if($scope.dataListArray.length==0){
+                      $scope.fail=true;
+                   }else{
+                    $scope.fail=false;
+                   }
+                   //console.log($scope.dataListArray)
+                }else{
+                   $scope.fail=true;
+                }
+
+            })
+        }
+
+
+        $scope.getBeforeDate=function(n){
+            var date={};
+            var n = n;
+            var d = new Date();
+            date.endtimeStamp=Date.parse(d);
+            //console.log(date.endtimeStamp)
+            var year = d.getFullYear();
+            var mon=d.getMonth()+1;
+            var day=d.getDate();
+            date.endtime = year + L.get('COMMON_YEAR') + (mon < 10 ? ('0' + mon) : mon) + L.get('COMMON_MONTH') + (day < 10 ? ('0' + day) : day) + L.get('COMMON_DAY_1');
+            if(day <= n){
+                    if(mon>1) {
+                    mon=mon-1;
+                    }
+                else {
+                    year = year-1;
+                    mon = 12;
+                    }
+                }
+                d.setDate(d.getDate()-n);
+                year = d.getFullYear();
+                mon=d.getMonth()+1;
+                day=d.getDate();
+                date.starttimeStamp=Date.parse(d);
+
+                date.starttime = year + L.get('COMMON_YEAR') + (mon < 10 ? ('0' + mon) : mon) + L.get('COMMON_MONTH') + (day < 10 ? ('0' + day) : day) + L.get('COMMON_DAY_1');
+
+                return date;
+
+        }
+        var oDate = new Date();
+        var intStartTime=oDate.getFullYear()+"/"+((oDate.getMonth()+1)>9?(oDate.getMonth()+1):'0'+(oDate.getMonth()+1))+"/"+oDate.getDate();
+        $scope.startD= intStartTime //获取系统的年；
+        var intEndTime=oDate.getFullYear()+"/"+((oDate.getMonth()+1)>9?(oDate.getMonth()+1):'0'+(oDate.getMonth()+1))+"/"+oDate.getDate()
+        $scope.endD=intEndTime;   //获取系统的年；
+        $scope.dateRange={};
+        $scope.dateRange.display=L.get('COMMON_LAST_DAY');
+        $scope.dateRange.value=7;
+        $scope.classList=[
+          { display:  L.get('COMMON_LAST_DAY'), value: 1 },
+          { display: L.get('EMV_LAST_SEVEN_DAYS'), value: 7 },
+          { display: L.get('EMV_LAST_THIRTY_DAYS'), value: 30 },
+
+        ];
+
+        $scope.pageSize=100;
+        $scope.pageSizeOption = [$scope.pageSize,20, 50,150];
+        $scope.currentPage=1;
+        $scope.starttimeStamp=$scope.getBeforeDate($scope.classList[1].value).starttimeStamp;
+        $scope.endtimeStamp=$scope.getBeforeDate($scope.classList[1].value).endtimeStamp;
+        $scope.starttime=$scope.getBeforeDate($scope.classList[1].value).starttime;
+        $scope.endtime=$scope.getBeforeDate($scope.classList[1].value).endtime;
+        $scope.tableMode = "OverflowResizer";
+        $scope.loadDataFun();
+        $scope.selectlevelFun=function(item){
+            $scope.levelValue=item.value;
+            $scope.level=item.name;
+            $scope.loadDataFun();
+            //$scope.getData($scope.type);
+        }
+       $scope.editFun=function(item){
+            item.edit=!item.edit;
+            if(!item.edit){
+                OScreenService.eventLogupdate({
+                    id:item.id,
+                    lastoccurrence:item.lastoccurrence,
+                    reportTime:item.reportTime,
+                    noticeMethod:item.noticeMethod,
+                    submitPerson:item.submitPerson,
+                    severity:item.severity,
+                    eventType:item.eventType,
+                    eventTitle:item.eventTitle,
+                    eventSummary:item.eventSummary,
+                    noticePerson:item.noticePerson,
+                    acknowledgeSummary:item.acknowledgeSummary,
+                    closeSummary:item.closeSummary,
+                    finalDealPerson:item.finalDealPerson,
+                    finalReply:item.finalReply,
+                    remark:item.remark,
+                }).success(function(result) {
+                  // console.log(result)
+                    if(result.success){
+                      Unit.success(L.get('COMMON_MODIFICATION_SUCCESSFUL')+'!');
+                      $scope.timer = $interval(function () {
+                        $scope.loadDataFun();
+                    }, 10000);
+                    }else{
+                       Unit.error(L.get('COMMON_MODIFY_FAILED'))
+                    }
+
+                })
+            }else{
+                if ($scope.timer) {
+                    $interval.cancel($scope.timer);
+                }
+            }
+
+
+       }
+       //获取开始时间字符串
+		$scope.onTimeSet1 = function (newDate,item) {
+            //$scope.dateString = newDate;
+            item.reportTime=newDate;
+		}
+       $scope.DeleteFun=function(item){
+        OScreenService.eventLogdelete({
+            id:item.id,
+
+        }).success(function(result) {
+          // console.log(result)
+            if(result.success){
+              $.each( $scope.dataListArray,function(index,item1){
+                    if(item.id==item1.id){
+                        $scope.dataListArray.splice(index,1)
+                        return false;
+                    }
+              })
+              Unit.success(L.get('COMMON_SUCCESSFULLY_DELETED'))
+            }else{
+              Unit.error(L.get('COMMON_BS_OBJ_FAILURE_DELETE'));
+            }
+
+        })
+       }
+        $scope.goToTimeSearch=function($event){
+            $scope.dateRange.value="";
+            $scope.flagTime=true;
+            $event.stopPropagation();
+			if(!$("#startTime").val()){
+				Unit.error(L.get('EMV_PLEASE_SELECT_THE_START_TIME'));
+				return;
+			}
+			if(!$("#endTime").val()){
+                Unit.error(L.get('EMV_PLEASE_SELECT_THE_END_TIME'));
+				return;
+			}
+			var startTime=$("#startTime").val()+' '+'00:00:00';
+            var endTime=$("#endTime").val()+' '+'23:59:59';
+
+			$scope.startTime=Number((new Date(startTime)).getTime());
+			$scope.endTime=Number((new Date(endTime)).getTime());
+
+			if($scope.startTime>$scope.endTime){
+				Unit.error(L.get('COMMON_ENDTIMEMUSTBEGREATERTHANTHESTARTTIME'));
+				return;
+			}
+			$scope.startD=$("#startTime").val();
+			$scope.endD=$("#endTime").val();
+
+
+
+            //$scope.dateRange.display='自定义时间'
+            var startGetD=$scope.startD.split('/');
+			var endGetD=$scope.endD.split('/')
+			$scope.dateRange.display=startGetD[1]+"."+startGetD[2]+"-"+endGetD[1]+'.'+endGetD[2];
+			$scope.showTitleDefalt=$scope.startD+ '- '+$scope.endD;
+            $scope.starttimeStamp=Number((new Date(startTime)).getTime());
+            $scope.endtimeStamp=Number((new Date(endTime)).getTime());
+            $scope.starttime=$scope.startD.substring(0,4)+L.get('COMMON_YEAR')+$scope.startD.substring(5,7)+ L.get('COMMON_MONTH')+$scope.startD.substring(8,10)+L.get('COMMON_DAY_1');
+            $scope.endtime=$scope.endD.substring(0,4)+L.get('COMMON_YEAR')+$scope.endD.substring(5,7)+ L.get('COMMON_MONTH')+$scope.endD.substring(8,10)+L.get('COMMON_DAY_1');
+            $scope.loadDataFun();
+            //$scope.getData($scope.type);
+            $scope.selectDefTimeFlag=false;
+            $('.select-wrap').find('.drop-menu').stop().slideUp(150);
+		}
+		$scope.selectDefTimeFlag=false;
+        $scope.goBack=function(){
+            $scope.selectDefTimeFlag=false;
+        }
+        $scope.selectClassify=function(item){
+            $scope.flagTime=false;
+            $scope.dateRange.display=item.display;
+            $scope.dateRange.value=item.value;
+            $scope.showTitleDefalt=item.display;
+            $scope.starttimeStamp=$scope.getBeforeDate(item.value).starttimeStamp;
+            $scope.endtimeStamp=$scope.getBeforeDate(item.value).endtimeStamp;
+            $scope.starttime=$scope.getBeforeDate(item.value).starttime;
+            $scope.endtime=$scope.getBeforeDate(item.value).endtime;
+            $scope.loadDataFun();
+            //$scope.getData($scope.type);
+            $scope.selectDefTimeFlag=false;
+        }
+        $scope.paging = function (data) {
+            $scope.pageSize=data.pageSize;
+            $scope.currentPage=data.currentPage;
+            $scope.loadDataFun();
+
+        }
+        $('.select-wrap').on('click', function(event){
+			event.stopPropagation();
+			$(this).find('.drop-menu').stop().slideToggle(150);
+
+        });
+        $(document).on('click', function() {
+			$('.select-wrap').find('.drop-menu').stop().slideUp(150);
+			$scope.selectDefTimeFlag=false;
+        });
+
+	}]);
+
+})(nameSpace.reg('graph'), nameSpace.reg('monitor.current'));

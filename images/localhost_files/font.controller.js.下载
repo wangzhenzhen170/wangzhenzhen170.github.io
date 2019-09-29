@@ -1,0 +1,184 @@
+/* global mxConstants */
+
+(function(graph){
+
+	'use strict';
+
+	var controller = function($scope, $uibModalInstance, editor){
+
+		var e = function(){
+			return $('#font-example');
+		};
+		// console.log($scope.font.size)
+		var cells = editor.graph.getSelectionCells();
+		var commons = [];
+		var swimlanes = [];
+
+		$.each(cells, function(){
+			var cell = this;
+			if((editor.graph.isSwimlane(cell) || cell.style.indexOf('swimlane') >= 0) && editor.graph.model.isCollapsed(cell)){
+				swimlanes.push(cell);
+			}else{
+				commons.push(cell);
+			}
+		});
+
+		$scope.$modal = $uibModalInstance;
+
+		$scope.font = {
+			size: 12,
+			alignHorizontal: 'center',
+			alignVertical: 'bottom'
+		};
+
+		if(cells.length === 1){
+			var o = editor.graph.getCellStyle(cells[0]);
+
+			if(o.fontSize){
+				$scope.font.size = o.fontSize;
+			}
+
+			if(o.fontFamily){
+				$scope.font.family = o.fontFamily;
+			}
+
+			if(o.fontColor){
+				$scope.font.color = o.fontColor;
+			}
+
+			if(o.align){
+				$scope.font.alignHorizonal = o.align;
+			}
+
+			if(o.verticalAlign){
+				$scope.font.alignVertical = o.verticalAlign;
+			}
+
+			if(o.fontStyle === 7){
+				$scope.font.bold = true;
+				$scope.font.underline = true;
+				$scope.font.italic = true;
+			}
+
+			if(o.fontStyle === 6){
+				$scope.font.underline = true;
+				$scope.font.italic = true;
+			}
+
+			if(o.fontStyle === 5){
+				$scope.font.bold = true;
+				$scope.font.underline = true;
+			}
+
+			if(o.fontStyle === 4){
+				$scope.font.underline = true;
+			}
+
+			if(o.fontStyle === 3){
+				$scope.font.italic = true;
+				$scope.font.bold = true;
+			}
+
+			if(o.fontStyle === 2){
+				$scope.font.italic = true;
+			}
+
+			if(o.fontStyle === 1){
+				$scope.font.bold = true;
+			}
+		}
+
+		$scope.toggleUnderline = function () {
+			e()[0].style.textDecoration = e()[0].style.textDecoration === 'underline' ? 'none' : 'underline';
+			editor.graph.toggleCellStyleFlags(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_UNDERLINE, commons);
+			editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_UNDERLINE, swimlanes, true);
+		};
+
+		$scope.toggleItalic = function () {
+			e()[0].style.fontStyle = e()[0].style.fontStyle === 'italic' ? 'normal' : 'italic';
+			editor.graph.toggleCellStyleFlags(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_ITALIC, commons);
+			editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_ITALIC, swimlanes, true);
+		};
+
+		$scope.toggleBold = function () {
+			e()[0].style.fontWeight = e()[0].style.fontWeight === 'bold' ? 'normal' : 'bold';
+			editor.graph.toggleCellStyleFlags(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD, commons);
+			editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_FONTSTYLE, mxConstants.FONT_BOLD, swimlanes, true);
+		};
+
+		$scope.ok = function(){
+			if($scope.font.family){
+				editor.graph.setCellStyles(mxConstants.STYLE_FONTFAMILY, $scope.font.family, commons);
+				editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_FONTFAMILY, $scope.font.family, swimlanes);
+			}
+
+			if($scope.font.size){
+				editor.graph.setCellStyles(mxConstants.STYLE_FONTSIZE, $scope.font.size, commons);
+				editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_FONTSIZE, $scope.font.size, swimlanes);
+			}
+
+			if($scope.font.color){
+				editor.graph.setCellStyles(mxConstants.STYLE_FONTCOLOR, $scope.font.color, commons);
+				editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_FONTCOLOR, $scope.font.color, swimlanes);
+			}
+
+			if($scope.font.alignHorizontal){
+				editor.graph.setCellStyles(mxConstants.STYLE_ALIGN, $scope.font.alignHorizontal, commons);
+				editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_ALIGN, $scope.font.alignHorizontal, swimlanes);
+			}
+
+			if($scope.font.alignVertical){
+				editor.graph.setCellStyles(mxConstants.STYLE_VERTICAL_ALIGN, $scope.font.alignVertical, commons);
+				editor.graph.setSwimlaneMinStyle(mxConstants.STYLE_VERTICAL_ALIGN, $scope.font.alignVertical, swimlanes);
+			}
+
+			editor.graph.refresh();
+
+			$scope.$modal.close();
+		};
+
+		$scope.size = function(){
+			e().css('font-size', $scope.font.size + 'px');
+		};
+
+		$scope.changeFamily = function(){
+			e().css('font-family', $scope.font.family);
+		};
+
+		$scope.changeColor = function(){
+			e().css('color', $scope.font.color);
+		};
+
+
+		$scope.$watch('font.bold', function(newVal){
+			if(newVal){
+				e().css('font-weight', 'bold');
+			}else{
+				e().css('font-weight', 'normal');
+			}
+		}, false);
+
+		$scope.$watch('font.italic', function(newVal){
+			if(newVal){
+				e().css('font-style', 'italic');
+			}else{
+				e().css('font-style', 'normal');
+			}
+		}, false);
+
+		$scope.$watch('font.underline', function(newVal){
+			if(newVal){
+				e().css('text-decoration', 'underline');
+			}else{
+				e().css('text-decoration', 'none');
+			}
+		}, false);
+
+	};
+
+	graph.app.controller('ModalFontCtrl', ['$scope', '$uibModalInstance', 'editor', controller]);
+
+
+})(nameSpace.reg('graph'));
+
+

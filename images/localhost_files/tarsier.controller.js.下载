@@ -1,0 +1,325 @@
+
+(function (graph) {
+
+    'use strict';
+
+    graph.app.controller('monitoringCtrl', ['$rootScope', '$scope', '$state', 'MonitoringService', 'trainningService', '$cookies', 'modalBackdropService', '$timeout', 'UserAuth', 'uDialog', 'Unit', 'DefinedEventsService', function ($rootScope, $scope, $state, MonitoringService, trainningService, $cookies, modalBackdropService, $timeout, UserAuth, uDialog, Unit, DefinedEventsService) {
+        var menuElement = document.querySelector('#menu');
+        var jumpCode = $state.current.code;
+        $scope.TarsierMenuInfo = localStorage.getItem('Tarsier_MenuInfo') ? JSON.parse(localStorage.getItem('Tarsier_MenuInfo')) : {};
+
+        if (Unit.getUrlParam('less') !== null || Unit.getUrlParam('favorite') !== null) {
+            $scope.curLessStatus = Unit.getUrlParam('less') === '1' ? '1' : '0';//1当前左侧收起 0当前左侧展开
+            $scope.curFavoriteStatus = Unit.getUrlParam('favorite') === '1' ? '1' : '0';//1表示当前初始展示收藏列 0当前初始展示目录列
+        } else {
+            $scope.curLessStatus = localStorage.getItem('curLessStatus');
+            $scope.curFavoriteStatus = localStorage.getItem('curFavoriteStatus');
+        }
+        $scope.menuLeftFlag = $rootScope.menuLeftFlag;
+        $scope.haveAuthority = true;
+        $scope.haveAuthorityFlag = false;
+        $scope.menuIdMap = {};
+        $scope.menuPrentIdMap = {};
+        //刷新时自定义事件台的参数
+        $scope.currentRefreshId = $state.params.viewId;
+        $scope.currentRefreshName = $state.params.viewName;
+        var jumpOutMap = {
+            '02': 'cmv',
+            '03': 'cmv',
+            '04': 'dmv',
+            '05': 'smv',
+            '06': 'emv',
+            '07': 'dcv',
+            '08': 'dcv',
+            '09': 'pmv',
+            '12': 'mom',
+        };
+        MonitoringService.getLogosByType({}, 'LOGO_PATH_NAV').success(function (result) {
+            if (result.success) {
+                $scope.logoUrl = result.data.varValue;
+                $rootScope.getMenuNodes();
+            }
+        });
+        $rootScope.getMenuNodes = function () {
+            MonitoringService.queryAuthMenuTreeNodes({})
+                .success(function (result) {
+                    var mockData = $scope.getUseData(result.data);
+
+                    var options = {
+                        logoURL: $scope.logoUrl,
+                        isLessModel: $scope.curLessStatus === '1',
+                        isActiveFavoriteTab: $scope.curFavoriteStatus === '1'
+                    };
+                    $scope.menu = new tarsier.Menu(menuElement, mockData, options);
+                    window.snackbar = new tarsier.Snackbar({
+                        autoHideDuration: 3 * 1000,
+                        queueSize: 1
+                    });
+                    $timeout(function () {
+                        $scope.haveAuthority && window.rootNav && window.rootNav.setBreadcrumbs([{ label: $scope.initNavTitle }]);
+                    }, 500);
+
+                    //跳转
+                    $scope.menu.menuClick(function (id) {
+                        var item = tarsier.utility.getTreeItemById(mockData, id);
+                        $scope.haveAuthority && window.rootNav && window.rootNav.setBreadcrumbs([{ label: item.label }]);
+                        $scope.menu.setSelect(id);
+                        if (item.parentCode === '06') {
+                            $scope.toStorageMenuStatus();
+                            if (item.code === '0602') {
+                                if (item.id === '999999999999998') {
+                                    $state.go('tarsier.monitoring.newEvents', {
+                                        viewId: 1,
+                                        viewName: '',
+                                        status: 0,
+                                        noChangePage: 1,
+
+                                    });
+                                } else {
+                                    //自定义事件台
+                                    //type 1未确认、2已确认、3历史、4维护期
+                                    //status 0未关注 1关注
+                                    if (item.moduUrl === '/index.html#/tarsier/monitoring/events') {//已关注
+
+                                        $state.go('tarsier.monitoring.definedEvents', { viewId: item.menuId, type: 1, status: 1, viewName: $rootScope.definedEventIdMap[item.menuId] });
+                                    } else {//未关注
+                                        $state.go(item.goJumpUrl, { viewId: item.menuId, type: 1, status: 0, viewName: $rootScope.definedEventIdMap[item.menuId] });
+                                    }
+                                }
+
+                            } else if (item.code === '0601') {
+                                $state.go('tarsier.monitoring.events', {
+                                    viewId: 'aaa'
+                                });
+                            }
+                            else {
+                                item.goJumpUrl && $state.go(item.goJumpUrl);
+                            }
+
+                        } else {
+                            $scope.clearStorageMenuStatus();
+                            var jumpOutModule = jumpOutMap[item.parentCode];
+                            var url = '/monitor-web/' + jumpOutModule + '/integration/page/jumpout/' + item.code + '?token=' + $cookies.get('token') + '&less=' + $scope.curLessStatus + '&favorite=' + $scope.curFavoriteStatus;
+                            window.location = url;
+                        }
+                    });
+                    //收藏
+                    $scope.menu.faviconClick(function (id, isFavorite) {
+                        if (!isFavorite) {
+                            MonitoringService.enshrineMenu(id)
+                                .success(function (result) {
+                                    if (result.success) {
+                                        $scope.menu.addFavorite(id);
+                                        Unit.success(L.get('EMV_SUCCESSFUL_COLLECTION'));
+                                    } else {
+                                        Unit.error(L.get('EMV_COLLECTION_FAILED'));
+
+                                    }
+                                });
+                        } else {
+                            MonitoringService.unenshrineMenu(id)
+                                .success(function (result) {
+                                    if (result.success) {
+                                        $scope.menu.removeFavorite(id);
+                                        Unit.success(L.get('EMV_CANCEL_COLLECTION_SUCCESS'));
+
+                                    } else {
+                                        Unit.error(L.get('EMV_CANCEL_COLLECTION_FAILED'));
+                                    }
+                                });
+                        }
+
+
+                    });
+                    //tab切换
+                    $scope.menu.tabChange(function (isActiveFavoriteTab) {
+                        $scope.curFavoriteStatus = isActiveFavoriteTab ? '1' : '0';
+                        $scope.toStorageMenuStatus();
+
+                    });
+                    //less模式切换
+                    $scope.menu.modelChange(function (isLessModel) {
+                        $scope.curLessStatus = isLessModel ? '1' : '0';
+                        $scope.toStorageMenuStatus();
+                    });
+                    // 监听菜单折叠
+                    // $scope.menu.menuToggleListener((id, isOpen) => {
+                    //     $scope.TarsierMenuInfo[id] = isOpen ? 1 : 0;
+                    //     localStorage.setItem('Tarsier_MenuInfo', JSON.stringify($scope.TarsierMenuInfo));
+                    // });
+                    $scope.menu.menuToggleListener(function (id, isOpen) {
+                        $scope.TarsierMenuInfo[id] = isOpen ? 1 : 0;
+                        localStorage.setItem('Tarsier_MenuInfo', JSON.stringify($scope.TarsierMenuInfo));
+                    });
+                });
+        };
+        $rootScope.definedEventIdMap = {};
+        //处理数据
+        $scope.getUseData = function (mockData) {
+            if (Array.isArray(mockData) && mockData.length) {
+                mockData.forEach(function (val) {
+                    //val.isOpen = val.code === '06';
+                    //val.isOpen = true;
+                    if (val.code === '06') {
+                        $scope.haveAuthorityFlag = true;
+                    }
+                    //每个模块是否展开
+                    val.isOpen = $scope.TarsierMenuInfo[val.id] !== 0;
+                    val.parentCode = val.code;
+                    if (Array.isArray(val.children) && val.children.length) {
+                        val.children.forEach(function (v, i) {
+                            v.parentCode = val.code;
+                            if (v.code === '0601') {
+                                $scope.allfollowId = v.id;
+                            }
+                            if (v.code === '0602') {
+                                $scope.definedfollowId = v.id;
+                            }
+                            if (Array.isArray(v.children) && v.children.length) {
+                                v.children.forEach(function (value, index) {
+                                    value.parentCode = val.code;
+                                    $rootScope.definedEventIdMap[value.menuId] = value.menuName;
+                                    if (v.code === '0601' && value.id !== '999999999999999') {
+                                        value.code = '0602';
+
+                                    }
+
+                                    var firstitemAry = value.moduUrl.split('/');
+                                    if (!firstitemAry[firstitemAry.length - 1]) {//有/分割线
+                                        value.routeString = firstitemAry[firstitemAry.length - 2];
+                                        value.goJumpUrl = 'tarsier.monitoring.' + firstitemAry[firstitemAry.length - 2];
+                                    } else {
+                                        value.routeString = firstitemAry[firstitemAry.length - 1];
+                                        value.goJumpUrl = 'tarsier.monitoring.' + firstitemAry[firstitemAry.length - 1];
+                                    }
+
+                                    $scope.menuIdMap[value.routeString] = value.id;
+                                    $scope.menuPrentIdMap[value.routeString] = v.id;
+
+                                    if (v.code === '0601' || v.code === '0602') {
+                                        value.isDisallowFavorite = true;
+                                    }
+                                    if (jumpCode === value.code) {
+                                        $scope.canLookPageFlag = true;
+                                        if (jumpCode === '0601') {
+                                            if ($scope.currentRefreshId === value.id || $scope.currentRefreshId === 'aaa') {//已关注自定义事件台刷新 aaa全部故障刷新
+                                                v.isOpen = true;
+                                                value.isSelect = true;
+                                                $scope.initNavTitle = value.label;
+
+
+                                            }
+
+                                            if (!$scope.currentRefreshId) {//外部跳转点击
+                                                v.isOpen = true;
+                                                v.children[0].isSelect = true;
+                                                $scope.initNavTitle = v.children[0].label;
+
+                                                if (v.children[0].id === '999999999999999') {
+                                                    $state.go('tarsier.monitoring.events', {
+                                                        viewId: 'aaa'
+                                                    });
+                                                } else {
+                                                    $state.go('tarsier.monitoring.definedEvents', { viewId: v.children[0].menuId, type: 1, status: 1, viewName: v.children[0].menuName });
+                                                }
+                                            }
+
+                                        } else if (jumpCode === '0602') {
+                                            if ($scope.currentRefreshName === value.label) {
+                                                v.isOpen = true;
+                                                value.isSelect = true;
+                                                $scope.initNavTitle = value.label;
+
+                                            } else {
+                                                if (v.code === '0602' && !$scope.currentRefreshName) {
+                                                    v.isOpen = true;
+                                                    v.children[0].isSelect = true;
+                                                    $scope.initNavTitle = value.label;
+
+                                                    $state.go('tarsier.monitoring.newEvents', {
+                                                        viewId: 1,
+                                                        viewName: '',
+                                                        status: 0,
+                                                        noChangePage: 1
+                                                    });
+                                                }
+                                            }
+
+                                        } else {
+                                            v.isOpen = true;
+                                            value.isSelect = true;
+                                            $scope.initNavTitle = value.label;
+
+                                        }
+
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    //输入的路由没有权限时，跳转到第一个
+                    if (!$scope.canLookPageFlag && !$state.includes('tarsier.monitoring.oScreen') && !$state.includes('tarsier.monitoring.historyOscreen') && !$state.includes('tarsier.monitoring.sharePage') && !$state.includes('tarsier.monitoring.monitorDuty') && !$state.includes('tarsier.monitoring.printReport') && !$state.includes('tarsier.monitoring.printOnDutyReport')&& !$state.includes('tarsier.monitoring.effectAnalysis')) {
+                        if (val.code === '06') {
+                            val.children[0].isOpen = true;
+                            val.children[0].children[0].isSelect = true;
+                            $state.go(val.children[0].children[0].goJumpUrl);
+                            $scope.initNavTitle = val.children[0].children[0].label;
+
+                        }
+                    }
+
+
+                });
+            }
+            $scope.haveAuthority = $scope.haveAuthorityFlag;
+
+            //console.log(mockData);
+            return mockData;
+        };
+        //存储菜单当前less 和 favorite的状态
+        $scope.toStorageMenuStatus = function () {
+            $scope.curLessStatus = $scope.menu.isLessModel() ? '1' : '0';
+            $scope.curFavoriteStatus = $scope.menu.isActiveFavoriteTab() ? '1' : '0';
+            localStorage.setItem('curLessStatus', $scope.curLessStatus);
+            localStorage.setItem('curFavoriteStatus', $scope.curFavoriteStatus);
+        };
+        //清除菜单状态存储
+        $scope.clearStorageMenuStatus = function () {
+            localStorage.removeItem('curLessStatus');
+            localStorage.removeItem('curFavoriteStatus');
+        };
+
+        //查询颜色等级
+        $scope.queryServityColorFun = function () {
+            MonitoringService.severitylist({}).success(function (result) {
+                if (result.data && result.data.length) {
+                    try {
+                        var color = JSON.stringify(result);
+                        localStorage.setItem('colorkey', color);
+                        //var colorObj = JSON.parse(localStorage.getItem('colorkey'));
+                    } catch (error) {
+                        Unit.error(L.get('EMV_UNABLE_TO_GET_COLOR_RATING'));
+                    }
+                }
+            }).error(function () {
+                Unit.error(L.get('EMV_UNABLE_TO_GET_COLOR_RATING'));
+            });
+        };
+        $scope.queryServityColorFun();
+    }]);
+
+})(nameSpace.reg('graph'));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
